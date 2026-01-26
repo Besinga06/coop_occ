@@ -2113,7 +2113,7 @@ if (isset($_GET['expences-report'])) {
             date('F d, Y', strtotime($row['date_expence'])),
             $row['fullname'],
             $row['description'],
-            $row['aprove_by'],
+            $row['approve_by'],
             $row['notes'],
             number_format($row['expence_amount'], 2)
         );

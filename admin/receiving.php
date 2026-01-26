@@ -1,28 +1,48 @@
-<?php session_start(); ?>
 <?php
+session_start();
 ini_set('max_execution_time', 0);
 require('db_connect.php');
-$type = 0;
-if (isset($_GET['type'])) {
-	$type = 1;
-}
 
-$check_session  = $_SESSION['is_login_yes'];
-$settings = "SELECT * FROM tbl_settings";
+$type = isset($_GET['type']) ? 1 : 0;
+$check_session  = $_SESSION['is_login_yes'] ?? 0;
+
+/* ================= SETTINGS ================= */
+$tax = 0;
+$settings = "SELECT tax FROM tbl_settings LIMIT 1";
 $result_settings = $db->query($settings);
-while ($row = $result_settings->fetchArray()) {
+if ($row = $result_settings->fetch_assoc()) {
 	$tax = $row['tax'];
 }
 
+/* ================= TODAY SALES ================= */
 $today = date("Y-m-d");
 $start = strtotime('today GMT');
 $date_add = date('Y-m-d', strtotime('+1 day', $start));
-$query = "SELECT * FROM tbl_sales INNER JOIN tbl_users ON tbl_sales.user_id=tbl_users.user_id  LEFT JOIN tbl_customer ON tbl_sales.cust_id=tbl_customer.cust_id  WHERE  sales_date BETWEEN  '$today' AND '$date_add' AND tbl_sales.user_id='" . $_SESSION['user_id'] . "' AND sales_status!=3 GROUP BY tbl_sales.sales_no ";
+
+$query = "
+SELECT 
+    tbl_sales.sales_no,
+    tbl_sales.sales_date,
+    tbl_sales.total_amount,
+    tbl_sales.sales_type,
+    tbl_sales.sales_status,
+    tbl_users.fullname,
+    tbl_customer.name
+FROM tbl_sales
+INNER JOIN tbl_users ON tbl_sales.user_id = tbl_users.user_id
+LEFT JOIN tbl_customer ON tbl_sales.cust_id = tbl_customer.cust_id
+WHERE tbl_sales.sales_date BETWEEN '$today' AND '$date_add'
+AND tbl_sales.user_id = '" . $_SESSION['user_id'] . "'
+AND tbl_sales.sales_status != 3
+ORDER BY tbl_sales.sales_id DESC
+";
+
 $total = 0;
 $total_panda = 0;
 $counter = 0;
+
 $result = $db->query($query);
-while ($row = $result->fetchArray()) {
+while ($row = $result->fetch_assoc()) {
 	$counter++;
 	if ($row['sales_type'] == 0) {
 		$total += $row['total_amount'];
@@ -31,13 +51,22 @@ while ($row = $result->fetchArray()) {
 	}
 }
 
-
+/* ================= UPDATE MODE ================= */
 if (isset($_GET['update'])) {
-	$sales_no = $_GET['sales_no'];
+	
 	echo "<script> var is_update = true; </script>";
-	$salesSelect = "SELECT * FROM tbl_sales INNER JOIN tbl_users ON tbl_sales.user_id = tbl_users.user_id WHERE sales_no='" . $_GET['sales_no'] . "'  ";
+	$sales_no = intval($_GET['sales_no']);
+
+	$salesSelect = "
+    SELECT tbl_sales.sales_date, tbl_users.fullname
+    FROM tbl_sales
+    INNER JOIN tbl_users ON tbl_sales.user_id = tbl_users.user_id
+    WHERE tbl_sales.sales_no = '$sales_no'
+    LIMIT 1
+    ";
+
 	$result_sales = $db->query($salesSelect);
-	while ($rowSales = $result_sales->fetchArray()) {
+	if ($rowSales = $result_sales->fetch_assoc()) {
 		$sales_date = $rowSales['sales_date'];
 		$user = $rowSales['fullname'];
 	}
@@ -45,14 +74,15 @@ if (isset($_GET['update'])) {
 	echo "<script> var is_update = false; </script>";
 }
 
+/* ================= BEGINNING CASH ================= */
 $beginning = 0;
-$beginning_query = "SELECT * FROM tbl_beginning_cash  ";
+$beginning_query = "SELECT amount FROM tbl_beginning_cash LIMIT 1";
 $result_beginning = $db->query($beginning_query);
-while ($row = $result_beginning->fetchArray()) {
+if ($row = $result_beginning->fetch_assoc()) {
 	$beginning = $row['amount'];
 }
-
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <meta http-equiv="content-type" content="text/html;charset=UTF-8" />
@@ -109,7 +139,7 @@ while ($row = $result_beginning->fetchArray()) {
 					<div id="show-search"></div>
 				</div>
 				<div class="form-group has-feedback has-feedback-left input-text product-input" hidden>
-					<input class="form-control filterme" style="width: 100px" placeholder="QTY" value="1" type="text" id="quatity-input" >
+					<input class="form-control filterme" style="width: 100px" placeholder="QTY" value="1" type="text" id="quatity-input">
 					<div class="form-control-feedback">
 						<i class="icon-cart text-size-base"></i>
 					</div>

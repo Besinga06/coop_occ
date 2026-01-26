@@ -109,16 +109,24 @@
 
                     // ----------------------
                     // 1. Sales Totals (Cash & Credit)
-                    // ----------------------
+
                     $query_cash_sales = "
+SELECT 
+    SUM(total_amount) AS total_amount,
+    SUM(subtotal) AS total_subtotal,
+    SUM(discount) AS total_discount
+FROM (
     SELECT 
-        SUM(subtotal) AS total_subtotal,
-        SUM(discount) AS total_discount,
-        SUM(total_amount) AS total_amount
-    FROM tbl_sales
-    WHERE sales_status != 3
-      AND sales_type = 1
-      AND DATE(sales_date) BETWEEN '$filter_start' AND '$filter_end'
+        s.sales_no,
+        MAX(s.total_amount) AS total_amount,
+        MAX(s.subtotal) AS subtotal,
+        MAX(s.discount) AS discount
+    FROM tbl_sales s
+    WHERE s.sales_status != 3
+      AND s.sales_type = 1
+      AND DATE(s.sales_date) BETWEEN '$filter_start' AND '$filter_end'
+    GROUP BY s.sales_no
+) AS grouped_sales
 ";
 
                     $query_credit_sales = "
@@ -130,11 +138,12 @@
       AND DATE(sales_date) BETWEEN '$filter_start' AND '$filter_end'
 ";
 
+                    // Execute query
                     $result_cash = $db->query($query_cash_sales);
                     if ($row = $result_cash->fetch_assoc()) {
+                        $all_total = $row['total_amount'] ?? 0;
                         $all_subtotal = $row['total_subtotal'] ?? 0;
                         $all_discount = $row['total_discount'] ?? 0;
-                        $all_total = $row['total_amount'] ?? 0;
                     }
 
                     $result_credit = $db->query($query_credit_sales);
@@ -326,7 +335,7 @@
                                         $date_add = date('Y-m-d', strtotime('+1 day', $start));
                                         $total_sales = 0;
 
-                                        // Determine date filter
+                                        // Date filter
                                         if (isset($_SESSION['daily-report']) && $_SESSION['daily-report'] != $today) {
                                             $filter_start = $_SESSION['daily-report'];
                                             $filter_end = $_SESSION['daily-report'];
@@ -335,24 +344,38 @@
                                             $filter_end = $date_add;
                                         }
 
-                                        // Query sales without GROUP BY
+                                        // Query sales grouped by sales_no to get only one row per sale
                                         $query = "
-                                        SELECT tbl_sales.*, tbl_users.fullname, tbl_customer.name AS customer_name
-                                        FROM tbl_sales
-                                        INNER JOIN tbl_users ON tbl_sales.user_id = tbl_users.user_id
-                                        LEFT JOIN tbl_customer ON tbl_sales.cust_id = tbl_customer.cust_id
-                                        WHERE DATE(sales_date) BETWEEN '$filter_start' AND '$filter_end'
-                                        AND sales_status != 3
-                                        AND tbl_sales.sales_type = 1
-                                        ORDER BY sales_no ASC
-                                         ";
+SELECT 
+    s.sales_no,
+    MAX(s.total_amount) AS total_amount,
+    MAX(s.subtotal) AS subtotal,
+    MAX(s.discount) AS discount,
+    MAX(s.amount_paid) AS amount_paid,
+    MAX(u.fullname) AS fullname,
+    MAX(c.name) AS customer_name
+FROM tbl_sales s
+LEFT JOIN tbl_users u ON s.user_id = u.user_id
+LEFT JOIN tbl_customer c ON s.cust_id = c.cust_id
+WHERE DATE(s.sales_date) BETWEEN '$filter_start' AND '$filter_end'
+  AND s.sales_status != 3
+  AND s.sales_type = 1
+GROUP BY s.sales_no
+ORDER BY s.sales_no ASC
+";
 
                                         $result = $db->query($query);
 
                                         while ($row = $result->fetch_assoc()) {
-                                            $i++;
+                                            $i++; // <-- increment counter
+
+                                            // Only one total_amount per sales_no
                                             $total_sales += $row['total_amount'];
-                                            $sales_id = str_pad($row['sales_id'], 8, '0', STR_PAD_LEFT); // pad with zeros
+
+                                            $sales_id = str_pad($row['sales_no'], 8, '0', STR_PAD_LEFT);
+                                            $subtotal = $row['subtotal'] ?? 0;
+                                            $discount = $row['discount'] ?? 0;
+                                            $amount_paid = $row['amount_paid'] ?? 0;
                                         ?>
                                     <tr>
                                         <td>
@@ -362,9 +385,9 @@
                                         </td>
                                         <td><?= $row['fullname'] ?></td>
                                         <td><?= $row['customer_name'] ?></td>
-                                        <td style="text-align: right;"><?= number_format($row['subtotal'], 2) ?></td>
-                                        <td style="text-align: right;"><?= number_format($row['discount'], 2) ?></td>
-                                        <td style="text-align: center;"><?= number_format($row['amount_paid'], 2) ?></td>
+                                        <td style="text-align: right;"><?= number_format($subtotal, 2) ?></td>
+                                        <td style="text-align: right;"><?= number_format($discount, 2) ?></td>
+                                        <td style="text-align: center;"><?= number_format($amount_paid, 2) ?></td>
                                         <td style="text-align: right;"><b><?= number_format($row['total_amount'], 2) ?></b></td>
                                     </tr>
                                 <?php } ?>
@@ -401,8 +424,7 @@
                                             <th>Bill No.</th>
                                             <th>Customer</th>
                                             <th>Sub Total</th>
-                                            <th>Discount</th>
-                                            <th>Total Amount</th>
+                                            <th>Amount Due</th>
                                             <th>Remaining Balance</th>
                                             <th>Payments Made</th>
                                         </tr>
@@ -413,10 +435,9 @@
                                         $today = date("Y-m-d");
                                         $start = strtotime('today GMT');
                                         $date_add = date('Y-m-d', strtotime('+1 day', $start));
-                                        $total_charge = 0;
-                                        $total_collected = 0;
+                                        $total_payments = 0;
 
-                                        // Determine date filter
+                                        // Date filter
                                         if (isset($_SESSION['daily-report']) && $_SESSION['daily-report'] != $today) {
                                             $filter_start = $_SESSION['daily-report'];
                                             $filter_end = $_SESSION['daily-report'];
@@ -425,69 +446,67 @@
                                             $filter_end = $date_add;
                                         }
 
-                                        // Charge Sales Query (no GROUP BY)
+                                        // Query only charge sales that have payments
                                         $charge_query = "
-                                     SELECT s.*, c.name AS customer_name
-                                     FROM tbl_sales s
-                                     LEFT JOIN tbl_customer c ON s.cust_id = c.cust_id
-                                     WHERE DATE(s.sales_date) BETWEEN '$filter_start' AND '$filter_end'
-                                     AND s.sales_status != 3
-                                     AND s.sales_type = 0
-                                     ORDER BY s.sales_no ASC
-                                     ";
+SELECT 
+    s.sales_no,
+    MAX(s.subtotal) AS subtotal,
+    MAX(s.total_amount) AS total_amount,
+    MAX(c.name) AS customer_name,
+    MAX(p.total_paid) AS payments_made
+FROM tbl_sales s
+LEFT JOIN tbl_customer c ON s.cust_id = c.cust_id
+INNER JOIN (
+    SELECT sales_no, SUM(amount_paid) AS total_paid
+    FROM tbl_payments
+    GROUP BY sales_no
+) p ON s.sales_no = p.sales_no
+WHERE DATE(s.sales_date) BETWEEN '$filter_start' AND '$filter_end'
+AND s.sales_status != 3
+AND s.sales_type = 0
+GROUP BY s.sales_no
+ORDER BY s.sales_no ASC
+";
 
                                         $charge_result = $db->query($charge_query);
 
                                         while ($row = $charge_result->fetch_assoc()) {
                                             $j++;
-                                            $sales_no = $row['sales_no'];
-                                            $sales_id = 'CHG' . str_pad($row['sales_id'], 6, "0", STR_PAD_LEFT);
 
-                                            // Get total payments for this sale
-                                            $payment_query = "SELECT SUM(amount_paid) as total_paid FROM tbl_payments WHERE sales_no = '$sales_no'";
-                                            $payment_res = $db->query($payment_query)->fetch_assoc();
-                                            $paid_amount = $payment_res['total_paid'] ?? 0;
+                                            $subtotal = $row['subtotal'] ?? 0;
+                                            $total_amount = $row['total_amount'] ?? 0;
+                                            $payments_made = $row['payments_made'] ?? 0;
+                                            $remaining = $total_amount - $payments_made;
 
-                                            $remaining = $row['total_amount'] - $paid_amount;
-
-                                            $total_charge += $row['total_amount'];
-                                            $total_collected += $paid_amount;
+                                            // Only sum payments
+                                            $total_payments += $payments_made;
                                         ?>
                                             <tr>
-                                                <td><?= $sales_id ?></td>
+                                                <td><?= $row['sales_no'] ?></td>
                                                 <td><?= $row['customer_name'] ?></td>
-                                                <td style="text-align:right;"><?= number_format($row['subtotal'], 2) ?></td>
-                                                <td style="text-align:right;"><?= number_format($row['discount'], 2) ?></td>
-                                                <td style="text-align:right;"><b><?= number_format($row['total_amount'], 2) ?></b></td>
+                                                <td style="text-align:right;"><?= number_format($subtotal, 2) ?></td>
+                                                <td style="text-align:right;"><?= number_format($total_amount, 2) ?></td>
                                                 <td style="text-align:right; color:<?= ($remaining > 0) ? 'red' : 'green' ?>;">
                                                     <b><?= number_format($remaining, 2) ?></b>
                                                 </td>
-                                                <td style="text-align:right;"><?= number_format($paid_amount, 2) ?></td>
+                                                <td style="text-align:right;"><?= number_format($payments_made, 2) ?></td>
                                             </tr>
                                         <?php } ?>
 
                                         <?php if ($j == 0) { ?>
                                             <tr>
-                                                <td colspan="7" align="center">
-                                                    <h2>No charge sales found!</h2>
+                                                <td colspan="6" align="center">
+                                                    <h2>No paid charge sales found!</h2>
                                                 </td>
                                             </tr>
                                         <?php } else { ?>
-                                            <tr>
-                                                <td colspan="4" align="right">
-                                                    <h5>Total Charge Sales</h5>
-                                                </td>
-                                                <td align="right">
-                                                    <h5><?= number_format($total_charge, 2) ?></h5>
-                                                </td>
-                                                <td align="right">
-                                                    <h5><?= number_format($total_charge - $total_collected, 2) ?></h5>
-                                                </td>
-                                                <td align="right">
-                                                    <h5><?= number_format($total_collected, 2) ?></h5>
-                                                </td>
+                                            <tr style="background:#f1f1f1;font-weight:bold;">
+                                                <td colspan="5" align="right">TOTAL PAYMENTS:</td>
+                                                <td align="right"><?= number_format($total_payments, 2) ?></td>
                                             </tr>
                                         <?php } ?>
+
+
 
                                     </tbody>
                                 </table>
