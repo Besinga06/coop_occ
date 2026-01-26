@@ -1,0 +1,189 @@
+
+
+<?php 
+    error_reporting(0);
+    require('db_connect.php');
+    if(isset($_GET['sales_no'])){
+        $sales_no = $_GET['sales_no'];  
+    }
+     
+    $query = "SELECT * FROM tbl_sales  INNER JOIN tbl_products ON tbl_sales.product_id=tbl_products.product_id INNER JOIN tbl_users ON tbl_sales.user_id=tbl_users.user_id  LEFT JOIN tbl_customer  ON tbl_sales.cust_id=tbl_customer.cust_id WHERE tbl_sales.sales_no='".$sales_no."'  ";
+    //$query = "SELECT * FROM tbl_sales  INNER JOIN tbl_products ON tbl_sales.product_id=tbl_products.product_id INNER JOIN tbl_users ON tbl_sales.user_id=tbl_users.user_id ORDER BY sales_id DESC LIMIT 0,1  ";
+
+   
+    $result = $db->query($query); while($row = $result->fetchArray()) {
+        $sales_id = '00000000'.$row['sales_id'];  
+        $cashier = $row['fullname'];
+        $customer = $row['name']; 
+        $total_amount = $row['total_amount'];
+        $subtotal = $row['subtotal'];
+        $discount = $row['discount'];
+        $sales_no = $row['sales_no'];
+        $amount_paid = $row['amount_paid'];
+        $vat_sales = number_format($row['total_amount']-($row['tax_percent']/100),2);
+        $vat_amount = number_format($row['subtotal']*($row['tax_percent']/100),2);
+        $sales_date = $row['sales_date'];
+        $unit = $row['unit'];
+    }
+?>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Receipt</title>
+    <style type="text/css">
+          @page {
+            margin: 0;
+            font-size: 10px!important;
+            font-family: calibri;
+             /*margin-right: -10;*/
+        }
+        @media print {
+          .footer {page-break-after: always;}
+        }
+        .receipt-div{
+            font-size: 10px!important;
+            font-family: calibri;
+            width: 250px;
+            background: #eee;
+            /*color: #0505ca;*/
+        }
+        .heading{
+            width: 100%;
+            text-align: center;
+            margin-left: 20px;
+        }
+        .table-product{
+            width: 100%;
+            
+        }
+        .product-name{
+            max-width: 80px;
+        }
+        .text-right{
+            text-align: right;
+        }
+        .table-summary, .table-total,.barcode-div{
+            width: 100%;
+        }
+        .table-total{
+
+        }.text-center{
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="receipt-div" id="print-receipt" >
+        <style type="text/css">
+            @page {
+                margin: 0;
+                font-size: 10px!important;
+                font-family: calibri;
+            }
+            .receipt-div{
+                width: 230px;
+                /* width: 100%; */
+                background: #eee;
+                padding: 2px!important;
+                font-family: calibri;
+
+            }
+            .heading{
+                width: 100%;
+                text-align: center;
+                margin-left: -7px!important;
+            }
+            .table-product{
+                width: 100%;
+                
+            }
+            .product-name{
+                max-width: 80px;
+            }
+            .text-right{
+                text-align: right;
+            }
+            .table-summary, .table-total,.barcode-div{
+                width: 100%;
+            }
+            .table-total{
+
+            }.text-center{
+                text-align: center;
+            }
+            
+        </style>
+        <div class="heading">
+            <table style="width: 100%;text-align: center;">
+            <tr>
+                <td><b></b></td>
+            </tr>
+            <tr>
+                <td >
+                    
+                </td>
+            </tr>
+            <tr>
+                <td >
+                    
+                </td>
+            </tr>
+            <tr>
+                <td>Email :</td>
+            </tr>
+            <tr>
+                <td>Contact # </td>
+            </tr>
+            </table>
+        </div>
+        <table class="table-product">
+            <?php
+                $i = 0;
+                $result = $db->query($query);
+                while($row2 = $result->fetchArray()) {
+                $i++;
+            ?>
+            <tr>
+                <td class="product-name"><?= $row2['product_name']?><br><?= $row2['quantity_order']?> <?= $unit ?> X @<?= number_format($row2['order_price'] ,2) ?></td>
+                <td class="text-right"><br><?= number_format($row2['order_price'] * $row2['quantity_order'] ,2) ?></td>
+            </tr>
+            <?php }?>
+        </table>
+        <br>
+         <table class="table-total">
+            <tr>
+                <td>SUB TOTAL</td> <td class="text-right"><?= number_format($subtotal,2) ?></td>
+            </tr>
+            <tr>
+                <td>DISCOUNT</td> <td class="text-right"><?= number_format($discount,2) ?></td>
+            </tr>
+            <tr>
+                <td>AMOUNT DUE</td> <td class="text-right"><b><?= number_format($total_amount,2) ?></b></td>
+            </tr>
+            <tr>
+                <td>CASH</td> <td class="text-right"><?= number_format($amount_paid,2) ?></td>
+            </tr>
+            <tr>
+                <td>CHANGE</td> <td class="text-right"><b><?= number_format($amount_paid - $total_amount,2) ?></b></td>
+            </tr>
+         </table>
+        <div class="div-dotted"></div>
+        <br>
+
+        <table class="table-summary">
+            <tr>
+                <td><?= $cashier ?> </td> <td><?= $i ?> item(s)</td> <td class="text-right"><?= $sales_date ?></td>
+            </tr>
+            
+        </table>
+        <br>
+        <div class="text-center">
+            THIS SERVES AS CASH SALES INVOICE & IS VALID 5 YEARS FROM DATE OF PERMIT TO USE
+        </div>
+        <div class="barcode-div text-center">
+            <img alt="<?= $sales_id ?>" src="barcode.php?codetype=Code39&size=40&text=<?= $sales_no;?>&print=false" />
+            <br>Bill No. &nbsp; <?= $sales_id ?>
+        </div>
+    </div>
+</body>
+</html>
