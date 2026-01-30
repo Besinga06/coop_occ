@@ -477,18 +477,18 @@ if (isset($_SESSION['sales-date-required'])) {
                             <div class="heading-elements">
                             </div>
                         </div>
-                        <!-- <div class="entry-page">
+                        <div class="entry-page">
                             <div class="btn-group">
                                 <button type="button" class="btn bg-teal-400 btn-labeled"><b><i class="icon-book"></i></b> Entries</button>
                                 <button type="button" class="btn bg-teal-400 dropdown-toggle" data-toggle="dropdown"><span class="caret"></span></button>
                                 <ul class="dropdown-menu dropdown-menu-right">
-                                    <li  onclick="changePage(this)" val="20"   ><a href="#"><i class="icon-circles text-primary "></i> 20</a></li>
-                                    <li  onclick="changePage(this)" val="50"   ><a href="#"><i class="icon-circles "></i> 50</a></li>
-                                    <li  onclick="changePage(this)" val="100"   ><a href="#"><i class="icon-circles "></i> 100</a></li>
-                                    <li  onclick="changePage(this)" val="-1"   ><a href="#"><i class="icon-circles "></i> All</a></li>
+                                    <li onclick="changePage(this)" val="20"><a href="#"><i class="icon-circles text-primary "></i> 20</a></li>
+                                    <li onclick="changePage(this)" val="50"><a href="#"><i class="icon-circles "></i> 50</a></li>
+                                    <li onclick="changePage(this)" val="100"><a href="#"><i class="icon-circles "></i> 100</a></li>
+                                    <li onclick="changePage(this)" val="-1"><a href="#"><i class="icon-circles "></i> All</a></li>
                                 </ul>
                             </div>
-                        </div> -->
+                        </div>
                         <div class="panel-body product-div2">
                             <input type="hidden" name='length_change' id='length_change' value="">
                             <table class="table datatable-button-html5-basic table-hover table-bordered ">

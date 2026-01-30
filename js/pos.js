@@ -249,7 +249,7 @@ $('#form-payment').on('submit', function (e) {
     var vat_sales = $("#show-vat-sales").text();
     var subtotal = $("#show-subtotal").text();
     var discount = $("#show-discount").text(); 
-    if(payment_type !=='1'){
+    if(payment_type === 0){
         $(':input[type="submit"]').prop('disabled', true);
         after_sales(payable, payment, vat_sales, discount, subtotal, change_amount);
         $.ajax({

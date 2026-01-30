@@ -3,9 +3,13 @@
 
 ini_set('max_execution_time', 0);
 require('db_connect.php');
-$type = 0;
+$type = 1;
 if (isset($_GET['type'])) {
-    $type = 1;
+    $type = 0;
+}
+
+if (!isset($_SESSION['payment_type'])) {
+    $_SESSION['payment_type'] = true;
 }
 
 $other_amount = 0;
@@ -86,6 +90,48 @@ while ($row = $result_beginning->fetch_assoc()) {
 }
 
 ?>
+<style>
+    /* Make modal wider */
+    #modal-payment .modal-dialog {
+        max-width: 200px;
+    }
+
+    /* Keypad container */
+    .pos-keypad {
+        background: #0899af;
+        padding: 15px;
+        margin-top: 15px;
+    }
+
+    /* Make buttons fill cells */
+    .pos-keypad table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 8px;
+    }
+
+    /* BIG POS BUTTONS */
+    .pos-keypad .btn {
+        width: 100%;
+        height: 70px;
+        font-size: 26px;
+        font-weight: bold;
+        border-radius: 10px;
+    }
+
+    /* ENTER button extra big */
+    .pos-enter {
+        height: 75px !important;
+        font-size: 22px !important;
+    }
+
+    /* Clear button */
+    .pos-clear {
+        height: 75px !important;
+        font-size: 20px !important;
+    }
+</style>
+
 <!DOCTYPE html>
 <html lang="en">
 <meta http-equiv="content-type" content="text/html;charset=UTF-8" />
@@ -318,51 +364,78 @@ while ($row = $result_beginning->fetch_assoc()) {
                             <div>
                                 <div id="modal-payment" class="modal fade" data-backdrop="static" data-keyboard="false">
                                     <div class="modal-dialog modal-pay after-sales">
-                                        <div class="modal-content ">
+                                        <div class="modal-content">
                                             <div class="modal-body" id="show-payment">
-                                                <form action="#" id="form-payment" class="form-horizontal" data-toggle="validator" role="form">
-                                                    <input name="sales_type" type="hidden" value="<?= $type ?>" />
-                                                    <input class="order-number" style="width: 250px;display:none" placeholder="Order Number" name="order-number" type="text" id="order-number">
-                                                    <?php if (isset($_GET['update'])) { ?>
-                                                        <input type="hidden" name="sales_no" value="<?= $sales_no ?>"></input>
-                                                        <input type="hidden" name="update-payment"></input>
-                                                        <input type="hidden" id="cust_id" value="<?php if (!empty($_SESSION['pos-custid_update'])) {
-                                                                                                        echo $_SESSION['pos-custid_update'];
-                                                                                                    } else {
-                                                                                                        echo '1';
-                                                                                                    } ?>"></input>
-                                                    <?php } else { ?>
-                                                        <input type="hidden" name="save-payment"></input>
-                                                        <input type="hidden" id="cust_id" value="<?php if (!empty($_SESSION['pos-customer'])) {
-                                                                                                        echo $_SESSION['pos-customer'];
-                                                                                                    } else {
-                                                                                                        echo '1';
-                                                                                                    } ?>"></input>
-                                                    <?php } ?>
-                                                    <div class="row ">
-                                                        <div class="col-md-12">
-                                                            <div class=" bottom-div" style="">
-                                                                Amount Due :
-                                                                <div id="amount-due-div"><span id="amount-due"></span></div>
-                                                            </div>
-                                                            <div class="form-group">
-                                                                <div class="col-sm-12">
-                                                                    <div class="form-group  has-feedback-left input-text">
-                                                                        <input class="form-control filterme" type="text" autocomplete="off" name="payment" id="payment" placeholder="Payment" type="text" style="height: 70px;font-size: 35px;">
-                                                                        <div class="form-control-feedback" style="margin-top: 10px;">
-                                                                            <i class="icon-pencil7 text-size-base"></i>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
 
+                                                <form action="#" id="form-payment" class="form-horizontal">
+
+                                                    <input name="sales_type" type="hidden" value="<?= $type ?>" />
+
+                                                    <input class="order-number" style="width:250px;display:none" name="order-number" type="text" id="order-number">
+
+                                                    <?php if (isset($_GET['update'])) { ?>
+                                                        <input type="hidden" name="sales_no" value="<?= $sales_no ?>">
+                                                        <input type="hidden" name="update-payment">
+                                                        <input type="hidden" id="cust_id" value="<?= !empty($_SESSION['pos-custid_update']) ? $_SESSION['pos-custid_update'] : '1' ?>">
+                                                    <?php } else { ?>
+                                                        <input type="hidden" name="save-payment">
+                                                        <input type="hidden" id="cust_id" value="<?= !empty($_SESSION['pos-customer']) ? $_SESSION['pos-customer'] : '1' ?>">
+                                                    <?php } ?>
+
+                                                    <div class="bottom-div">
+                                                        Amount Due :
+                                                        <div id="amount-due-div">
+                                                            <span id="amount-due"></span>
                                                         </div>
                                                     </div>
+
+                                                    <div class="form-group">
+                                                        <input class="form-control"
+                                                            type="text"
+                                                            autocomplete="off"
+                                                            name="payment"
+                                                            id="payment"
+                                                            placeholder="Payment"
+                                                            style="height:70px;font-size:35px;">
+                                                    </div>
+
+                                                    <div class="pos-keypad">
+                                                        <table>
+                                                            <tr>
+                                                                <td><button type="button" class="btn btn-primary" onclick="select_key(1)">1</button></td>
+                                                                <td><button type="button" class="btn btn-primary" onclick="select_key(2)">2</button></td>
+                                                                <td><button type="button" class="btn btn-primary" onclick="select_key(3)">3</button></td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td><button type="button" class="btn btn-primary" onclick="select_key(4)">4</button></td>
+                                                                <td><button type="button" class="btn btn-primary" onclick="select_key(5)">5</button></td>
+                                                                <td><button type="button" class="btn btn-primary" onclick="select_key(6)">6</button></td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td><button type="button" class="btn btn-primary" onclick="select_key(7)">7</button></td>
+                                                                <td><button type="button" class="btn btn-primary" onclick="select_key(8)">8</button></td>
+                                                                <td><button type="button" class="btn btn-primary" onclick="select_key(9)">9</button></td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td><button type="button" class="btn btn-warning" onclick="clear_last()">⌫</button></td>
+                                                                <td><button type="button" class="btn btn-danger" onclick="select_key('.')">.</button></td>
+                                                                <td><button type="button" class="btn btn-primary" onclick="select_key(0)">0</button></td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td colspan="2"><button type="button" class="btn btn-warning pos-clear" onclick="clear_all()">Clear</button></td>
+                                                                <td><button type="submit" class="btn btn-success pos-enter">ENTER</button></td>
+                                                            </tr>
+                                                        </table>
+                                                    </div>
+
+
+                                                </form>
+
                                             </div>
-                                            </form>
                                         </div>
                                     </div>
                                 </div>
+
                                 <div id="modal-discount" class="modal fade" data-backdrop="static" data-keyboard="false">
                                     <div class="modal-dialog modal-sm">
                                         <div class="modal-content">
@@ -617,7 +690,8 @@ while ($row = $result_beginning->fetch_assoc()) {
                         <script src="../js/validator.min.js"></script>
                         <script type="text/javascript">
                             let typePos = 1;
-                            let payment_type = "<?php echo $payment_type; ?>";
+                            let payment_type = <?= isset($_SESSION['payment_type']) ? (int)$_SESSION['payment_type'] : 0 ?>;
+
                             var tax = "<?= $tax ?>";
 
 
@@ -668,173 +742,173 @@ while ($row = $result_beginning->fetch_assoc()) {
 
                             });
 
-                                function addBarcodeToCart(barcode) {
-                                    barcode = barcode.trim().replace(/\s+/g, '').replace(/[^\x20-\x7E]/g, '');
-                                    console.log("Sending barcode:", barcode);
+                            function addBarcodeToCart(barcode) {
+                                barcode = barcode.trim().replace(/\s+/g, '').replace(/[^\x20-\x7E]/g, '');
+                                console.log("Sending barcode:", barcode);
 
-                                    $("#show-loader").html('<i class="icon-spinner2 spinner" style="z-index: 30;position: absolute;font-size: 50px;color: #fff"></i>');
+                                $("#show-loader").html('<i class="icon-spinner2 spinner" style="z-index: 30;position: absolute;font-size: 50px;color: #fff"></i>');
 
-                                    $.ajax({
-                                        type: 'POST',
-                                        url: '../transaction.php',
-                                        dataType: 'json',
-                                        data: {
-                                            save_cartbarcode: 1,
-                                            barcode: barcode
-                                        },
-                                        success: function(msg) {
-                                            console.log('AJAX Response:', msg);
+                                $.ajax({
+                                    type: 'POST',
+                                    url: '../transaction.php',
+                                    dataType: 'json',
+                                    data: {
+                                        save_cartbarcode: 1,
+                                        barcode: barcode
+                                    },
+                                    success: function(msg) {
+                                        console.log('AJAX Response:', msg);
 
-                                            if (msg.message === 'save' || msg.message === 'save2') {
-                                                total();
-                                                view_cart();
-                                                const audio = new Audio('../audio/scanner.mp3');
-                                                audio.play();
-                                            } else if (msg['message'] == 'unsave') {
-                                                beep_error();
-                                                $.jGrowl('Desired quantity <b>(' + msg['quantity_order'] + ')</b> is greather than quantity left <b>(' + msg['quantity_left'] + ')</b>.Please check your inventory.', {
-                                                    header: 'Error Notification',
-                                                    theme: 'alert-styled-right bg-danger'
-                                                });
-                                                $("#show-loader").html('');
-                                            } else if (msg.message === 'unsave2') {
-                                                beep_error();
-                                                $.jGrowl('Product code does not exist!', {
-                                                    header: 'Error',
-                                                    theme: 'bg-danger'
-                                                });
-                                            } else if (msg['message'] == 'unsave3') {
-                                                beep_error();
-                                                $.jGrowl('Desired quantity  <b>(' + msg['quantity_order'] + ')</b> is greather than quantity left <b>(' + msg['quantity_left'] + ')</b>.Please check your inventory.', {
-                                                    header: 'Error Notification',
-                                                    theme: 'alert-styled-right bg-danger'
-                                                });
-                                                $("#show-loader").html('');
-                                            } else if (msg.message === 'error') {
-                                                beep_error();
-                                                $.jGrowl(msg.info || 'Something went wrong!', {
-                                                    header: 'Error',
-                                                    theme: 'bg-danger'
-                                                });
-                                            } else {
-
-                                                beep_error();
-                                                $.jGrowl('Unknown response from server!', {
-                                                    header: 'Error',
-                                                    theme: 'bg-danger'
-                                                });
-                                            }
-
-                                            $("#show-loader").html('');
-                                        },
-                                        error: function(xhr, status, error) {
-                                            console.error("AJAX error:", status, error, xhr.responseText);
-
-
-                                            let serverMsg = 'Something went wrong!';
-                                            try {
-                                                const res = JSON.parse(xhr.responseText);
-                                                if (res.info) serverMsg = res.info;
-                                            } catch (e) {}
-
+                                        if (msg.message === 'save' || msg.message === 'save2') {
+                                            total();
+                                            view_cart();
+                                            const audio = new Audio('../audio/scanner.mp3');
+                                            audio.play();
+                                        } else if (msg['message'] == 'unsave') {
                                             beep_error();
-                                            $.jGrowl(serverMsg, {
+                                            $.jGrowl('Desired quantity <b>(' + msg['quantity_order'] + ')</b> is greather than quantity left <b>(' + msg['quantity_left'] + ')</b>.Please check your inventory.', {
+                                                header: 'Error Notification',
+                                                theme: 'alert-styled-right bg-danger'
+                                            });
+                                            $("#show-loader").html('');
+                                        } else if (msg.message === 'unsave2') {
+                                            beep_error();
+                                            $.jGrowl('Product code does not exist!', {
                                                 header: 'Error',
                                                 theme: 'bg-danger'
                                             });
+                                        } else if (msg['message'] == 'unsave3') {
+                                            beep_error();
+                                            $.jGrowl('Desired quantity  <b>(' + msg['quantity_order'] + ')</b> is greather than quantity left <b>(' + msg['quantity_left'] + ')</b>.Please check your inventory.', {
+                                                header: 'Error Notification',
+                                                theme: 'alert-styled-right bg-danger'
+                                            });
                                             $("#show-loader").html('');
+                                        } else if (msg.message === 'error') {
+                                            beep_error();
+                                            $.jGrowl(msg.info || 'Something went wrong!', {
+                                                header: 'Error',
+                                                theme: 'bg-danger'
+                                            });
+                                        } else {
+
+                                            beep_error();
+                                            $.jGrowl('Unknown response from server!', {
+                                                header: 'Error',
+                                                theme: 'bg-danger'
+                                            });
                                         }
-                                    });
+
+                                        $("#show-loader").html('');
+                                    },
+                                    error: function(xhr, status, error) {
+                                        console.error("AJAX error:", status, error, xhr.responseText);
+
+
+                                        let serverMsg = 'Something went wrong!';
+                                        try {
+                                            const res = JSON.parse(xhr.responseText);
+                                            if (res.info) serverMsg = res.info;
+                                        } catch (e) {}
+
+                                        beep_error();
+                                        $.jGrowl(serverMsg, {
+                                            header: 'Error',
+                                            theme: 'bg-danger'
+                                        });
+                                        $("#show-loader").html('');
+                                    }
+                                });
+                            }
+
+
+                            function startCameraScanner() {
+                                const scannerContainer = document.querySelector('#scanner-container');
+                                if (!scannerContainer) {
+                                    console.error('Scanner container not found!');
+                                    return;
                                 }
 
 
-                                function startCameraScanner() {
-                                    const scannerContainer = document.querySelector('#scanner-container');
-                                    if (!scannerContainer) {
-                                        console.error('Scanner container not found!');
-                                        return;
-                                    }
+                                navigator.mediaDevices.getUserMedia({
+                                        video: {
+                                            facingMode: "environment"
+                                        }
+                                    })
+                                    .then(stream => {
 
-                                
-                                    navigator.mediaDevices.getUserMedia({
-                                            video: {
-                                                facingMode: "environment"
-                                            }
-                                        })
-                                        .then(stream => {
-                                        
-                                            let video = document.createElement('video');
-                                            video.srcObject = stream;
-                                            video.setAttribute('playsinline', true);
-                                            video.style.display = 'none';
-                                            document.body.appendChild(video);
-                                            video.play();
+                                        let video = document.createElement('video');
+                                        video.srcObject = stream;
+                                        video.setAttribute('playsinline', true);
+                                        video.style.display = 'none';
+                                        document.body.appendChild(video);
+                                        video.play();
 
-                                            // Initialize Quagga
-                                            Quagga.init({
-                                                inputStream: {
-                                                    name: "Live",
-                                                    type: "LiveStream",
-                                                    target: scannerContainer,
-                                                    constraints: {
-                                                        facingMode: "environment",
-                                                        width: {
-                                                            min: 640,
-                                                            ideal: 1280
-                                                        },
-                                                        height: {
-                                                            min: 480,
-                                                            ideal: 720
-                                                        }
+                                        // Initialize Quagga
+                                        Quagga.init({
+                                            inputStream: {
+                                                name: "Live",
+                                                type: "LiveStream",
+                                                target: scannerContainer,
+                                                constraints: {
+                                                    facingMode: "environment",
+                                                    width: {
+                                                        min: 640,
+                                                        ideal: 1280
                                                     },
-                                                    area: { 
-                                                        top: "0%",
-                                                        right: "0%",
-                                                        left: "0%",
-                                                        bottom: "0%"
+                                                    height: {
+                                                        min: 480,
+                                                        ideal: 720
                                                     }
                                                 },
-                                                decoder: {
-                                                    readers: ["code_128_reader", "ean_reader", "ean_8_reader", "code_39_reader"],
-                                                    multiple: false
-                                                },
-                                                locate: true,
-                                                numOfWorkers: navigator.hardwareConcurrency || 4,
-                                                frequency: 10,
-                                                halfSample: true,
-                                                patchSize: "medium"
-                                            }, function(err) {
-                                                if (err) {
-                                                    console.error("Quagga init error:", err);
-                                                    return;
+                                                area: {
+                                                    top: "0%",
+                                                    right: "0%",
+                                                    left: "0%",
+                                                    bottom: "0%"
                                                 }
-                                                Quagga.start();
-                                                console.log("Camera scanner started.");
-                                            });
-
-                                            let lastScanned = null;
-
-                                            Quagga.onDetected(function(result) {
-                                                const barcode = result.codeResult.code;
-                                                if (barcode !== lastScanned) {
-                                                    lastScanned = barcode;
-                                                    console.log("Barcode detected:", barcode);
-                                                    addBarcodeToCart(barcode);
-
-                                                    Quagga.pause();
-                                                    setTimeout(() => Quagga.start(), 1000);
-                                                }
-                                            });
-                                        })
-                                        .catch(err => {
-                                            console.error("Camera access denied or unavailable:", err);
-                                            alert("Camera not available. Please check your permissions.");
+                                            },
+                                            decoder: {
+                                                readers: ["code_128_reader", "ean_reader", "ean_8_reader", "code_39_reader"],
+                                                multiple: false
+                                            },
+                                            locate: true,
+                                            numOfWorkers: navigator.hardwareConcurrency || 4,
+                                            frequency: 10,
+                                            halfSample: true,
+                                            patchSize: "medium"
+                                        }, function(err) {
+                                            if (err) {
+                                                console.error("Quagga init error:", err);
+                                                return;
+                                            }
+                                            Quagga.start();
+                                            console.log("Camera scanner started.");
                                         });
-                                }
 
-                                $(document).ready(function() {
-                                    startCameraScanner();
-                                });
+                                        let lastScanned = null;
+
+                                        Quagga.onDetected(function(result) {
+                                            const barcode = result.codeResult.code;
+                                            if (barcode !== lastScanned) {
+                                                lastScanned = barcode;
+                                                console.log("Barcode detected:", barcode);
+                                                addBarcodeToCart(barcode);
+
+                                                Quagga.pause();
+                                                setTimeout(() => Quagga.start(), 1000);
+                                            }
+                                        });
+                                    })
+                                    .catch(err => {
+                                        console.error("Camera access denied or unavailable:", err);
+                                        alert("Camera not available. Please check your permissions.");
+                                    });
+                            }
+
+                            $(document).ready(function() {
+                                startCameraScanner();
+                            });
 
 
                             // $(document).scannerDetection({
@@ -893,6 +967,7 @@ while ($row = $result_beginning->fetch_assoc()) {
                             function receiving() {
                                 window.location.href = 'receiving.php'; // Replace with your target page
                             }
+
                             function profile() {
                                 window.location.href = 'profile.php'; // Replace with your target page
                             }

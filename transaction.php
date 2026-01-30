@@ -211,27 +211,72 @@ if (isset($_GET['check_username_duplicate'])) {
 }
 
 if (isset($_POST['save-cashier'])) {
-    $field_status = isset($_POST['field_status']) ? 0 : 1;
-    $data = array(
-        'field_status' => $field_status,
-        'name' => $_POST['name'],
-        'username' => $_POST['username'],
-        'password' => $_POST['password'],
-        'usertype' => $_POST['usertype']
-    );
-    save_cashier($data);
+
+    require('db_connect.php');
+
+    $name     = mysqli_real_escape_string($db, $_POST['name']);
+    $username = mysqli_real_escape_string($db, $_POST['username']);
+    $password = $_POST['password'];
+    $usertype = $_POST['usertype'];
+    $status   = isset($_POST['field_status']) ? 0 : 1;
+
+    // 🔐 HASH THE PASSWORD
+    $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+
+    $query = "INSERT INTO tbl_users 
+              (fullname, username, password, usertype, field_status) 
+              VALUES 
+              ('$name', '$username', '$hashed_password', '$usertype', '$status')";
+
+    if ($db->query($query)) {
+        echo 1;
+    } else {
+        echo 0;
+    }
+}
+if (isset($_POST['update-cashier'])) {
+
+    require 'db_connect.php';
+
+    $user_id  = intval($_POST['user_id']);
+    $fullname = $db->real_escape_string($_POST['name']);
+    $password = trim($_POST['password']);
+
+    // Get current data
+    $check = $db->query("SELECT password, fullname FROM tbl_users WHERE user_id = $user_id");
+    $old   = $check->fetch_assoc();
+
+    $updates = [];
+    $changed = false;
+
+    // Check name change
+    if ($fullname !== $old['fullname']) {
+        $updates[] = "fullname = '$fullname'";
+        $changed = true;
+    }
+
+    // Check password change
+    if (!empty($password)) {
+        $hashed = password_hash($password, PASSWORD_DEFAULT);
+        $updates[] = "password = '$hashed'";
+        $changed = true;
+    }
+
+    // If nothing changed
+    if (!$changed) {
+        echo "no_changes";
+        exit;
+    }
+
+    $sql = "UPDATE tbl_users SET " . implode(', ', $updates) . " WHERE user_id = $user_id";
+
+    if ($db->query($sql)) {
+        echo "1";
+    } else {
+        echo "0";
+    }
 }
 
-if (isset($_POST['update-cashier'])) {
-    $field_status = isset($_POST['field_status']) ? 0 : 1;
-    $data = array(
-        'field_status' => $field_status,
-        'user_id' => $_POST['user_id'],
-        'name' => $_POST['name'],
-        'password' => $_POST['password']
-    );
-    update_cashier($data);
-}
 
 if (isset($_POST['update-cash'])) {
 
@@ -593,7 +638,10 @@ if (isset($_POST['save-payment'])) {
     $total_amount = $subtotal_amount - $discount_amount + $other_amount;
 
     // PAYMENT TYPE & BALANCE
-    $payment_type = $_SESSION['payment_type'] ?? 0;
+    $payment_type = isset($_SESSION['payment_type'])
+        ? (int) $_SESSION['payment_type']
+        : 1; // default CASH
+
 
     // Ensure numeric values
     $total_amount = (float) $total_amount;

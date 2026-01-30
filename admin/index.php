@@ -246,7 +246,7 @@ while ($row = $monthly_rep->fetch_assoc()) {
                                                 <i class="icon-3x opacity-75">₱</i>
                                             </div>
                                             <div class="media-body text-right">
-                                                <h3 class="no-margin"><?= number_format($all_subtotal, 2) ?></h3>
+                                                <h3 class="no-margin"><?= number_format($all_total, 2) ?></h3>
                                                 <span class="text-uppercase text-size-mini">Sub Total</span>
                                             </div>
                                         </div>
@@ -278,6 +278,7 @@ while ($row = $monthly_rep->fetch_assoc()) {
                                         </div>
                                     </div>
                                 </div>
+
                             </div>
                         </div>
                     </div>

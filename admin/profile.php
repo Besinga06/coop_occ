@@ -156,6 +156,22 @@ $result = $db->query($query);
 
 	</div>
 	<!-- /page container -->
+	<div class="modal fade" id="confirmModal" tabindex="-1">
+		<div class="modal-dialog modal-sm">
+			<div class="modal-content">
+				<div class="modal-header bg-teal-400">
+					<h5 class="modal-title text-white">Confirm Update</h5>
+				</div>
+				<center>Are you sure you want to save changes?</center>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+					<button type="button" class="btn bg-teal-400" id="confirmSave">Save</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+
 </body>
 <?php require('includes/footer.php'); ?>
 
@@ -217,47 +233,73 @@ $result = $db->query($query);
 	});
 </script>
 <script type="text/javascript">
-	$(document).ready(function() {
+	let formChanged = false;
 
+	// Detect changes
+	$('#form-edit input').on('input', function() {
+		formChanged = true;
 	});
+
 	$('#form-edit').validator().on('submit', function(e) {
-		if (e.isDefaultPrevented()) {} else {
-			$(':input[type="submit"]').prop('disabled', true);
-			var data = $("#form-edit").serialize();
-			$.ajax({
-				type: 'POST',
-				url: '../transaction.php',
-				data: data,
-				success: function(msg) {
-					console.log(msg);
-					if (msg == '1') {
-						$.jGrowl('Profile successfully updated.', {
-							header: 'Success Notification',
-							theme: 'alert-styled-right bg-success'
-						});
-						setTimeout(function() {
-							location.reload();
-						}, 1500);
-					} else {
-						alert('Something went wrong!');
-					}
-				},
-				error: function(msg) {
+		e.preventDefault();
+
+		if (!formChanged) {
+			$.jGrowl('No changes detected.', {
+				header: 'Warning',
+				theme: 'alert-styled-right bg-warning'
+			});
+			return;
+		}
+
+		let pass = $('#password').val();
+
+		// If password field touched but too short
+		if (pass.length > 0 && pass.length < 4) {
+			$.jGrowl('Password must be at least 4 characters.', {
+				header: 'Validation Error',
+				theme: 'alert-styled-right bg-danger'
+			});
+			return;
+		}
+
+		$('#confirmModal').modal('show');
+	});
+
+	// If confirmed
+	$('#confirmSave').click(function() {
+
+		$('#confirmModal').modal('hide');
+		$(':input[type="submit"]').prop('disabled', true);
+
+		var data = $("#form-edit").serialize();
+
+		$.ajax({
+			type: 'POST',
+			url: '../transaction.php',
+			data: data,
+			success: function(msg) {
+
+				if (msg == '1') {
+					$.jGrowl('Profile successfully updated.', {
+						header: 'Success',
+						theme: 'alert-styled-right bg-success'
+					});
+					setTimeout(() => location.reload(), 1500);
+
+				} else if (msg == 'no_changes') {
+					$.jGrowl('Nothing was changed.', {
+						header: 'Notice',
+						theme: 'alert-styled-right bg-info'
+					});
+
+				} else {
 					alert('Something went wrong!');
 				}
-			});
-			return false;
-		}
+
+				$(':input[type="submit"]').prop('disabled', false);
+			}
+		});
 	});
-
-	function closer() {
-		window.location = 'customer.php';
-	}
-
-	function view_details(el) {
-		var cust_id = $(el).attr('cust_id');
-		window.location = 'customer-details.php?cust_id=' + cust_id;
-	}
 </script>
 
 </html>

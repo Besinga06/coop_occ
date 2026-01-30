@@ -130,13 +130,14 @@ FROM (
 ";
 
                     $query_credit_sales = "
-    SELECT 
-        SUM(total_amount) AS total_amount
-    FROM tbl_sales
-    WHERE sales_status != 3
-      AND sales_type = 0
-      AND DATE(sales_date) BETWEEN '$filter_start' AND '$filter_end'
+SELECT SUM(total_amount) AS total_amount
+FROM tbl_sales
+WHERE sales_status != 3
+AND sales_type = 0
+AND sales_date >= '$filter_start'
+AND sales_date <= '$filter_end'
 ";
+
 
                     // Execute query
                     $result_cash = $db->query($query_cash_sales);
