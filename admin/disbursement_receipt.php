@@ -6,7 +6,7 @@ if (!isset($_GET['loan_id'])) {
 }
 $loan_id = (int) $_GET['loan_id'];
 
-// Fetch loan, customer, and disbursement info
+// Fetch loan, customer, and disbursement info using MySQLi prepared statement
 $query = "
     SELECT l.loan_app_id,
            c.name AS member_name,
@@ -21,10 +21,14 @@ $query = "
     JOIN tbl_customer c ON l.customer_id = c.cust_id
     JOIN tbl_loan_approval la ON la.loan_app_id = l.loan_app_id
     LEFT JOIN tbl_loan_disbursement ld ON ld.loan_app_id = l.loan_app_id
-    WHERE l.loan_app_id = '$loan_id'
+    WHERE l.loan_app_id = ?
 ";
-$result = $db->query($query);
-$loan = $result->fetchArray(SQLITE3_ASSOC);
+
+$stmt = $db->prepare($query);
+$stmt->bind_param("i", $loan_id);
+$stmt->execute();
+$result = $stmt->get_result();
+$loan = $result->fetch_assoc();
 
 if (!$loan) {
     die("Loan or disbursement not found.");
@@ -39,7 +43,7 @@ $interest_rate = $loan['interest_rate'];
 $mode = $loan['mode'];
 $release_date = $loan['release_date'];
 
-// Monthly EMI calculation
+// Monthly EMI calculation (Flat or Reducing Balance can be adjusted here)
 $monthly_rate = $interest_rate / 12 / 100;
 $emi = $principal * $monthly_rate * pow(1 + $monthly_rate, $term) / (pow(1 + $monthly_rate, $term) - 1);
 $emi = round($emi, 2);
@@ -53,7 +57,7 @@ $total_payable = round($emi * $term, 2);
         <p class="title"><b>LOURDES FARMERS MULTI-PURPOSE COOPERATIVE</b></p>
         <p>Brgy Lourdes, Alubijid Mis'Or</p>
         <p>Loan Disbursement Receipt</p>
-        
+
         <hr>
     </div>
 

@@ -1,13 +1,8 @@
 <?php
-session_start();
-
-if (!isset($_SESSION['is_login_yes']) || $_SESSION['is_login_yes'] !== 'yes') {
-    header("Location: ../index.php");
-    exit();
-}
-
-
 require('includes/header.php');
+
+
+
 require('db_connect.php');
 
 
@@ -155,7 +150,7 @@ $disbursed_loans = $db->query("
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php while ($row = $pending_loans->fetchArray(SQLITE3_ASSOC)) { ?>
+                                    <?php while ($row = $pending_loans->fetch_assoc()) { ?>
                                         <tr style="cursor:pointer" onclick="view_details(<?= (int)$row['loan_id']; ?>)">
                                             <td hidden><?= (int)$row['loan_id']; ?></td>
                                             <td><b><?= htmlspecialchars($row['member_name']); ?></b></td>
@@ -165,6 +160,7 @@ $disbursed_loans = $db->query("
                                             <td><?= htmlspecialchars($row['application_date']); ?></td>
                                         </tr>
                                     <?php } ?>
+
                                 </tbody>
                             </table>
                         </div>
@@ -191,7 +187,7 @@ $disbursed_loans = $db->query("
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php while ($row = $approved_loans->fetchArray(SQLITE3_ASSOC)) { ?>
+                                    <?php while ($row = $approved_loans->fetch_assoc()) { ?>
                                         <tr>
                                             <td hidden><?= (int)$row['loan_id']; ?></td>
                                             <td><b><?= htmlspecialchars($row['member_name']); ?></b></td>
@@ -206,6 +202,7 @@ $disbursed_loans = $db->query("
                                             </td>
                                         </tr>
                                     <?php } ?>
+
                                 </tbody>
                             </table>
                         </div>
@@ -230,7 +227,7 @@ $disbursed_loans = $db->query("
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php while ($row = $disbursed_loans->fetchArray(SQLITE3_ASSOC)) { ?>
+                                    <?php while ($row = $disbursed_loans->fetch_assoc()) { ?>
                                         <tr>
                                             <td hidden><?= (int)$row['loan_id']; ?></td>
                                             <td><b><?= htmlspecialchars($row['member_name']); ?></b></td>
@@ -245,6 +242,7 @@ $disbursed_loans = $db->query("
                                             </td>
                                         </tr>
                                     <?php } ?>
+
                                 </tbody>
                             </table>
                         </div>
@@ -279,11 +277,12 @@ $disbursed_loans = $db->query("
                             <select class="form-control" name="customer_id" required>
                                 <option value="">-- Select Member --</option>
                                 <?php
-                                $cust = $db->query("SELECT cust_id, name FROM tbl_customer WHERE cust_id!=1");
-                                while ($c = $cust->fetchArray(SQLITE3_ASSOC)) {
+                                $cust = $db->query("SELECT cust_id, name FROM tbl_customer WHERE cust_id != 1");
+                                while ($c = $cust->fetch_assoc()) {
                                     echo "<option value='" . (int)$c['cust_id'] . "'>" . htmlspecialchars($c['name']) . "</option>";
                                 }
                                 ?>
+
                             </select>
                         </div>
                     </div>

@@ -1,6 +1,7 @@
 <?php
 require('includes/header.php');
 
+
 // Get current year
 $currentYear = date('Y');
 
@@ -11,23 +12,22 @@ $shares = $db->query("
     SELECT 
         c.cust_id,
         c.name,
-        SUM(CASE WHEN strftime('%m', cs.contribution_date) = '01' THEN cs.amount ELSE 0 END) AS Jan,
-        SUM(CASE WHEN strftime('%m', cs.contribution_date) = '02' THEN cs.amount ELSE 0 END) AS Feb,
-        SUM(CASE WHEN strftime('%m', cs.contribution_date) = '03' THEN cs.amount ELSE 0 END) AS Mar,
-        SUM(CASE WHEN strftime('%m', cs.contribution_date) = '04' THEN cs.amount ELSE 0 END) AS Apr,
-        SUM(CASE WHEN strftime('%m', cs.contribution_date) = '05' THEN cs.amount ELSE 0 END) AS May,
-        SUM(CASE WHEN strftime('%m', cs.contribution_date) = '06' THEN cs.amount ELSE 0 END) AS Jun,
-        SUM(CASE WHEN strftime('%m', cs.contribution_date) = '07' THEN cs.amount ELSE 0 END) AS Jul,
-        SUM(CASE WHEN strftime('%m', cs.contribution_date) = '08' THEN cs.amount ELSE 0 END) AS Aug,
-        SUM(CASE WHEN strftime('%m', cs.contribution_date) = '09' THEN cs.amount ELSE 0 END) AS Sep,
-        SUM(CASE WHEN strftime('%m', cs.contribution_date) = '10' THEN cs.amount ELSE 0 END) AS Oct,
-        SUM(CASE WHEN strftime('%m', cs.contribution_date) = '11' THEN cs.amount ELSE 0 END) AS Nov,
-        SUM(CASE WHEN strftime('%m', cs.contribution_date) = '12' THEN cs.amount ELSE 0 END) AS `Dec`,
+        SUM(CASE WHEN DATE_FORMAT(cs.contribution_date, '%m') = '01' THEN cs.amount ELSE 0 END) AS Jan,
+        SUM(CASE WHEN DATE_FORMAT(cs.contribution_date, '%m') = '02' THEN cs.amount ELSE 0 END) AS Feb,
+        SUM(CASE WHEN DATE_FORMAT(cs.contribution_date, '%m') = '03' THEN cs.amount ELSE 0 END) AS Mar,
+        SUM(CASE WHEN DATE_FORMAT(cs.contribution_date, '%m') = '04' THEN cs.amount ELSE 0 END) AS Apr,
+        SUM(CASE WHEN DATE_FORMAT(cs.contribution_date, '%m') = '05' THEN cs.amount ELSE 0 END) AS May,
+        SUM(CASE WHEN DATE_FORMAT(cs.contribution_date, '%m') = '06' THEN cs.amount ELSE 0 END) AS Jun,
+        SUM(CASE WHEN DATE_FORMAT(cs.contribution_date, '%m') = '07' THEN cs.amount ELSE 0 END) AS Jul,
+        SUM(CASE WHEN DATE_FORMAT(cs.contribution_date, '%m') = '08' THEN cs.amount ELSE 0 END) AS Aug,
+        SUM(CASE WHEN DATE_FORMAT(cs.contribution_date, '%m') = '09' THEN cs.amount ELSE 0 END) AS Sep,
+        SUM(CASE WHEN DATE_FORMAT(cs.contribution_date, '%m') = '10' THEN cs.amount ELSE 0 END) AS Oct,
+        SUM(CASE WHEN DATE_FORMAT(cs.contribution_date, '%m') = '11' THEN cs.amount ELSE 0 END) AS Nov,
+        SUM(CASE WHEN DATE_FORMAT(cs.contribution_date, '%m') = '12' THEN cs.amount ELSE 0 END) AS `Dec`,
         SUM(cs.amount) AS Total
     FROM tbl_customer c
-    LEFT JOIN tbl_capital_share cs ON cs.cust_id = c.cust_id
+    LEFT JOIN tbl_capital_share cs ON cs.cust_id = c.cust_id AND YEAR(cs.contribution_date) = '$currentYear'
     WHERE c.cust_id != 1
-      AND strftime('%Y', cs.contribution_date) = '$currentYear'
     GROUP BY c.cust_id
     ORDER BY c.name ASC
 ");
@@ -37,107 +37,97 @@ $shares = $db->query("
 // -------------------------
 $overall = $db->query("
     SELECT 
-        SUM(CASE WHEN strftime('%m', cs.contribution_date) = '01' THEN cs.amount ELSE 0 END) AS Jan,
-        SUM(CASE WHEN strftime('%m', cs.contribution_date) = '02' THEN cs.amount ELSE 0 END) AS Feb,
-        SUM(CASE WHEN strftime('%m', cs.contribution_date) = '03' THEN cs.amount ELSE 0 END) AS Mar,
-        SUM(CASE WHEN strftime('%m', cs.contribution_date) = '04' THEN cs.amount ELSE 0 END) AS Apr,
-        SUM(CASE WHEN strftime('%m', cs.contribution_date) = '05' THEN cs.amount ELSE 0 END) AS May,
-        SUM(CASE WHEN strftime('%m', cs.contribution_date) = '06' THEN cs.amount ELSE 0 END) AS Jun,
-        SUM(CASE WHEN strftime('%m', cs.contribution_date) = '07' THEN cs.amount ELSE 0 END) AS Jul,
-        SUM(CASE WHEN strftime('%m', cs.contribution_date) = '08' THEN cs.amount ELSE 0 END) AS Aug,
-        SUM(CASE WHEN strftime('%m', cs.contribution_date) = '09' THEN cs.amount ELSE 0 END) AS Sep,
-        SUM(CASE WHEN strftime('%m', cs.contribution_date) = '10' THEN cs.amount ELSE 0 END) AS Oct,
-        SUM(CASE WHEN strftime('%m', cs.contribution_date) = '11' THEN cs.amount ELSE 0 END) AS Nov,
-        SUM(CASE WHEN strftime('%m', cs.contribution_date) = '12' THEN cs.amount ELSE 0 END) AS `Dec`,
+        SUM(CASE WHEN DATE_FORMAT(cs.contribution_date, '%m') = '01' THEN cs.amount ELSE 0 END) AS Jan,
+        SUM(CASE WHEN DATE_FORMAT(cs.contribution_date, '%m') = '02' THEN cs.amount ELSE 0 END) AS Feb,
+        SUM(CASE WHEN DATE_FORMAT(cs.contribution_date, '%m') = '03' THEN cs.amount ELSE 0 END) AS Mar,
+        SUM(CASE WHEN DATE_FORMAT(cs.contribution_date, '%m') = '04' THEN cs.amount ELSE 0 END) AS Apr,
+        SUM(CASE WHEN DATE_FORMAT(cs.contribution_date, '%m') = '05' THEN cs.amount ELSE 0 END) AS May,
+        SUM(CASE WHEN DATE_FORMAT(cs.contribution_date, '%m') = '06' THEN cs.amount ELSE 0 END) AS Jun,
+        SUM(CASE WHEN DATE_FORMAT(cs.contribution_date, '%m') = '07' THEN cs.amount ELSE 0 END) AS Jul,
+        SUM(CASE WHEN DATE_FORMAT(cs.contribution_date, '%m') = '08' THEN cs.amount ELSE 0 END) AS Aug,
+        SUM(CASE WHEN DATE_FORMAT(cs.contribution_date, '%m') = '09' THEN cs.amount ELSE 0 END) AS Sep,
+        SUM(CASE WHEN DATE_FORMAT(cs.contribution_date, '%m') = '10' THEN cs.amount ELSE 0 END) AS Oct,
+        SUM(CASE WHEN DATE_FORMAT(cs.contribution_date, '%m') = '11' THEN cs.amount ELSE 0 END) AS Nov,
+        SUM(CASE WHEN DATE_FORMAT(cs.contribution_date, '%m') = '12' THEN cs.amount ELSE 0 END) AS `Dec`,
         SUM(cs.amount) AS Total
     FROM tbl_capital_share cs
     WHERE cs.cust_id != 1
-      AND strftime('%Y', cs.contribution_date) = '$currentYear'
-")->fetchArray(SQLITE3_ASSOC);
+      AND YEAR(cs.contribution_date) = '$currentYear'
+")->fetch_assoc();
 
-    // -------------------------
-    // Members Purchases Breakdown (Current Year Only)
-    // -------------------------
-    $purchases = $db->query("
-        SELECT 
-            c.cust_id,
-            c.name,
-            COALESCE(SUM(CASE WHEN s.sales_type = 1 THEN s.total_amount ELSE 0 END), 0) AS total_cash_sales,
-            COALESCE((
-                SELECT SUM(p.amount_paid)
-                FROM tbl_payments p
-                WHERE p.sales_no IN (
-                    SELECT s2.sales_no FROM tbl_sales s2 
-                    WHERE s2.cust_id = c.cust_id AND s2.sales_type = 0
-                    AND strftime('%Y', s2.sales_date) = '$currentYear'
-                )
-            ), 0) AS total_paid_charge,
-            COALESCE(SUM(CASE WHEN s.sales_type = 1 THEN s.total_amount ELSE 0 END), 0)
-            + COALESCE((
-                SELECT SUM(p.amount_paid)
-                FROM tbl_payments p
-                WHERE p.sales_no IN (
-                    SELECT s2.sales_no FROM tbl_sales s2 
-                    WHERE s2.cust_id = c.cust_id AND s2.sales_type = 0
-                    AND strftime('%Y', s2.sales_date) = '$currentYear'
-                )
-            ), 0) AS total_purchase
-        FROM tbl_customer c
-        LEFT JOIN tbl_sales s ON c.cust_id = s.cust_id
-        WHERE c.cust_id != 1
-        AND strftime('%Y', s.sales_date) = '$currentYear'
-        GROUP BY c.cust_id
-        ORDER BY c.name ASC
-    ");
+// -------------------------
+// Members Purchases Breakdown (Current Year Only)
+// -------------------------
+$purchases = $db->query("
+    SELECT 
+        c.cust_id,
+        c.name,
+        COALESCE(SUM(CASE WHEN s.sales_type = 1 THEN s.total_amount ELSE 0 END), 0) AS total_cash_sales,
+        COALESCE((
+            SELECT SUM(p.amount_paid)
+            FROM tbl_payments p
+            JOIN tbl_sales s2 ON p.sales_no = s2.sales_no
+            WHERE s2.cust_id = c.cust_id AND s2.sales_type = 0 AND YEAR(s2.sales_date) = '$currentYear'
+        ), 0) AS total_paid_charge,
+        COALESCE(SUM(CASE WHEN s.sales_type = 1 THEN s.total_amount ELSE 0 END), 0) 
+        + COALESCE((
+            SELECT SUM(p.amount_paid)
+            FROM tbl_payments p
+            JOIN tbl_sales s2 ON p.sales_no = s2.sales_no
+            WHERE s2.cust_id = c.cust_id AND s2.sales_type = 0 AND YEAR(s2.sales_date) = '$currentYear'
+        ), 0) AS total_purchase
+    FROM tbl_customer c
+    LEFT JOIN tbl_sales s ON c.cust_id = s.cust_id AND YEAR(s.sales_date) = '$currentYear'
+    WHERE c.cust_id != 1
+    GROUP BY c.cust_id
+    ORDER BY c.name ASC
+");
 
-    // -------------------------
-    // Overall Totals (All Members) - Purchases (Current Year)
-    // -------------------------
-    $overall_purchase = $db->query("
-        SELECT 
-            COALESCE(SUM(CASE WHEN s.sales_type = 1 THEN s.total_amount ELSE 0 END), 0)
-            + COALESCE((
-                SELECT SUM(p.amount_paid)
-                FROM tbl_payments p
-                WHERE p.sales_no IN (
-                    SELECT s2.sales_no FROM tbl_sales s2
-                    WHERE s2.sales_type = 0
-                    AND strftime('%Y', s2.sales_date) = '$currentYear'
-                )
-            ), 0) AS total_purchase
-        FROM tbl_sales s
-        JOIN tbl_customer c ON s.cust_id = c.cust_id
-        WHERE c.cust_id != 1
-        AND strftime('%Y', s.sales_date) = '$currentYear'
-    ")->fetchArray(SQLITE3_ASSOC);
+// -------------------------
+// Overall Totals (All Members) - Purchases (Current Year)
+// -------------------------
+$overall_purchase = $db->query("
+    SELECT 
+        COALESCE(SUM(CASE WHEN s.sales_type = 1 THEN s.total_amount ELSE 0 END), 0) 
+        + COALESCE((
+            SELECT SUM(p.amount_paid)
+            FROM tbl_payments p
+            JOIN tbl_sales s2 ON p.sales_no = s2.sales_no
+            WHERE s2.sales_type = 0 AND YEAR(s2.sales_date) = '$currentYear'
+        ), 0) AS total_purchase
+    FROM tbl_sales s
+    JOIN tbl_customer c ON s.cust_id = c.cust_id
+    WHERE c.cust_id != 1 AND YEAR(s.sales_date) = '$currentYear'
+")->fetch_assoc();
 
-    // Load members for Add Contribution Modal
-    $members = $db->query("SELECT cust_id, name FROM tbl_customer WHERE cust_id != 1 ORDER BY name ASC");
+// Load members for Add Contribution Modal
+$members = $db->query("SELECT cust_id, name FROM tbl_customer WHERE cust_id != 1 ORDER BY name ASC");
 ?>
-<style> 
+
+<style>
     .navbar-brand {
         display: flex;
         align-items: center;
-        /* vertically center image + text */
+
         gap: 0px;
-        /* space between logo and text */
+
         font-weight: 800;
         color: white;
-        /* adjust to your navbar color */
+
         text-decoration: none;
         font-size: 50px;
     }
 
     .navbar-brand img {
         height: 40px;
-        /* adjust logo height */
+
         width: auto;
         object-fit: contain;
     }
 
     .navbar-brand span {
         white-space: nowrap;
-        /* prevent text from wrapping to next line */
+
     }
 </style>
 
@@ -145,7 +135,7 @@ $overall = $db->query("
     <!-- Main navbar -->
     <div class="navbar navbar-inverse bg-teal-400 navbar-fixed-top">
         <div class="navbar-header">
-            <a class="navbar-brand" href="index.php"><img style="height: 40px!important" src="../images/farmers-logo.png" alt=""><span>Lourdes Farmers Multi-Purpose Cooperative</span></a>
+            <a class="navbar-brand" href="index.php"><img src="../images/farmers-logo.png" alt=""><span>Lourdes Farmers Multi-Purpose Cooperative</span></a>
             <ul class="nav navbar-nav visible-xs-block">
                 <li><a data-toggle="collapse" data-target="#navbar-mobile"><i class="icon-tree5"></i></a></li>
             </ul>
@@ -164,9 +154,7 @@ $overall = $db->query("
                 <div class="page-header page-header-default">
                     <div class="page-header-content">
                         <div class="page-title">
-                            <h4>
-                                <span class="text-semibold"></span>Members' Financial (<?= $currentYear ?>)
-                            </h4>
+                            <h4>Members' Financial (<?= $currentYear ?>)</h4>
                         </div>
                     </div>
                     <div class="breadcrumb-line">
@@ -215,13 +203,12 @@ $overall = $db->query("
                     <!-- Capital Share Breakdown Table -->
                     <div class="panel panel-white border-top-xlg border-top-success">
                         <div class="panel-heading">
-                            <h6 class="panel-title">
-                                <i class="icon-cash3 text-success position-left"></i>Capital Share Contributions by Month (<?= $currentYear ?>)
-                            </h6>
+                            <h6 class="panel-title"><i class="icon-cash3 text-success position-left"></i>Capital Share Contributions by Month (<?= $currentYear ?>)</h6>
                         </div>
                         <div class="panel-body panel-theme">
 
                             <table class="table datatable-button-html5-basic table-hover table-bordered">
+
                                 <thead>
                                     <tr>
                                         <th>Member</th>
@@ -241,21 +228,13 @@ $overall = $db->query("
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php while ($row = $shares->fetchArray(SQLITE3_ASSOC)) { ?>
+                                    <?php while ($row = $shares->fetch_assoc()) { ?>
                                         <tr>
                                             <td><?= htmlspecialchars($row['name']); ?></td>
-                                            <td style="text-align:right"><?= number_format($row['Jan'], 2); ?></td>
-                                            <td style="text-align:right"><?= number_format($row['Feb'], 2); ?></td>
-                                            <td style="text-align:right"><?= number_format($row['Mar'], 2); ?></td>
-                                            <td style="text-align:right"><?= number_format($row['Apr'], 2); ?></td>
-                                            <td style="text-align:right"><?= number_format($row['May'], 2); ?></td>
-                                            <td style="text-align:right"><?= number_format($row['Jun'], 2); ?></td>
-                                            <td style="text-align:right"><?= number_format($row['Jul'], 2); ?></td>
-                                            <td style="text-align:right"><?= number_format($row['Aug'], 2); ?></td>
-                                            <td style="text-align:right"><?= number_format($row['Sep'], 2); ?></td>
-                                            <td style="text-align:right"><?= number_format($row['Oct'], 2); ?></td>
-                                            <td style="text-align:right"><?= number_format($row['Nov'], 2); ?></td>
-                                            <td style="text-align:right"><?= number_format($row['Dec'], 2); ?></td>
+                                            <?php for ($m = 1; $m <= 12; $m++) {
+                                                $month = str_pad($m, 2, "0", STR_PAD_LEFT);
+                                                echo '<td style="text-align:right">' . number_format($row[date('M', mktime(0, 0, 0, $m, 1))], 2) . '</td>';
+                                            } ?>
                                             <td style="text-align:right"><b><?= number_format($row['Total'], 2); ?></b></td>
                                         </tr>
                                     <?php } ?>
@@ -282,18 +261,12 @@ $overall = $db->query("
                                         <th>Total</th>
                                     </tr>
                                     <tr style="font-weight:bold;">
-                                        <td style="text-align:right"><?= number_format($overall['Jan'], 2); ?></td>
-                                        <td style="text-align:right"><?= number_format($overall['Feb'], 2); ?></td>
-                                        <td style="text-align:right"><?= number_format($overall['Mar'], 2); ?></td>
-                                        <td style="text-align:right"><?= number_format($overall['Apr'], 2); ?></td>
-                                        <td style="text-align:right"><?= number_format($overall['May'], 2); ?></td>
-                                        <td style="text-align:right"><?= number_format($overall['Jun'], 2); ?></td>
-                                        <td style="text-align:right"><?= number_format($overall['Jul'], 2); ?></td>
-                                        <td style="text-align:right"><?= number_format($overall['Aug'], 2); ?></td>
-                                        <td style="text-align:right"><?= number_format($overall['Sep'], 2); ?></td>
-                                        <td style="text-align:right"><?= number_format($overall['Oct'], 2); ?></td>
-                                        <td style="text-align:right"><?= number_format($overall['Nov'], 2); ?></td>
-                                        <td style="text-align:right"><?= number_format($overall['Dec'], 2); ?></td>
+                                        <?php
+                                        $months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                                        foreach ($months as $m) {
+                                            echo '<td style="text-align:right">' . number_format($overall[$m], 2) . '</td>';
+                                        }
+                                        ?>
                                         <td style="text-align:right"><?= number_format($overall['Total'], 2); ?></td>
                                     </tr>
                                 </table>
@@ -305,9 +278,7 @@ $overall = $db->query("
                     <!-- Members Purchases Table -->
                     <div class="panel panel-white border-top-xlg border-top-primary">
                         <div class="panel-heading">
-                            <h6 class="panel-title">
-                                <i class="icon-cart text-primary position-left"></i> Members’ Purchases (<?= $currentYear ?>)
-                            </h6>
+                            <h6 class="panel-title"><i class="icon-cart text-primary position-left"></i> Members’ Purchases (<?= $currentYear ?>)</h6>
                         </div>
                         <div class="panel-body panel-theme">
                             <table class="table datatable-button-html5-basic table-hover table-bordered">
@@ -320,7 +291,7 @@ $overall = $db->query("
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php while ($row = $purchases->fetchArray(SQLITE3_ASSOC)) { ?>
+                                    <?php while ($row = $purchases->fetch_assoc()) { ?>
                                         <tr>
                                             <td><?= htmlspecialchars($row['name']); ?></td>
                                             <td style="text-align:right"><?= number_format($row['total_cash_sales'], 2); ?></td>
@@ -331,7 +302,7 @@ $overall = $db->query("
                                 </tbody>
                             </table>
 
-                            <!-- Overall Total Purchases -->
+
                             <div class="well" style="margin-top:20px;">
                                 <h5><b>Overall Total Purchases (All Members - <?= $currentYear ?>)</b></h5>
                                 <h4 style="text-align:right; color:#337ab7;">₱ <?= number_format($overall_purchase['total_purchase'], 2); ?></h4>
@@ -372,9 +343,7 @@ $overall = $db->query("
                                         <span class="input-group-addon"><i class="icon-user text-size-base"></i></span>
                                         <select class="form-control" name="cust_id" required>
                                             <option value="">-- Select Member --</option>
-                                            <?php
-                                            $members = $db->query("SELECT cust_id, name FROM tbl_customer WHERE cust_id != 1 ORDER BY name ASC");
-                                            while ($m = $members->fetchArray(SQLITE3_ASSOC)) { ?>
+                                            <?php while ($m = $members->fetch_assoc()) { ?>
                                                 <option value="<?= $m['cust_id']; ?>"><?= htmlspecialchars($m['name']); ?></option>
                                             <?php } ?>
                                         </select>
@@ -423,7 +392,7 @@ $overall = $db->query("
     <script type="text/javascript" src="../assets/js/plugins/tables/datatables/datatables.min.js"></script>
     <script type="text/javascript" src="../assets/js/plugins/notifications/jgrowl.min.js"></script>
     <script src="../js/validator.min.js"></script>
-    `
+
     <script>
         $(function() {
             $('.datatable-button-html5-basic').DataTable({
@@ -441,26 +410,24 @@ $overall = $db->query("
                 if (!e.isDefaultPrevented()) {
                     var data = $(this).serialize();
                     $.ajax({
-                        type: 'POST',
-                        url: '../transaction.php',
+                        type: "POST",
+                        url: "process_capital_share.php",
                         data: data,
-                        success: function(msg) {
-                            if (msg == '1') {
-                                $.jGrowl('Capital Share successfully added.', {
-                                    header: 'Success Notification',
-                                    theme: 'alert-styled-right bg-success'
-                                });
-                                $('#btn-submit').prop('disabled', true);
-
-                                setTimeout(function() {
-                                    location.reload();
-                                }, 1500);
-                            } else {
-                                alert('Something went wrong!');
-                            }
+                        success: function(resp) {
+                            $.jGrowl("Contribution saved successfully!", {
+                                header: 'Success',
+                                theme: 'bg-success'
+                            });
+                            $('#modal_share').modal('hide');
+                            setTimeout(function() {
+                                location.reload();
+                            }, 1000);
                         },
                         error: function() {
-                            alert('Error connecting to server.');
+                            $.jGrowl("Error saving contribution.", {
+                                header: 'Error',
+                                theme: 'bg-danger'
+                            });
                         }
                     });
                     return false;
@@ -468,6 +435,3 @@ $overall = $db->query("
             });
         });
     </script>
-</body>
-
-</html>

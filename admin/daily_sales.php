@@ -185,14 +185,36 @@ AND sales_date <= '$filter_end'
                     // 4. Charge Payments
                     // ----------------------
                     $payment_query = "
-                    SELECT SUM(amount_paid) AS total_paid
-                    FROM tbl_payments
-                    WHERE DATE(date_payment) BETWEEN '$filter_start' AND '$filter_end'
-                    ";
+SELECT 
+    COALESCE(SUM(
+        COALESCE(p.total_paid, 0) + COALESCE(s.amount_paid, 0)
+    ), 0) AS total_paid
+
+FROM tbl_sales s
+
+LEFT JOIN (
+    SELECT sales_no, SUM(amount_paid) AS total_paid
+    FROM tbl_payments
+    WHERE DATE(date_payment) BETWEEN '$filter_start' AND '$filter_end'
+    GROUP BY sales_no
+) p ON s.sales_no = p.sales_no
+
+WHERE DATE(s.sales_date) BETWEEN '$filter_start' AND '$filter_end'
+AND s.sales_status != 3
+AND s.sales_type = 0
+
+/* same condition used in table */
+AND (
+        p.total_paid IS NOT NULL
+     OR s.amount_paid > 0
+    )
+";
+
                     $result_payment = $db->query($payment_query);
                     if ($row = $result_payment->fetch_assoc()) {
                         $charge_collections = $row['total_paid'] ?? 0;
                     }
+
 
                     // ----------------------
                     // 5. Expenses (with User info)
@@ -389,7 +411,7 @@ ORDER BY s.sales_no ASC
                                         <td style="text-align: right;"><?= number_format($subtotal, 2) ?></td>
                                         <td style="text-align: right;"><?= number_format($discount, 2) ?></td>
                                         <td style="text-align: center;"><?= number_format($amount_paid, 2) ?></td>
-                                        <td style="text-align: right;"><b><?= number_format($row['total_amount'], 2) ?></b></td>
+                                        <td style="text-align: right;">₱<b><?= number_format($row['total_amount'], 2) ?></b></td>
                                     </tr>
                                 <?php } ?>
 
@@ -406,7 +428,7 @@ ORDER BY s.sales_no ASC
                                         <h5>Total</h5>
                                     </td>
                                     <td colspan="2" align="right">
-                                        <h5><?= number_format($total_sales, 2) ?></h5>
+                                        <h5>₱<?= number_format($total_sales, 2) ?></h5>
                                     </td>
                                 </tr>
                                 </table>
@@ -449,25 +471,39 @@ ORDER BY s.sales_no ASC
 
                                         // Query only charge sales that have payments
                                         $charge_query = "
-SELECT 
-    s.sales_no,
-    MAX(s.subtotal) AS subtotal,
-    MAX(s.total_amount) AS total_amount,
-    MAX(c.name) AS customer_name,
-    MAX(p.total_paid) AS payments_made
-FROM tbl_sales s
-LEFT JOIN tbl_customer c ON s.cust_id = c.cust_id
-INNER JOIN (
-    SELECT sales_no, SUM(amount_paid) AS total_paid
-    FROM tbl_payments
-    GROUP BY sales_no
-) p ON s.sales_no = p.sales_no
-WHERE DATE(s.sales_date) BETWEEN '$filter_start' AND '$filter_end'
-AND s.sales_status != 3
-AND s.sales_type = 0
-GROUP BY s.sales_no
-ORDER BY s.sales_no ASC
-";
+                                                      SELECT 
+                                                       s.sales_no,
+                                                       MAX(s.subtotal) AS subtotal,
+                                                       MAX(s.total_amount) AS total_amount,
+                                                       MAX(s.balance) AS balance,
+                                                       MAX(c.name) AS customer_name,
+
+                                                     /* TOTAL PAYMENTS FROM BOTH SOURCES */
+                                                       MAX(
+                                                       COALESCE(p.total_paid, 0) + COALESCE(s.amount_paid, 0)
+                                                                    ) AS payments_made
+
+                                                         FROM tbl_sales s
+                                                         LEFT JOIN tbl_customer c ON s.cust_id = c.cust_id
+                                                         LEFT JOIN (
+                                                         SELECT sales_no, SUM(amount_paid) AS total_paid
+                                                         FROM tbl_payments
+                                                         GROUP BY sales_no
+                                                         ) p ON s.sales_no = p.sales_no
+
+                                                        WHERE DATE(s.sales_date) BETWEEN '$filter_start' AND '$filter_end'
+                                                        AND s.sales_status != 3
+                                                        AND s.sales_type = 0
+
+                                                       /* SHOW IF EITHER PAYMENT EXISTS */
+                                                       AND (
+                                                         p.total_paid IS NOT NULL
+                                                        OR s.amount_paid > 0
+                                                                                )
+
+                                                         GROUP BY s.sales_no
+                                                          ORDER BY s.sales_no ASC
+                                                             ";
 
                                         $charge_result = $db->query($charge_query);
 
@@ -477,7 +513,7 @@ ORDER BY s.sales_no ASC
                                             $subtotal = $row['subtotal'] ?? 0;
                                             $total_amount = $row['total_amount'] ?? 0;
                                             $payments_made = $row['payments_made'] ?? 0;
-                                            $remaining = $total_amount - $payments_made;
+                                            $remaining = $row['balance'] ?? 0;
 
                                             // Only sum payments
                                             $total_payments += $payments_made;
@@ -490,7 +526,7 @@ ORDER BY s.sales_no ASC
                                                 <td style="text-align:right; color:<?= ($remaining > 0) ? 'red' : 'green' ?>;">
                                                     <b><?= number_format($remaining, 2) ?></b>
                                                 </td>
-                                                <td style="text-align:right;"><?= number_format($payments_made, 2) ?></td>
+                                                <td style="text-align:right;">₱<?= number_format($payments_made, 2) ?></td>
                                             </tr>
                                         <?php } ?>
 
@@ -503,7 +539,7 @@ ORDER BY s.sales_no ASC
                                         <?php } else { ?>
                                             <tr style="background:#f1f1f1;font-weight:bold;">
                                                 <td colspan="5" align="right">TOTAL PAYMENTS:</td>
-                                                <td align="right"><?= number_format($total_payments, 2) ?></td>
+                                                <td align="right">₱<?= number_format($total_payments, 2) ?></td>
                                             </tr>
                                         <?php } ?>
 

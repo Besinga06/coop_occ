@@ -352,7 +352,7 @@ function after_sales(payable, payment, vat_sales, discount, subtotal, change_amo
     $("#new-sales").val('yes');
     $("#footer-sales").hide();
     $(".modal-body").addClass('remove-height');
-    // comment for now error in dave platforms
+   
     if (is_update == true) {
         $("#show-payment").html(` <div class="row money-div "> <div class="col-md-12"> <div class="list-group no-border no-padding-top"> <a href="javascript:;" class="list-group-item"><i class="icon-cash3"></i> Sub Total <span class="pull-right" >'+subtotal+'</span></a> <a href="javascript:;" class="list-group-item"><i class="icon-cash3"></i> Discount <span class="pull-right " >'+discount+'</span></a> <div class="list-group-divider"></div> <a href="#" class="list-group-item" ><i class="icon-cash3"></i> Amount Due <span class="pull-right"  >'+payable.toFixed(2).replace(/(\d)(?=(\d{3})+\.)/g, '$1,')+'</span></a> <a href="#" class="list-group-item"><i class="icon-cash3"></i> Cash <span class="pull-right"  >'+payment.toFixed(2).replace(/(\d)(?=(\d{3})+\.)/g, '$1,')+'</span></a> <a href="#" class="list-group-item" ><i class="icon-cash3"></i> Change <span class="pull-right"  >'+change_amount.toFixed(2).replace(/(\d)(?=(\d{3})+\.)/g, '$1,')+'</span></a> </div> </div> <div style="width:100%;text-align:center" > <button   onclick="refresh2()" type="button" class="btn bg-danger-400 btn-labeled"><b>ESC</b>  Close </button></div></div>`);
     } else {

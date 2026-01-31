@@ -2677,6 +2677,7 @@ if (isset($_POST['decline_loan'])) {
 // ----------------------------
 if (isset($_POST['disburse_loan'])) {
     require('db_connect.php');
+
     $loan_id = (int)$_POST['loan_id'];
     $amount_released = (float)$_POST['amount_released'];
     $mode = $_POST['mode'];
@@ -2685,22 +2686,22 @@ if (isset($_POST['disburse_loan'])) {
     $stmt = $db->prepare("
         INSERT INTO tbl_loan_disbursement 
         (loan_app_id, amount_released, mode, release_date) 
-        VALUES (?, ?, ?, datetime('now'))
+        VALUES (?, ?, ?, NOW())
     ");
-    $stmt->bindValue(1, $loan_id, SQLITE3_INTEGER);
-    $stmt->bindValue(2, $amount_released, SQLITE3_FLOAT);
-    $stmt->bindValue(3, $mode, SQLITE3_TEXT);
+    $stmt->bind_param("ids", $loan_id, $amount_released, $mode);
     $stmt->execute();
+    $stmt->close();
 
     // Update loan status
-    $db->exec("UPDATE tbl_loan_application SET status='disbursed' WHERE loan_app_id=$loan_id");
+    $db->query("UPDATE tbl_loan_application SET status='disbursed' WHERE loan_app_id=$loan_id");
 
     // Fetch approved loan details
-    $loan = $db->querySingle("
+    $result = $db->query("
         SELECT approved_amount, approved_term, interest_rate 
         FROM tbl_loan_approval 
         WHERE loan_app_id=$loan_id
-    ", true);
+    ");
+    $loan = $result->fetch_assoc();
 
     if (!$loan) {
         echo "Error: Loan approval not found.";
@@ -2728,21 +2729,19 @@ if (isset($_POST['disburse_loan'])) {
     // ----------------------------
     // Create Payment Schedule
     // ----------------------------
+    $stmt_sched = $db->prepare("
+        INSERT INTO tbl_loan_schedule 
+        (loan_app_id, due_date, principal_due, interest_due, total_due, penalty_due, status)
+        VALUES (?, ?, ?, ?, ?, 0, 'unpaid')
+    ");
+
     for ($i = 1; $i <= $term; $i++) {
         $due_date = date("Y-m-d", strtotime("+$i month", strtotime($release_date)));
 
-        $stmt_sched = $db->prepare("
-            INSERT INTO tbl_loan_schedule 
-            (loan_app_id, due_date, principal_due, interest_due, total_due, penalty_due, status)
-            VALUES (?, ?, ?, ?, ?, 0, 'unpaid')
-        ");
-        $stmt_sched->bindValue(1, $loan_id, SQLITE3_INTEGER);
-        $stmt_sched->bindValue(2, $due_date, SQLITE3_TEXT);
-        $stmt_sched->bindValue(3, $principal_due, SQLITE3_FLOAT);
-        $stmt_sched->bindValue(4, $interest_due, SQLITE3_FLOAT);
-        $stmt_sched->bindValue(5, $monthly_payment, SQLITE3_FLOAT);
+        $stmt_sched->bind_param("isddd", $loan_id, $due_date, $principal_due, $interest_due, $monthly_payment);
         $stmt_sched->execute();
     }
+    $stmt_sched->close();
 
     // ----------------------------
     // Insert Transaction Summary
@@ -2754,129 +2753,160 @@ if (isset($_POST['disburse_loan'])) {
         (loan_app_id, fund_id, disbursed_amount, interest_rate, total_payable, due_date, status)
         VALUES (?, ?, ?, ?, ?, ?, 'active')
     ");
-    $stmt_txn->bindValue(1, $loan_id, SQLITE3_INTEGER);
-    $stmt_txn->bindValue(2, 1, SQLITE3_INTEGER);
-    $stmt_txn->bindValue(3, $principal, SQLITE3_FLOAT);
-    $stmt_txn->bindValue(4, $interest_rate, SQLITE3_FLOAT);
-    $stmt_txn->bindValue(5, $total_payable, SQLITE3_FLOAT);
-    $stmt_txn->bindValue(6, $due_date, SQLITE3_TEXT);
+    $fund_id = 1;
+    $stmt_txn->bind_param("iiddds", $loan_id, $fund_id, $principal, $interest_rate, $total_payable, $due_date);
     $stmt_txn->execute();
+    $stmt_txn->close();
 
     echo "1";
     exit;
 }
 
-
-// Save Payment 
-
+// =========================
+// SAVE LOAN PAYMENT
+// =========================
 if (isset($_POST['save_payment'])) {
-    require('db_connect.php');
 
-    $loan_app_id = (int)$_POST['loan_app_id'];
-    $schedule_id = (int)$_POST['schedule_id'];
-    $amount_paid = (float)$_POST['amount_paid'];
-    $method = $_POST['payment_method'] ?? 'cash';
+    require('db_connect.php'); // mysqli connection = $db
 
-    // Fetch schedule
-    $sched = $db->querySingle("
-        SELECT principal_due, interest_due, penalty_due 
-        FROM tbl_loan_schedule 
-        WHERE schedule_id=$schedule_id
-    ", true);
+    $db->begin_transaction(); // Start transaction
 
-    if (!$sched) {
-        echo json_encode(['success' => false, 'message' => 'Schedule not found']);
-        exit;
-    }
+    try {
 
-    // Apply payment to interest, penalty, then principal
-    $interest_component = min($amount_paid, $sched['interest_due']);
-    $remaining = $amount_paid - $interest_component;
+        $loan_app_id = (int)$_POST['loan_app_id'];
+        $schedule_id = (int)$_POST['schedule_id'];
+        $amount_paid = (float)$_POST['amount_paid'];
+        $method = $_POST['payment_method'] ?? 'cash';
 
-    $penalty_component = min($remaining, $sched['penalty_due']);
-    $remaining -= $penalty_component;
-
-    $principal_component = max(0, $remaining);
-
-    // Generate receipt
-    $receipt_number = 'RCP-' . date('YmdHis') . '-' . rand(1000, 9999);
-
-    // Insert repayment record
-    $stmt = $db->prepare("
-        INSERT INTO tbl_loan_repayment 
-        (loan_app_id, schedule_id, amount_paid, principal_component, interest_component, payment_method, receipt_number) 
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    ");
-    $stmt->bindValue(1, $loan_app_id, SQLITE3_INTEGER);
-    $stmt->bindValue(2, $schedule_id, SQLITE3_INTEGER);
-    $stmt->bindValue(3, $amount_paid, SQLITE3_FLOAT);
-    $stmt->bindValue(4, $principal_component, SQLITE3_FLOAT);
-    $stmt->bindValue(5, $interest_component + $penalty_component, SQLITE3_FLOAT); // interest + penalty for reporting
-    $stmt->bindValue(6, $method, SQLITE3_TEXT);
-    $stmt->bindValue(7, $receipt_number, SQLITE3_TEXT);
-    $stmt->execute();
-
-    // Update current schedule
-    $remaining_principal = max(0, $sched['principal_due'] - $principal_component);
-    $remaining_interest  = max(0, $sched['interest_due'] - $interest_component);
-    $remaining_penalty   = max(0, $sched['penalty_due'] - $penalty_component);
-
-    $remaining_total = $remaining_principal + $remaining_interest + $remaining_penalty;
-    $status = ($remaining_total <= 0) ? 'paid' : 'unpaid';
-
-    $stmt_upd = $db->prepare("
-        UPDATE tbl_loan_schedule 
-        SET principal_due=?, interest_due=?, penalty_due=?, total_due=?, status=? 
-        WHERE schedule_id=?
-    ");
-    $stmt_upd->bindValue(1, $remaining_principal, SQLITE3_FLOAT);
-    $stmt_upd->bindValue(2, $remaining_interest, SQLITE3_FLOAT);
-    $stmt_upd->bindValue(3, $remaining_penalty, SQLITE3_FLOAT);
-    $stmt_upd->bindValue(4, $remaining_total, SQLITE3_FLOAT);
-    $stmt_upd->bindValue(5, $status, SQLITE3_TEXT);
-    $stmt_upd->bindValue(6, $schedule_id, SQLITE3_INTEGER);
-    $stmt_upd->execute();
-
-    // ----------------------------
-    // Recalculate remaining monthly dues dynamically
-    // ----------------------------
-    // Get all remaining unpaid schedules
-    $unpaid_schedules = $db->query("SELECT schedule_id, principal_due, interest_due, penalty_due FROM tbl_loan_schedule WHERE loan_app_id=$loan_app_id AND status='unpaid' ORDER BY due_date ASC");
-
-    $remaining_balance = 0;
-    while ($row = $unpaid_schedules->fetchArray(SQLITE3_ASSOC)) {
-        $remaining_balance += $row['principal_due'] + $row['interest_due'] + $row['penalty_due'];
-    }
-
-    $unpaid_schedules = $db->query("SELECT schedule_id FROM tbl_loan_schedule WHERE loan_app_id=$loan_app_id AND status='unpaid' ORDER BY due_date ASC");
-    $num_schedules = 0;
-    while ($unpaid_schedules->fetchArray(SQLITE3_ASSOC)) $num_schedules++;
-
-    if ($num_schedules > 0) {
-        // New monthly due = remaining balance divided by remaining schedules
-        $new_monthly_due = round($remaining_balance / $num_schedules, 2);
-
-        // Update each unpaid schedule
-        $unpaid_schedules = $db->query("SELECT schedule_id, principal_due, interest_due, penalty_due FROM tbl_loan_schedule WHERE loan_app_id=$loan_app_id AND status='unpaid' ORDER BY due_date ASC");
-        while ($row = $unpaid_schedules->fetchArray(SQLITE3_ASSOC)) {
-            $sid = $row['schedule_id'];
-            $total_due = $row['principal_due'] + $row['interest_due'] + $row['penalty_due'];
-            $stmt_update = $db->prepare("UPDATE tbl_loan_schedule SET total_due=? WHERE schedule_id=?");
-            $stmt_update->bindValue(1, $new_monthly_due, SQLITE3_FLOAT);
-            $stmt_update->bindValue(2, $sid, SQLITE3_INTEGER);
-            $stmt_update->execute();
+        if ($amount_paid <= 0) {
+            throw new Exception("Invalid payment amount");
         }
+
+        // ======================
+        // FETCH SCHEDULE
+        // ======================
+        $stmt = $db->prepare("
+            SELECT principal_due, interest_due, penalty_due
+            FROM tbl_loan_schedule
+            WHERE schedule_id = ?
+        ");
+        $stmt->bind_param("i", $schedule_id);
+        $stmt->execute();
+        $sched = $stmt->get_result()->fetch_assoc();
+
+        if (!$sched) {
+            throw new Exception("Schedule not found");
+        }
+
+        // ======================
+        // PAYMENT PRIORITY
+        // ======================
+        $interest_component = min($amount_paid, $sched['interest_due']);
+        $remaining = $amount_paid - $interest_component;
+
+        $penalty_component = min($remaining, $sched['penalty_due']);
+        $remaining -= $penalty_component;
+
+        $principal_component = min($remaining, $sched['principal_due']);
+
+        // ======================
+        // RECEIPT NUMBER
+        // ======================
+        $receipt_number = 'RCP-' . date('YmdHis') . '-' . rand(1000, 9999);
+
+        // ======================
+        // INSERT REPAYMENT
+        // ======================
+        $stmt = $db->prepare("
+            INSERT INTO tbl_loan_repayment
+            (loan_app_id, schedule_id, amount_paid, principal_component, interest_component, penalty_component, payment_method, receipt_number)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ");
+        $stmt->bind_param(
+            "iidddsss",
+            $loan_app_id,
+            $schedule_id,
+            $amount_paid,
+            $principal_component,
+            $interest_component,
+            $penalty_component,
+            $method,
+            $receipt_number
+        );
+        $stmt->execute();
+
+        // ======================
+        // UPDATE SCHEDULE
+        // ======================
+        $remaining_principal = max(0, $sched['principal_due'] - $principal_component);
+        $remaining_interest  = max(0, $sched['interest_due'] - $interest_component);
+        $remaining_penalty   = max(0, $sched['penalty_due'] - $penalty_component);
+        $remaining_total     = $remaining_principal + $remaining_interest + $remaining_penalty;
+        $status = ($remaining_total <= 0) ? 'paid' : 'unpaid';
+
+        $stmt = $db->prepare("
+            UPDATE tbl_loan_schedule
+            SET principal_due=?, interest_due=?, penalty_due=?, total_due=?, status=?
+            WHERE schedule_id=?
+        ");
+        $stmt->bind_param(
+            "ddddsi",
+            $remaining_principal,
+            $remaining_interest,
+            $remaining_penalty,
+            $remaining_total,
+            $status,
+            $schedule_id
+        );
+        $stmt->execute();
+
+        // ======================
+        // RECALCULATE MONTHLY DUES
+        // ======================
+        $res = $db->query("
+            SELECT principal_due, interest_due, penalty_due
+            FROM tbl_loan_schedule
+            WHERE loan_app_id=$loan_app_id AND status='unpaid'
+        ");
+
+        $remaining_balance = 0;
+        while ($row = $res->fetch_assoc()) {
+            $remaining_balance += $row['principal_due'] + $row['interest_due'] + $row['penalty_due'];
+        }
+
+        $res = $db->query("
+            SELECT COUNT(*) AS cnt
+            FROM tbl_loan_schedule
+            WHERE loan_app_id=$loan_app_id AND status='unpaid'
+        ");
+        $num_schedules = $res->fetch_assoc()['cnt'];
+
+        if ($num_schedules > 0) {
+            $new_monthly_due = round($remaining_balance / $num_schedules, 2);
+
+            $stmt = $db->prepare("
+                UPDATE tbl_loan_schedule
+                SET total_due=?
+                WHERE loan_app_id=? AND status='unpaid'
+            ");
+            $stmt->bind_param("di", $new_monthly_due, $loan_app_id);
+            $stmt->execute();
+        }
+
+        $db->commit(); // Success
+        echo json_encode(['success' => true, 'receipt' => $receipt_number]);
+    } catch (Exception $e) {
+
+        $db->rollback(); // Undo everything
+        echo json_encode(['success' => false, 'message' => $e->getMessage()]);
     }
 
-    echo json_encode(['success' => true, 'receipt' => $receipt_number]);
     exit;
 }
 
-
-
-
+// ----------------------------
 // Save Capital Share
-
+// ----------------------------
 if (isset($_POST['save-capital-share'])) {
     require('db_connect.php');
 
@@ -2885,15 +2915,13 @@ if (isset($_POST['save-capital-share'])) {
     $date   = !empty($_POST['contribution_date']) ? $_POST['contribution_date'] : date('Y-m-d');
 
     if ($cust_id > 0 && $amount > 0) {
-        $stmt = $db->prepare("INSERT INTO tbl_capital_share (cust_id, amount, contribution_date) 
-                              VALUES (:cust_id, :amount, :contribution_date)");
-        $stmt->bindValue(':cust_id', $cust_id, SQLITE3_INTEGER);
-        $stmt->bindValue(':amount', $amount, SQLITE3_FLOAT);
-        $stmt->bindValue(':contribution_date', $date, SQLITE3_TEXT);
+        $stmt = $db->prepare("
+            INSERT INTO tbl_capital_share (cust_id, amount, contribution_date) 
+            VALUES (?, ?, ?)
+        ");
+        $stmt->bind_param("ids", $cust_id, $amount, $date);
 
-        $result = $stmt->execute();
-
-        if ($result) {
+        if ($stmt->execute()) {
             echo "1"; // success
         } else {
             echo "0"; // error
@@ -2904,6 +2932,9 @@ if (isset($_POST['save-capital-share'])) {
     exit;
 }
 
+// ----------------------------
+// Save Distribution Cycle
+// ----------------------------
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'save_distribution') {
     require('db_connect.php');
 
@@ -2918,72 +2949,84 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 
     // Check if distribution for this year already exists
-    $check = $db->prepare("SELECT COUNT(*) AS cnt FROM distribution_cycles WHERE strftime('%Y', created_at) = :year");
-    $check->bindValue(':year', str_pad($year, 4, '0', STR_PAD_LEFT), SQLITE3_TEXT);
-    $res = $check->execute()->fetchArray(SQLITE3_ASSOC);
+    $stmt_check = $db->prepare("
+        SELECT COUNT(*) AS cnt 
+        FROM distribution_cycles 
+        WHERE YEAR(created_at) = ?
+    ");
+    $stmt_check->bind_param("i", $year);
+    $stmt_check->execute();
+    $res_check = $stmt_check->get_result()->fetch_assoc();
 
-    if ($res['cnt'] > 0) {
+    if ($res_check['cnt'] > 0) {
         echo "0|Distribution for year $year already exists. You cannot insert twice for the same year.";
         exit;
     }
 
-    try {
-        $db->exec('BEGIN');
+    // Begin transaction
+    $db->begin_transaction();
 
+    try {
         // Insert distribution cycle
         $stmt = $db->prepare("
             INSERT INTO distribution_cycles (dividend_amount, patronage_amount)
-            VALUES (:dividend_amount, :patronage_amount)
+            VALUES (?, ?)
         ");
-        $stmt->bindValue(':dividend_amount', $dividend_amount, SQLITE3_FLOAT);
-        $stmt->bindValue(':patronage_amount', $patronage_amount, SQLITE3_FLOAT);
+        $stmt->bind_param("dd", $dividend_amount, $patronage_amount);
         $stmt->execute();
-        $cycle_id = $db->lastInsertRowID();
+        $cycle_id = $db->insert_id;
 
-        // Insert member records
+        // Insert distribution records for members
         $stmt = $db->prepare("
             INSERT INTO distribution_records
             (cycle_id, cust_id, share_capital, total_purchases, dividend, patronage, total_benefit)
-            VALUES (:cycle_id, :cust_id, :share_capital, :total_purchases, :dividend, :patronage, :total_benefit)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         ");
 
         foreach ($members as $m) {
-            $stmt->bindValue(':cycle_id', $cycle_id, SQLITE3_INTEGER);
-            $stmt->bindValue(':cust_id', $m['id'], SQLITE3_INTEGER);
-            $stmt->bindValue(':share_capital', $m['share'], SQLITE3_FLOAT);
-            $stmt->bindValue(':total_purchases', $m['purchase'], SQLITE3_FLOAT);
-            $stmt->bindValue(':dividend', $m['dividend'], SQLITE3_FLOAT);
-            $stmt->bindValue(':patronage', $m['patronage'], SQLITE3_FLOAT);
-            $stmt->bindValue(':total_benefit', $m['total'], SQLITE3_FLOAT);
+            $stmt->bind_param(
+                "iiddddd",
+                $cycle_id,
+                $m['id'],
+                $m['share'],
+                $m['purchase'],
+                $m['dividend'],
+                $m['patronage'],
+                $m['total']
+            );
             $stmt->execute();
         }
 
-        $db->exec('COMMIT');
+        $db->commit(); // Commit transaction
         echo "1"; // success
 
     } catch (Exception $e) {
-        $db->exec('ROLLBACK');
+        $db->rollback(); // rollback transaction on error
         echo "0|" . $e->getMessage();
     }
+
     exit;
 }
 
 // Fetch distribution records for a cycle
 if (isset($_POST['action']) && $_POST['action'] === 'get_distribution_records') {
     require('db_connect.php');
-    $cycle_id = $_POST['cycle_id'];
+    $cycle_id = intval($_POST['cycle_id']);
 
-    $res = $db->query("
+    $stmt = $db->prepare("
         SELECT dr.*, c.name AS customer_name,
                dd.amount_disbursed, dd.payment_method, dd.reference_no, dd.disbursed_at, dd.remarks
         FROM distribution_records dr
         JOIN tbl_customer c ON c.cust_id = dr.cust_id
         LEFT JOIN distribution_disbursements dd ON dd.record_id = dr.id
-        WHERE dr.cycle_id = '$cycle_id'
+        WHERE dr.cycle_id = ?
     ");
+    $stmt->bind_param("i", $cycle_id);
+    $stmt->execute();
+    $res = $stmt->get_result();
 
     $records = [];
-    while ($r = $res->fetchArray(SQLITE3_ASSOC)) {
+    while ($r = $res->fetch_assoc()) {
         $records[] = $r;
     }
 
@@ -2994,13 +3037,17 @@ if (isset($_POST['action']) && $_POST['action'] === 'get_distribution_records') 
 // Save a disbursement
 if (isset($_POST['action']) && $_POST['action'] === 'save_disbursement') {
     require('db_connect.php');
-    $record_id = $_POST['record_id'];
+    $record_id = intval($_POST['record_id']);
     $payment_method = $_POST['payment_method'];
     $reference_no = $_POST['reference_no'];
-    $user_id = $_SESSION['user_id'];
+    $user_id = intval($_SESSION['user_id']);
 
     // Get record info
-    $rec = $db->querySingle("SELECT * FROM distribution_records WHERE id='$record_id'", true);
+    $stmt = $db->prepare("SELECT * FROM distribution_records WHERE id = ?");
+    $stmt->bind_param("i", $record_id);
+    $stmt->execute();
+    $rec = $stmt->get_result()->fetch_assoc();
+
     if (!$rec) {
         echo json_encode(['success' => false, 'message' => 'Record not found.']);
         exit;
@@ -3011,18 +3058,22 @@ if (isset($_POST['action']) && $_POST['action'] === 'save_disbursement') {
     $cust_id = $rec['cust_id'];
     $disbursed_at = date('Y-m-d H:i:s');
 
-    $stmt = $db->prepare("INSERT INTO distribution_disbursements
+    $stmt = $db->prepare("
+        INSERT INTO distribution_disbursements
         (record_id, cust_id, cycle_id, amount_disbursed, payment_method, reference_no, disbursed_by, disbursed_at)
-        VALUES (:record_id, :cust_id, :cycle_id, :amount, :payment_method, :reference_no, :user_id, :disbursed_at)");
-
-    $stmt->bindValue(':record_id', $record_id, SQLITE3_INTEGER);
-    $stmt->bindValue(':cust_id', $cust_id, SQLITE3_INTEGER);
-    $stmt->bindValue(':cycle_id', $cycle_id, SQLITE3_INTEGER);
-    $stmt->bindValue(':amount', $amount, SQLITE3_FLOAT);
-    $stmt->bindValue(':payment_method', $payment_method, SQLITE3_TEXT);
-    $stmt->bindValue(':reference_no', $reference_no, SQLITE3_TEXT);
-    $stmt->bindValue(':user_id', $user_id, SQLITE3_INTEGER);
-    $stmt->bindValue(':disbursed_at', $disbursed_at, SQLITE3_TEXT);
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ");
+    $stmt->bind_param(
+        "iiiissis",
+        $record_id,
+        $cust_id,
+        $cycle_id,
+        $amount,
+        $payment_method,
+        $reference_no,
+        $user_id,
+        $disbursed_at
+    );
 
     $result = $stmt->execute();
 

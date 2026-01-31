@@ -6,8 +6,8 @@ if (!isset($_GET['loan_id'])) {
 }
 $loan_id = (int)$_GET['loan_id'];
 
-// Fetch loan info with disbursement and transaction details
-$loan = $db->querySingle("
+// Prepare the query
+$stmt = $db->prepare("
     SELECT l.loan_app_id,
            c.name AS member_name,
            la.approved_amount,
@@ -23,13 +23,19 @@ $loan = $db->querySingle("
     JOIN tbl_loan_approval la ON la.loan_app_id = l.loan_app_id
     LEFT JOIN tbl_loan_disbursement d ON d.loan_app_id = l.loan_app_id
     LEFT JOIN tbl_loan_transactions t ON t.loan_app_id = l.loan_app_id
-    WHERE l.loan_app_id = $loan_id
-", true);
+    WHERE l.loan_app_id = ?
+");
+$stmt->bind_param("i", $loan_id);
+$stmt->execute();
+$result = $stmt->get_result();
+$loan = $result->fetch_assoc();
+$stmt->close();
 
 if (!$loan) {
     die("Loan not found.");
 }
 ?>
+
 
 <style>
     .navbar-brand {
@@ -193,30 +199,36 @@ if (!$loan) {
                                                             'date' => $loan['release_date'] ?? date('Y-m-d'),
                                                             'type' => 'disbursement',
                                                             'desc' => 'Loan Disbursed<br>
-                                   <small>Amount: ₱' . number_format($loan['amount_released'], 2) . ' | Total Payable: ₱' . number_format($loan['total_payable'], 2) . '</small>',
+               <small>Amount: ₱' . number_format($loan['amount_released'], 2) . ' | Total Payable: ₱' . number_format($loan['total_payable'], 2) . '</small>',
                                                             'debit' => 0,
                                                             'credit' => 0,
                                                             'receipt' => ''
                                                         ];
 
-                                                        // Fetch payments only
-                                                        $db_pay = $db->query("
-                        SELECT payment_date, amount_paid, principal_component, interest_component, payment_method, receipt_number
-                        FROM tbl_loan_repayment
-                        WHERE loan_app_id=$loan_id
-                        ORDER BY payment_date ASC
-                    ");
-                                                        while ($r = $db_pay->fetchArray(SQLITE3_ASSOC)) {
+                                                        // Fetch payments only using MySQLi prepared statement
+                                                        $stmt_pay = $db->prepare("
+    SELECT payment_date, amount_paid, principal_component, interest_component, payment_method, receipt_number
+    FROM tbl_loan_repayment
+    WHERE loan_app_id = ?
+    ORDER BY payment_date ASC
+");
+                                                        $stmt_pay->bind_param("i", $loan_id);
+                                                        $stmt_pay->execute();
+                                                        $result_pay = $stmt_pay->get_result();
+
+                                                        while ($r = $result_pay->fetch_assoc()) {
                                                             $ledger[] = [
                                                                 'date' => $r['payment_date'],
                                                                 'type' => 'payment',
                                                                 'desc' => 'Payment - ' . $r['payment_method'] . '<br>
-                                       <small>Principal: ₱' . number_format($r['principal_component'], 2) . ' | Interest+Penalty: ₱' . number_format($r['interest_component'], 2) . '</small>',
+                   <small>Principal: ₱' . number_format($r['principal_component'], 2) . ' | Interest+Penalty: ₱' . number_format($r['interest_component'], 2) . '</small>',
                                                                 'debit' => 0,
                                                                 'credit' => round($r['amount_paid'], 2),
                                                                 'receipt' => $r['receipt_number']
                                                             ];
                                                         }
+
+                                                        $stmt_pay->close();
 
                                                         // Sort ledger by date, disbursement first
                                                         usort($ledger, function ($a, $b) {
@@ -237,19 +249,20 @@ if (!$loan) {
                                                             // Receipt HTML (clickable)
                                                             $receipt_html = '';
                                                             if ($row['type'] === 'payment' && !empty($row['receipt'])) {
-                                                                $receipt_html = '<a href="javascript:void(0);" class="view-receipt" data-receipt="' . $row['receipt'] . '">' . htmlspecialchars($row['receipt']) . '</a>';
+                                                                $receipt_html = '<a href="javascript:void(0);" class="view-receipt" data-receipt="' . htmlspecialchars($row['receipt']) . '">' . htmlspecialchars($row['receipt']) . '</a>';
                                                             }
 
                                                             echo "<tr>
-                              <td>" . date("M d, Y", strtotime($row['date'])) . "</td>
-                              <td>" . $receipt_html . "</td>
-                              <td>" . $row['desc'] . "</td>
-                              <td style='text-align:right'>-</td>
-                              <td style='text-align:right'>" . ($row['credit'] ? '₱' . number_format($row['credit'], 2) : '-') . "</td>
-                              <td style='text-align:right'><b>₱" . number_format($balance, 2) . "</b></td>
-                              </tr>";
+        <td>" . date("M d, Y", strtotime($row['date'])) . "</td>
+        <td>" . $receipt_html . "</td>
+        <td>" . $row['desc'] . "</td>
+        <td style='text-align:right'>-</td>
+        <td style='text-align:right'>" . ($row['credit'] ? '₱' . number_format($row['credit'], 2) : '-') . "</td>
+        <td style='text-align:right'><b>₱" . number_format($balance, 2) . "</b></td>
+    </tr>";
                                                         }
                                                         ?>
+
                                                     </tbody>
                                                 </table>
                                             </div>
@@ -264,22 +277,44 @@ if (!$loan) {
                                             </div>
                                             <div class="panel-body">
                                                 <?php
-                                                $penalties = $db->query("SELECT due_date, penalty_due, status FROM tbl_loan_schedule WHERE loan_app_id=$loan_id AND penalty_due>0 ORDER BY due_date ASC");
-                                                if ($penalties->fetchArray()) {
-                                                    echo '<table class="table table-bordered"><thead><tr><th>Due Date</th><th>Penalty</th><th>Status</th></tr></thead><tbody>';
-                                                    $penalties->reset();
-                                                    while ($p = $penalties->fetchArray(SQLITE3_ASSOC)) {
+                                                // Fetch penalties using MySQLi prepared statement
+                                                $stmt_pen = $db->prepare("
+    SELECT due_date, penalty_due, status 
+    FROM tbl_loan_schedule 
+    WHERE loan_app_id = ? AND penalty_due > 0 
+    ORDER BY due_date ASC
+");
+                                                $stmt_pen->bind_param("i", $loan_id);
+                                                $stmt_pen->execute();
+                                                $result_pen = $stmt_pen->get_result();
+
+                                                if ($result_pen->num_rows > 0) {
+                                                    echo '<table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Due Date</th>
+                    <th>Penalty</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>';
+
+                                                    while ($p = $result_pen->fetch_assoc()) {
                                                         echo "<tr>
-                                                            <td>" . date("M d, Y", strtotime($p['due_date'])) . "</td>
-                                                            <td>₱" . number_format($p['penalty_due'], 2) . "</td>
-                                                            <td>" . $p['status'] . "</td>
-                                                          </tr>";
+                <td>" . date("M d, Y", strtotime($p['due_date'])) . "</td>
+                <td>₱" . number_format($p['penalty_due'], 2) . "</td>
+                <td>" . htmlspecialchars($p['status']) . "</td>
+              </tr>";
                                                     }
+
                                                     echo '</tbody></table>';
                                                 } else {
                                                     echo "<p>No penalties recorded yet.</p>";
                                                 }
+
+                                                $stmt_pen->close();
                                                 ?>
+
                                             </div>
                                         </div>
                                     </div>

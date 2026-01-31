@@ -7,8 +7,8 @@ if (!isset($_GET['receipt'])) {
 
 $receipt_number = $_GET['receipt'];
 
-// Fetch repayment info
-$payment = $db->querySingle("
+// Prepare statement to prevent SQL injection
+$stmt = $db->prepare("
     SELECT r.loan_app_id,
            r.schedule_id,
            r.amount_paid,
@@ -24,13 +24,24 @@ $payment = $db->querySingle("
     JOIN tbl_loan_schedule s ON s.schedule_id = r.schedule_id
     JOIN tbl_loan_application l ON l.loan_app_id = r.loan_app_id
     JOIN tbl_customer c ON c.cust_id = l.customer_id
-    WHERE r.receipt_number = '$receipt_number'
-", true);
+    WHERE r.receipt_number = ?
+");
+
+$stmt->bind_param("s", $receipt_number); // "s" = string
+$stmt->execute();
+
+$result = $stmt->get_result();
+$payment = $result->fetch_assoc();
+
+$stmt->close();
 
 if (!$payment) {
     die("Receipt not found.");
 }
+
+// $payment now contains the repayment details as associative array
 ?>
+
 
 <div class="receipt-div" id="print-receipt">
     <div class="text-center">

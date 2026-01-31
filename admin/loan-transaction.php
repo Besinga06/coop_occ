@@ -105,25 +105,35 @@ $loans = $db->query("
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php while ($loan = $loans->fetchArray(SQLITE3_ASSOC)): ?>
+                                    <?php while ($loan = $loans->fetch_assoc()): ?>
                                         <?php
-                                        $loanId = $loan['loan_app_id'];
-                                        $paidRow = $db->querySingle("SELECT SUM(amount_paid) as total_paid FROM tbl_loan_repayment WHERE loan_app_id=$loanId", true);
-                                        $paid = $paidRow['total_paid'] ?? 0;
+                                        $loanId = (int)$loan['loan_app_id'];
+
+                                        // Get total paid
+                                        $stmt_paid = $db->prepare("SELECT SUM(amount_paid) AS total_paid FROM tbl_loan_repayment WHERE loan_app_id = ?");
+                                        $stmt_paid->bind_param("i", $loanId);
+                                        $stmt_paid->execute();
+                                        $result_paid = $stmt_paid->get_result()->fetch_assoc();
+                                        $paid = $result_paid['total_paid'] ?? 0;
                                         $balance = $loan['total_payable'] - $paid;
 
                                         if ($balance <= 0) continue; // Skip fully paid loans
 
-                                        $nextSchedule = $db->querySingle("
-                                            SELECT schedule_id, due_date, principal_due, interest_due, penalty_due, total_due 
-                                            FROM tbl_loan_schedule 
-                                            WHERE loan_app_id = $loanId AND status = 'unpaid'
-                                            ORDER BY due_date ASC LIMIT 1
-                                        ", true);
+                                        // Get next unpaid schedule
+                                        $stmt_schedule = $db->prepare("
+        SELECT schedule_id, due_date, principal_due, interest_due, penalty_due, total_due
+        FROM tbl_loan_schedule
+        WHERE loan_app_id = ? AND status = 'unpaid'
+        ORDER BY due_date ASC
+        LIMIT 1
+    ");
+                                        $stmt_schedule->bind_param("i", $loanId);
+                                        $stmt_schedule->execute();
+                                        $nextSchedule = $stmt_schedule->get_result()->fetch_assoc();
 
-                                        $monthly_due = $nextSchedule ? $nextSchedule['total_due'] : 0;
-                                        $schedule_id = $nextSchedule ? $nextSchedule['schedule_id'] : null;
-                                        $status = $loan['loan_status'];
+                                        $monthly_due = $nextSchedule['total_due'] ?? 0;
+                                        $schedule_id = $nextSchedule['schedule_id'] ?? null;
+                                        $status = $loan['loan_status'] ?? '';
                                         ?>
                                         <tr>
                                             <td><b><?= htmlspecialchars($loan['member_name']) ?></b></td>
@@ -142,14 +152,15 @@ $loans = $db->query("
                                                     data-loan="<?= $loanId ?>"
                                                     data-schedule="<?= $schedule_id ?>"
                                                     data-balance="<?= $balance ?>"
-                                                    data-principal="<?= $nextSchedule['principal_due'] ?>"
-                                                    data-interest="<?= $nextSchedule['interest_due'] ?>"
+                                                    data-principal="<?= $nextSchedule['principal_due'] ?? 0 ?>"
+                                                    data-interest="<?= $nextSchedule['interest_due'] ?? 0 ?>"
                                                     data-penalty="<?= $nextSchedule['penalty_due'] ?? 0 ?>"
                                                     data-monthly="<?= $monthly_due ?>"
                                                     data-member="<?= htmlspecialchars($loan['member_name']) ?>">Pay</button>
                                             </td>
                                         </tr>
                                     <?php endwhile; ?>
+
                                 </tbody>
                             </table>
                         </div>
@@ -178,13 +189,22 @@ $loans = $db->query("
                                 </thead>
                                 <tbody>
                                     <?php
-                                    $loans->reset();
-                                    while ($loan = $loans->fetchArray(SQLITE3_ASSOC)):
-                                        $loanId = $loan['loan_app_id'];
-                                        $paidRow = $db->querySingle("SELECT SUM(amount_paid) as total_paid FROM tbl_loan_repayment WHERE loan_app_id=$loanId", true);
-                                        $paid = $paidRow['total_paid'] ?? 0;
+                                    // Resetting the result pointer is not needed in MySQLi unless you specifically re-use the result.
+                                    // Assuming $loans is a mysqli_result object from a previous query:
+                                    while ($loan = $loans->fetch_assoc()):
+                                        $loanId = (int)$loan['loan_app_id'];
+
+                                        // Get total paid
+                                        $stmt_paid = $db->prepare("SELECT SUM(amount_paid) AS total_paid FROM tbl_loan_repayment WHERE loan_app_id = ?");
+                                        $stmt_paid->bind_param("i", $loanId);
+                                        $stmt_paid->execute();
+                                        $result_paid = $stmt_paid->get_result()->fetch_assoc();
+                                        $paid = $result_paid['total_paid'] ?? 0;
+
                                         $balance = $loan['total_payable'] - $paid;
+
                                         if ($balance > 0) continue; // skip active loans
+
                                         $monthly_due = 0;
                                         $status = 'Fully Paid';
                                     ?>
@@ -201,6 +221,7 @@ $loans = $db->query("
                                             </td>
                                         </tr>
                                     <?php endwhile; ?>
+
                                 </tbody>
                             </table>
                         </div>
@@ -385,7 +406,7 @@ $loans = $db->query("
 
                                     $('#modal-add-payment').modal('hide');
 
-                            
+
                                     setTimeout(function() {
                                         $('#receipt-content').load('loan_payment_receipt.php?receipt=' + json.receipt, function() {
                                             $('#modal-receipt').modal('show');

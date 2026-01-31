@@ -6,6 +6,7 @@ if (!isset($_GET['loan_id'])) {
 }
 $loan_id = (int) $_GET['loan_id'];
 
+// MySQL query
 $query = "
     SELECT l.loan_app_id,
            c.name AS member_name,
@@ -17,15 +18,21 @@ $query = "
     FROM tbl_loan_application l
     JOIN tbl_customer c ON l.customer_id = c.cust_id
     JOIN tbl_loan_approval la ON la.loan_app_id = l.loan_app_id
-    WHERE l.loan_app_id = '$loan_id'
+    WHERE l.loan_app_id = ?
 ";
-$result = $db->query($query);
-$loan = $result->fetchArray(SQLITE3_ASSOC);
+
+// Prepare and execute
+$stmt = $db->prepare($query);
+$stmt->bind_param("i", $loan_id);
+$stmt->execute();
+$result = $stmt->get_result();
+$loan = $result->fetch_assoc();
 
 if (!$loan) {
     die("Loan not found.");
 }
 
+// Variables
 $loan_number = "LN-" . str_pad($loan['loan_app_id'], 6, "0", STR_PAD_LEFT);
 $principal = $loan['approved_amount'];
 $interest_rate = $loan['interest_rate'];
@@ -49,6 +56,7 @@ for ($i = 1; $i <= $term; $i++) {
     ];
 }
 ?>
+
 
 <div class="receipt-div" id="print-receipt">
     <div class="text-center">
@@ -122,7 +130,7 @@ for ($i = 1; $i <= $term; $i++) {
     <br><br>
     <table style="width:100%;">
         <tr>
-            <td>    
+            <td>
                 <p>Issued by:</p><br><br>
                 _________________________<br>
                 Authorized Signature

@@ -1,13 +1,13 @@
-
 <!DOCTYPE html>
 <html lang="en">
+
 
 
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>KurtPOS</title>
+	<title>Cooperative</title>
 
 	<link href="../assets/css/icons/icomoon/styles.css" rel="stylesheet" type="text/css">
 	<link href="../assets/css/bootstrap.css" rel="stylesheet" type="text/css">
@@ -58,7 +58,7 @@
 								<div class="row" style="text-align: center;">
 									<div class="col-sm-12">
 										<a href="index.php" class="btn btn-primary btn-block content-group"><i class="icon-circle-left2 position-left"></i> Go to dashboard</a>
-									</div>									
+									</div>
 								</div>
 							</form>
 						</div>
@@ -68,7 +68,7 @@
 
 					<!-- Footer -->
 					<div class="footer text-muted text-center">
-						<p> © 2025 Lourdes Farmers Multi-Purpose Cooperative  | Developed by <a href="https://www.facebook.com/cesar.besinga.6" target="_blank">Cesar Paje Besinga</a></p>
+						<p> © 2025 Lourdes Farmers Multi-Purpose Cooperative | Developed by <a href="https://www.facebook.com/cesar.besinga.6" target="_blank">Cesar Paje Besinga</a></p>
 					</div>
 					<!-- /footer -->
 
@@ -86,5 +86,8 @@
 
 </body>
 
-<!-- Mirrored from demo.interface.club/limitless/layout_1/LTR/default/error_404.html by HTTrack Website Copier/3.x [XR&CO'2014], Thu, 25 May 2017 18:22:58 GMT -->
+
+
+
+
 </html>

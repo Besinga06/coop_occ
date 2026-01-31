@@ -37,46 +37,56 @@ $contributions = $db->query("
 /* ---------- CASH SALES SUMMARY ---------- */
 $cash_sales = $db->query("
     SELECT 
-        c.cust_id,
-        c.name AS customer_name,
-        p.product_name,
-        SUM(s.quantity_order) AS total_quantity,
-        SUM(s.total_amount) AS total_amount
-    FROM tbl_customer c
-    LEFT JOIN tbl_sales s ON c.cust_id = s.cust_id
-    LEFT JOIN tbl_products p ON s.product_id = p.product_id
+        s.sales_no,
+        s.sales_date,
+        p.product_name, 
+        s.quantity_order AS total_quantity,
+        s.total_amount
+    FROM tbl_sales s
+    INNER JOIN tbl_products p ON s.product_id = p.product_id
     WHERE s.sales_type = 1
-      AND c.cust_id = $cust_id
+      AND s.cust_id = $cust_id
       AND YEAR(s.sales_date) = $year
-    GROUP BY c.cust_id, c.name, p.product_name
-    ORDER BY p.product_name
+    ORDER BY s.sales_date, s.sales_no
 ");
+
 $charge_sales = $db->query("
     SELECT 
+        s.sales_no,
+        s.sales_date,
         c.cust_id,
         c.name AS customer_name,
-        p.product_id,
+
         p.product_name,
-        SUM(s.quantity_order) AS total_quantity,
-        SUM(s.total_amount) AS total_amount,
-        SUM(s.total_amount)
-        - COALESCE(SUM(pay.amount_paid), 0) AS balance
-    FROM tbl_customer c
-    INNER JOIN tbl_sales s 
-        ON c.cust_id = s.cust_id
-    INNER JOIN tbl_products p 
-        ON s.product_id = p.product_id
-    LEFT JOIN tbl_payments pay 
-        ON pay.sales_no = s.sales_no
+        s.quantity_order AS total_quantity,
+
+        /* Original amounts */
+        s.subtotal,
+        s.total_amount,
+
+        /* TOTAL PAYMENTS FROM BOTH SOURCES */
+        (COALESCE(pay.total_paid, 0) + COALESCE(s.amount_paid, 0)) AS payments_made,
+
+        /* CORRECT BALANCE */
+        s.total_amount - (COALESCE(pay.total_paid, 0) + COALESCE(s.amount_paid, 0)) AS balance
+
+    FROM tbl_sales s
+    INNER JOIN tbl_customer c ON c.cust_id = s.cust_id
+    INNER JOIN tbl_products p ON s.product_id = p.product_id
+
+    /*  Aggregate installment payments */
+    LEFT JOIN (
+        SELECT sales_no, SUM(amount_paid) AS total_paid
+        FROM tbl_payments
+        GROUP BY sales_no
+    ) pay ON pay.sales_no = s.sales_no
+
     WHERE s.sales_type = 0
-      AND c.cust_id = $cust_id
+      AND s.sales_status != 3
+      AND s.cust_id = $cust_id
       AND YEAR(s.sales_date) = $year
-    GROUP BY 
-        c.cust_id,
-        c.name,
-        p.product_id,
-        p.product_name
-    ORDER BY p.product_name
+
+    ORDER BY s.sales_date, s.sales_no
 ");
 
 
@@ -207,15 +217,28 @@ $payments = $db->query("
 
                                                 /* ---------- TOTAL CHARGE PAID ---------- */
                                                 $total_charge_paid_result = $db->query("
-    SELECT COALESCE(SUM(amount_paid), 0) AS total_charge_paid
-    FROM tbl_payments
-    WHERE sales_no IN (
-        SELECT sales_no
-        FROM tbl_sales
-        WHERE cust_id = $cust_id
-          AND sales_type = 0
-          AND YEAR(sales_date) = $year
-    )
+    SELECT 
+        COALESCE(SUM(per_sale.payments_made), 0) AS total_charge_paid
+    FROM (
+        SELECT 
+            s.sales_no,
+
+            /* SAME FORMULA AS YOUR REFERENCE QUERY */
+            (COALESCE(p.total_paid, 0) + COALESCE(s.amount_paid, 0)) AS payments_made
+
+        FROM tbl_sales s
+
+        LEFT JOIN (
+            SELECT sales_no, SUM(amount_paid) AS total_paid
+            FROM tbl_payments
+            GROUP BY sales_no
+        ) p ON s.sales_no = p.sales_no
+
+        WHERE s.cust_id = $cust_id
+          AND s.sales_type = 0
+          AND s.sales_status != 3
+          AND YEAR(s.sales_date) = $year
+    ) per_sale
 ");
                                                 $total_charge_paid_row = $total_charge_paid_result->fetch_assoc();
                                                 $total_charge_paid = $total_charge_paid_row['total_charge_paid'];
@@ -299,8 +322,8 @@ $payments = $db->query("
                                                     <thead>
                                                         <tr style="background:#eee">
                                                             <th>Product</th>
-                                                            <th>Total Quantity</th>
-                                                            <th>Total Amount</th>
+                                                            <th class="text-center">Total Quantity</th>
+                                                            <th class="text-right">Total Amount</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
@@ -310,19 +333,24 @@ $payments = $db->query("
 
                                                         while ($row = $cash_sales->fetch_assoc()) {
                                                             $hasCash = true;
-                                                            $total_cash_sum += $row['total_amount'];
 
-                                                            echo "<tr>
-                                                                 <td>" . htmlspecialchars($row['product_name']) . "</td>
-                                                                 <td>{$row['total_quantity']}</td>
-                                                                 <td>₱" . number_format($row['total_amount'], 2) . "</td>
-                                                                 </tr>";
-                                                        }
+                                                            $qty = isset($row['total_quantity']) ? (int)$row['total_quantity'] : 0;
+                                                            $amount = isset($row['total_amount']) ? $row['total_amount'] : 0;
 
-                                                        if (!$hasCash) {
-                                                            echo "<tr><td colspan='3'>No cash sales found for $year.</td></tr>";
-                                                        }
+                                                            $total_cash_sum += $amount;
                                                         ?>
+                                                            <tr>
+                                                                <td><?= htmlspecialchars($row['product_name']); ?></td>
+                                                                <td class="text-center"><?= $qty; ?></td>
+                                                                <td class="text-right">₱<?= number_format($amount, 2); ?></td>
+                                                            </tr>
+                                                        <?php } ?>
+
+                                                        <?php if (!$hasCash) { ?>
+                                                            <tr>
+                                                                <td colspan="3">No cash sales found for <?= $year; ?>.</td>
+                                                            </tr>
+                                                        <?php } ?>
                                                     </tbody>
 
                                                     <?php if ($hasCash) { ?>
@@ -330,11 +358,12 @@ $payments = $db->query("
                                                         <tfoot>
                                                             <tr>
                                                                 <th colspan="2" class="text-right">Total:</th>
-                                                                <th>₱<?= number_format($total_cash_sum, 2); ?></th>
+                                                                <th class="text-right">₱<?= number_format($total_cash_sum, 2); ?></th>
                                                             </tr>
                                                         </tfoot>
                                                     <?php } ?>
                                                 </table>
+
                                             </div>
                                         </div>
                                     </div>
@@ -350,10 +379,10 @@ $payments = $db->query("
                                                     <thead>
                                                         <tr style="background:#eee">
                                                             <th>Product</th>
-                                                            <th>Total Quantity</th>
-                                                            <th>Total Amount</th>
-                                                            <th>Paid</th>
-                                                            <th>Balance</th>
+                                                            <th class="text-center">Total Quantity</th>
+                                                            <th class="text-right">Total Amount</th>
+                                                            <th class="text-right">Paid</th>
+                                                            <th class="text-right">Balance</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
@@ -370,12 +399,16 @@ $payments = $db->query("
                                                             $bal_amt += $row['balance'];
 
                                                             echo "<tr>
-                                                                  <td>" . htmlspecialchars($row['product_name']) . "</td>
-                                                                  <td>{$row['total_quantity']}</td>
-                                                                 <td>₱" . number_format($row['total_amount'], 2) . "</td>
-                                                                 <td>₱" . number_format($paid, 2) . "</td>
-                                                                 <td>₱" . number_format($row['balance'], 2) . "</td>
-                                                                 </tr>";
+                                                            <td>" . htmlspecialchars($row['product_name']) . "</td>
+
+                                                            <!-- FIXED QUANTITY -->
+                                                            <td class='text-center'>" . (int)$row['total_quantity'] . "</td>
+
+                                                           <!-- RIGHT ALIGNED MONEY -->
+                                                           <td class='text-right'>₱" . number_format($row['total_amount'], 2) . "</td>
+                                                           <td class='text-right'>₱" . number_format($paid, 2) . "</td>
+                                                           <td class='text-right'>₱" . number_format($row['balance'], 2) . "</td>
+                                                           </tr>";
                                                         }
 
                                                         if (!$hasCharge) {
@@ -388,13 +421,14 @@ $payments = $db->query("
                                                         <tfoot>
                                                             <tr style="font-weight:bold;">
                                                                 <th colspan="2" class="text-right">Totals:</th>
-                                                                <th>₱<?= number_format($total_amt, 2); ?></th>
-                                                                <th>₱<?= number_format($paid_amt, 2); ?></th>
-                                                                <th>₱<?= number_format($bal_amt, 2); ?></th>
+                                                                <th class="text-right">₱<?= number_format($total_amt, 2); ?></th>
+                                                                <th class="text-right">₱<?= number_format($paid_amt, 2); ?></th>
+                                                                <th class="text-right">₱<?= number_format($bal_amt, 2); ?></th>
                                                             </tr>
                                                         </tfoot>
                                                     <?php } ?>
                                                 </table>
+
                                             </div>
                                         </div>
                                     </div>

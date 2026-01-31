@@ -61,7 +61,7 @@ $counter = 0;
 
 while ($row = $result->fetch_assoc()) {
     $counter++;
-    if ($row['sales_type'] == 0) {
+    if ($row['sales_type']) {
         $total += $row['total_amount'];
     } else {
         $total_panda += $row['total_amount'];
@@ -320,11 +320,11 @@ while ($row = $result_beginning->fetch_assoc()) {
                             <td>Discount(<span id="show-discount-percent"></span>%)</td>
                             <td style="font-weight: bold;text-align: right;padding-right: 25px" id="show-discount"></td>
                         </tr>
-                        <tr class="td-payable" hidden>
+                        <tr class="td-payable">
                             <td>Vat Sales</td>
                             <td id="show-vat-sales" style="font-weight: bold;text-align: right;padding-right: 25px"></td>
                         </tr>
-                        <tr class="td-payable" hidden>
+                        <tr class="td-payable">
                             <td>Vat Amount(<?= $tax ?>%)</td>
                             <td id="show-vat-amount" style="font-weight: bold;text-align: right;padding-right: 25px"></td>
                         </tr>
@@ -742,6 +742,8 @@ while ($row = $result_beginning->fetch_assoc()) {
 
                             });
 
+
+
                             function addBarcodeToCart(barcode) {
                                 barcode = barcode.trim().replace(/\s+/g, '').replace(/[^\x20-\x7E]/g, '');
                                 console.log("Sending barcode:", barcode);
@@ -909,6 +911,8 @@ while ($row = $result_beginning->fetch_assoc()) {
                             $(document).ready(function() {
                                 startCameraScanner();
                             });
+
+
 
 
                             // $(document).scannerDetection({

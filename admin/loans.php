@@ -108,7 +108,7 @@ $funds = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php while ($row = $pending_loans->fetchArray(SQLITE3_ASSOC)) { ?>
+                                    <?php while ($row = $pending_loans->fetch_assoc()) { ?>
                                         <tr>
                                             <td hidden><?= $row['loan_app_id'] ?></td>
                                             <td><?= htmlspecialchars($row['member_name']) ?></td>
@@ -121,6 +121,7 @@ $funds = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
                                             </td>
                                         </tr>
                                     <?php } ?>
+
                                 </tbody>
                             </table>
                         </div>
@@ -145,7 +146,7 @@ $funds = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php while ($row = $approved_loans->fetchArray(SQLITE3_ASSOC)) { ?>
+                                    <?php while ($row = $approved_loans->fetch_assoc()) { ?>
                                         <tr>
                                             <td hidden><?= $row['loan_app_id'] ?></td>
                                             <td><?= htmlspecialchars($row['member_name']) ?></td>
@@ -154,14 +155,13 @@ $funds = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
                                             <td><?= $row['interest_rate'] ?>%</td>
                                             <td><?= $row['application_date'] ?></td>
                                             <td>
-
-                                                <button class="btn btn-info view-receipt"
-                                                    data-id="<?= $row['loan_app_id'] ?>">
+                                                <button class="btn btn-info view-receipt" data-id="<?= $row['loan_app_id'] ?>">
                                                     <i class="icon-file-eye"></i> Print
                                                 </button>
                                             </td>
                                         </tr>
                                     <?php } ?>
+
                                 </tbody>
                             </table>
                         </div>
@@ -183,7 +183,7 @@ $funds = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php while ($row = $declined_loans->fetchArray(SQLITE3_ASSOC)) { ?>
+                                    <?php while ($row = $declined_loans->fetch_assoc()) { ?>
                                         <tr>
                                             <td hidden><?= $row['loan_app_id'] ?></td>
                                             <td><?= htmlspecialchars($row['member_name']) ?></td>
@@ -191,6 +191,7 @@ $funds = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
                                             <td><?= $row['application_date'] ?></td>
                                         </tr>
                                     <?php } ?>
+
                                 </tbody>
                             </table>
                         </div>
@@ -238,16 +239,17 @@ $funds = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
                         <tbody>
                             <?php
                             $funds_list = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
-                            while ($f = $funds_list->fetchArray(SQLITE3_ASSOC)) {
+                            while ($f = $funds_list->fetch_assoc()) {
                                 echo "<tr>
-                                <td>{$f['fund_id']}</td>
-                                <td>" . htmlspecialchars($f['fund_name']) . "</td>
-                                <td style='text-align:right'>" . number_format($f['starting_balance'], 2) . "</td>
-                                <td style='text-align:right'>" . number_format($f['current_balance'], 2) . "</td>
-                                <td>{$f['created_at']}</td>
-                            </tr>";
+        <td>{$f['fund_id']}</td>
+        <td>" . htmlspecialchars($f['fund_name']) . "</td>
+        <td style='text-align:right'>" . number_format($f['starting_balance'], 2) . "</td>
+        <td style='text-align:right'>" . number_format($f['current_balance'], 2) . "</td>
+        <td>{$f['created_at']}</td>
+    </tr>";
                             }
                             ?>
+
                         </tbody>
                     </table>
                 </div>
@@ -277,10 +279,13 @@ $funds = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
                             <option value="">-- Select Fund --</option>
                             <?php
                             $funds = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
-                            while ($f = $funds->fetchArray(SQLITE3_ASSOC)) {
-                                echo "<option value='{$f['fund_id']}' data-balance='{$f['current_balance']}'>{$f['fund_name']} - Balance: " . number_format($f['current_balance'], 2) . "</option>";
+                            while ($f = $funds->fetch_assoc()) {
+                                echo "<option value='{$f['fund_id']}' data-balance='{$f['current_balance']}'>
+            {$f['fund_name']} - Balance: " . number_format($f['current_balance'], 2) . "
+          </option>";
                             }
                             ?>
+
                         </select>
                     </div>
                     <div class="form-group">
