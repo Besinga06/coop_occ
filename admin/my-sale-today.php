@@ -20,23 +20,49 @@ require('db_connect.php');
     <tbody>
         <?php
         $today = date("Y-m-d");
-        $start = strtotime('today GMT');
-        $date_add = date('Y-m-d', strtotime('+1 day', $start));
-        $query = "SELECT * FROM tbl_sales INNER JOIN tbl_users ON tbl_sales.user_id=tbl_users.user_id  LEFT JOIN tbl_customer ON tbl_sales.cust_id=tbl_customer.cust_id  WHERE  sales_date BETWEEN  '$today' AND '$date_add' AND tbl_sales.user_id='" . $_SESSION['user_id'] . "' GROUP BY tbl_sales.sales_no ";
+        $tomorrow = date("Y-m-d", strtotime("+1 day"));
+
+        $sql = "
+SELECT 
+    MAX(s.sales_id) AS sales_id,
+    s.sales_no,
+    MAX(s.sales_date) AS sales_date,
+    MAX(u.fullname) AS fullname,
+    MAX(c.name) AS customer_name,
+    SUM(s.subtotal) AS subtotal,
+    SUM(s.discount) AS discount,
+    SUM(s.total_amount) AS total_amount
+FROM tbl_sales s
+INNER JOIN tbl_users u ON s.user_id = u.user_id
+LEFT JOIN tbl_customer c ON s.cust_id = c.cust_id
+WHERE s.sales_date >= ? 
+AND s.sales_date < ?
+AND s.user_id = ?
+GROUP BY s.sales_no
+ORDER BY sales_date DESC
+";
+
+        $stmt = $db->prepare($sql);
+        $stmt->bind_param("ssi", $today, $tomorrow, $_SESSION['user_id']);
+        $stmt->execute();
+        $result = $stmt->get_result();
+
         $total = 0;
-        $result = $db->query($query);
+
         while ($row = $result->fetch_assoc()) {
             $total += $row['total_amount'];
-            $sales_id = '00000000' . $row['sales_id'];
+
+            // Proper 8-digit padding
+            $sales_id = str_pad($row['sales_id'], 8, "0", STR_PAD_LEFT);
         ?>
-            <tr style="color: #333">
+            <tr style="color:#333">
                 <td><?= date('F d, Y h:i A', strtotime($row['sales_date'])) ?></td>
                 <td><?= $sales_id ?></td>
-                <td><?= $row['fullname'] ?></td>
-                <td><?= $row['name'] ?></td>
-                <td style="text-align: right;"><?= number_format($row['subtotal'], 2) ?></td>
-                <td style="text-align: right;"><?= number_format($row['discount'], 2) ?></td>
-                <td style="text-align: right;"><?= number_format($row['total_amount'], 2) ?></td>
+                <td><?= htmlspecialchars($row['fullname']) ?></td>
+                <td><?= htmlspecialchars($row['customer_name']) ?></td>
+                <td style="text-align:right;"><?= number_format($row['subtotal'], 2) ?></td>
+                <td style="text-align:right;"><?= number_format($row['discount'], 2) ?></td>
+                <td style="text-align:right;"><?= number_format($row['total_amount'], 2) ?></td>
                 <!-- <td align="center">
                 <?php if ($row['sales_status'] == 3) { ?>
                 <label class="label label-danger">Cancelled</label>

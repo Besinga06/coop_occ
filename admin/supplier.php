@@ -1,7 +1,7 @@
-<?php  
+<?php
 require('includes/header.php');
-  $query = "SELECT * FROM tbl_supplier WHERE supplier_id!=1 ";
-  $result = $db->query($query);
+$query = "SELECT * FROM tbl_supplier WHERE supplier_id!=1 ";
+$result = $db->query($query);
 ?>
 <style>
 	.navbar-brand {
@@ -34,7 +34,7 @@ require('includes/header.php');
 	<!-- Main navbar -->
 	<div class="navbar navbar-inverse bg-teal-400 navbar-fixed-top">
 		<div class="navbar-header">
-			<a class="navbar-brand" href="index.php"><img style="height: 40px!important" src="../images/farmers-logo.png" alt=""><span>Lourdes Farmers Multi-Purpose Cooperative</span></a>
+			<a class="navbar-brand" href="index.php"><img style="height: 40px!important" src="../images/you_logo.png" alt=""><span>Lourdes Farmers Multi-Purpose Cooperative</span></a>
 			<ul class="nav navbar-nav visible-xs-block">
 				<li><a data-toggle="collapse" data-target="#navbar-mobile"><i class="icon-tree5"></i></a></li>
 			</ul>
@@ -69,15 +69,15 @@ require('includes/header.php');
 						</ul>
 
 						<ul class="breadcrumb-elements">
-							<li><a href="javascript:;" data-toggle="modal" data-target="#modal_new"><i class="icon-add position-left text-teal-400"  ></i> New Supplier</a></li>
+							<li><a href="javascript:;" data-toggle="modal" data-target="#modal_new"><i class="icon-add position-left text-teal-400"></i> New Supplier</a></li>
 						</ul>
 					</div>
 				</div>
 				<!-- /page header -->
-               
+
 				<!-- Content area -->
 				<div class="content">
-					 <div class="panel  panel-white border-top-xlg border-top-teal-400">
+					<div class="panel  panel-white border-top-xlg border-top-teal-400">
 						<div class="panel-heading">
 							<h6 class="panel-title"><i class="icon-list text-teal-400 position-left"></i> Supplier List</h6>
 						</div>
@@ -85,7 +85,7 @@ require('includes/header.php');
 						<div class="panel-body">
 							<table class="table datatable-button-html5-basic table-hover table-bordered" width="100%">
 								<thead>
-									<tr style="border-bottom: 4px solid #ddd;background: #eee;" >
+									<tr style="border-bottom: 4px solid #ddd;background: #eee;">
 										<th>Supplier ID</th>
 										<th>Name</th>
 										<th>Address</th>
@@ -94,23 +94,23 @@ require('includes/header.php');
 									</tr>
 								</thead>
 								<tbody>
-								<?php while($row = $result->fetch_assoc()) {?>
-									<tr>
-										<td>762345<?= $row['supplier_id'];?></td>
-										<td><?= $row['supplier_name'];?></td>
-										<td><?= $row['supplier_address'];?></td>
-										<td><?= $row['supplier_contact'];?></td>
-										<td title="Edit" style="width: 40px;text-align: center;"><button onclick="edit_details(this)" supplier_id="<?= $row['supplier_id'];?>" supplier_name="<?= $row['supplier_name'];?>" supplier_address="<?= $row['supplier_address'];?>" supplier_contact="<?= $row['supplier_contact'];?>"  type="button" class="btn border-teal text-teal-400 btn-flat btn-icon btn-xs"><i class="icon-pencil7"></i></button></td>
+									<?php while ($row = $result->fetch_assoc()) { ?>
+										<tr>
+											<td>762345<?= $row['supplier_id']; ?></td>
+											<td><?= $row['supplier_name']; ?></td>
+											<td><?= $row['supplier_address']; ?></td>
+											<td><?= $row['supplier_contact']; ?></td>
+											<td title="Edit" style="width: 40px;text-align: center;"><button onclick="edit_details(this)" supplier_id="<?= $row['supplier_id']; ?>" supplier_name="<?= $row['supplier_name']; ?>" supplier_address="<?= $row['supplier_address']; ?>" supplier_contact="<?= $row['supplier_contact']; ?>" type="button" class="btn border-teal text-teal-400 btn-flat btn-icon btn-xs"><i class="icon-pencil7"></i></button></td>
 
-									</tr>
+										</tr>
 									<?php } ?>
 								</tbody>
-						   </table>
+							</table>
 						</div>
 					</div>
 				</div>
 				<!-- /content area -->
-				<?php  require('includes/footer-text.php');?>
+				<?php require('includes/footer-text.php'); ?>
 
 			</div>
 			<!-- /main content -->
@@ -124,222 +124,222 @@ require('includes/header.php');
 		<div class="modal-dialog">
 			<div class="modal-content">
 				<div class="modal-header">
-					<button type="button" class="close" data-dismiss="modal" >&times;</button>
+					<button type="button" class="close" data-dismiss="modal">&times;</button>
 					<h5 class="modal-title"> New Supplier Form</h5>
 				</div>
 
 				<div class="modal-bodys">
 					<form action="#" id="form-customer" class="form-horizontal" data-toggle="validator" role="form">
-					    <input type="hidden" name="save-supplier" ></input>
-				        <div class="form-body">
-                            <div class="form-group">
-	                            <label for="exampleInputuname_4" class="col-sm-3 control-label" >Name</label>
-	                            <div class="col-sm-9">
-	                                <div class="input-group input-group-xlg">
-	                                	<span class="input-group-addon" ><i class="icon-pencil7 text-size-base"></i></span>
-	                                    <input class="form-control"  name="supplier_name" placeholder="Name" type="text"    data-error=" Name is required." required >
-	                                </div>
+						<input type="hidden" name="save-supplier"></input>
+						<div class="form-body">
+							<div class="form-group">
+								<label for="exampleInputuname_4" class="col-sm-3 control-label">Name</label>
+								<div class="col-sm-9">
+									<div class="input-group input-group-xlg">
+										<span class="input-group-addon"><i class="icon-pencil7 text-size-base"></i></span>
+										<input class="form-control" name="supplier_name" placeholder="Name" type="text" data-error=" Name is required." required>
+									</div>
 
-	                                <div class="help-block with-errors"></div>
-	                            </div>
-	                        </div>  
+									<div class="help-block with-errors"></div>
+								</div>
+							</div>
 
-	                        <div class="form-group">
-	                            <label for="exampleInputuname_4" class="col-sm-3 control-label" >Address</label>
-	                            <div class="col-sm-9">
-	                                <textarea name="supplier_address"  rows="5" cols="5" class="form-control" placeholder="Address"></textarea>
-	                            </div>
-	                        </div>  
+							<div class="form-group">
+								<label for="exampleInputuname_4" class="col-sm-3 control-label">Address</label>
+								<div class="col-sm-9">
+									<textarea name="supplier_address" rows="5" cols="5" class="form-control" placeholder="Address"></textarea>
+								</div>
+							</div>
 
-	                        <div class="form-group">
-	                            <label for="exampleInputuname_4" class="col-sm-3 control-label" >Contact</label>
-	                            <div class="col-sm-9">
-	                                <div class="input-group input-group-xlg">
-	                                	<span class="input-group-addon" ><i class="icon-pencil7 text-size-base"></i></span>
-	                                    <input class="form-control"  name="supplier_contact" placeholder="Contact" type="text"    data-error=" Contact is required."  >
-	                                </div>
+							<div class="form-group">
+								<label for="exampleInputuname_4" class="col-sm-3 control-label">Contact</label>
+								<div class="col-sm-9">
+									<div class="input-group input-group-xlg">
+										<span class="input-group-addon"><i class="icon-pencil7 text-size-base"></i></span>
+										<input class="form-control" name="supplier_contact" placeholder="Contact" type="text" data-error=" Contact is required.">
+									</div>
 
-	                                <div class="help-block with-errors"></div>
-	                            </div>
-	                        </div>  
+									<div class="help-block with-errors"></div>
+								</div>
+							</div>
 
-                        </div>
+						</div>
 				</div>
 				<hr>
 				<div class="modal-footer">
-							<button type="submit" class="btn bg-teal-400 btn-labeled"><b><i class="icon-add"></i></b> Save Supplier</button>
-						</div>
-				</div></form>
+					<button type="submit" class="btn bg-teal-400 btn-labeled"><b><i class="icon-add"></i></b> Save Supplier</button>
+				</div>
 			</div>
+			</form>
 		</div>
+	</div>
 	</div>
 	<div id="modal_edit" class="modal fade">
 		<div class="modal-dialog">
 			<div class="modal-content">
 				<div class="modal-header">
-					<button type="button" class="close" data-dismiss="modal" >&times;</button>
+					<button type="button" class="close" data-dismiss="modal">&times;</button>
 					<h5 class="modal-title"> Edit Supplier Form</h5>
 				</div>
 
 				<div class="modal-bodys">
 					<form action="#" id="form-customer-edit" class="form-horizontal" data-toggle="validator" role="form">
-					    <input type="hidden" name="update-supplier" ></input>
-					    <input type="hidden" name="supplier_id" id="supplier_id" ></input>
-				        <div class="form-body">
-                            <div class="form-group">
-	                            <label for="exampleInputuname_4" class="col-sm-3 control-label" >Name</label>
-	                            <div class="col-sm-9">
-	                                <div class="input-group input-group-xlg">
-	                                	<span class="input-group-addon" ><i class="icon-pencil7 text-size-base"></i></span>
-	                                    <input class="form-control" id="supplier_name" name="supplier_name" placeholder="Name" type="text"    data-error=" Name is required." required >
-	                                </div>
+						<input type="hidden" name="update-supplier"></input>
+						<input type="hidden" name="supplier_id" id="supplier_id"></input>
+						<div class="form-body">
+							<div class="form-group">
+								<label for="exampleInputuname_4" class="col-sm-3 control-label">Name</label>
+								<div class="col-sm-9">
+									<div class="input-group input-group-xlg">
+										<span class="input-group-addon"><i class="icon-pencil7 text-size-base"></i></span>
+										<input class="form-control" id="supplier_name" name="supplier_name" placeholder="Name" type="text" data-error=" Name is required." required>
+									</div>
 
-	                                <div class="help-block with-errors"></div>
-	                            </div>
-	                        </div>  
+									<div class="help-block with-errors"></div>
+								</div>
+							</div>
 
-	                        <div class="form-group">
-	                            <label for="exampleInputuname_4" class="col-sm-3 control-label" >Address</label>
-	                           <div class="col-sm-9">
-	                                <textarea name="supplier_address"  id="supplier_address"  rows="5" cols="5" class="form-control" placeholder="Address"></textarea>
-	                            </div>
+							<div class="form-group">
+								<label for="exampleInputuname_4" class="col-sm-3 control-label">Address</label>
+								<div class="col-sm-9">
+									<textarea name="supplier_address" id="supplier_address" rows="5" cols="5" class="form-control" placeholder="Address"></textarea>
+								</div>
 
-	                        </div>  
+							</div>
 
-	                        <div class="form-group">
-	                            <label for="exampleInputuname_4" class="col-sm-3 control-label" >Contact</label>
-	                            <div class="col-sm-9">
-	                                <div class="input-group input-group-xlg">
-	                                	<span class="input-group-addon" ><i class="icon-pencil7 text-size-base"></i></span>
-	                                    <input class="form-control"  id="supplier_contact" name="supplier_contact" placeholder="Contact" type="text"    data-error=" Contact is required."  >
-	                                </div>
+							<div class="form-group">
+								<label for="exampleInputuname_4" class="col-sm-3 control-label">Contact</label>
+								<div class="col-sm-9">
+									<div class="input-group input-group-xlg">
+										<span class="input-group-addon"><i class="icon-pencil7 text-size-base"></i></span>
+										<input class="form-control" id="supplier_contact" name="supplier_contact" placeholder="Contact" type="text" data-error=" Contact is required.">
+									</div>
 
-	                                <div class="help-block with-errors"></div>
-	                            </div>
-	                        </div>  
+									<div class="help-block with-errors"></div>
+								</div>
+							</div>
 
-                        </div>
+						</div>
 				</div>
 				<hr>
 				<div class="modal-footer">
-							<button type="submit" class="btn bg-teal-400 btn-labeled"><b><i class="icon-pencil"></i></b> Save Changes</button>
-						</div>
-				</div></form>
+					<button type="submit" class="btn bg-teal-400 btn-labeled"><b><i class="icon-pencil"></i></b> Save Changes</button>
+				</div>
 			</div>
+			</form>
 		</div>
 	</div>
+	</div>
 </body>
-<?php  require('includes/footer.php');?>
+<?php require('includes/footer.php'); ?>
 <script type="text/javascript" src="../assets/js/plugins/tables/datatables/datatables.min.js"></script>
-<script type="text/javascript" src="../assets/js/plugins/notifications/jgrowl.min.js"></script>  
+<script type="text/javascript" src="../assets/js/plugins/notifications/jgrowl.min.js"></script>
 <script src="../js/validator.min.js"></script>
 
 <script type="text/javascript">
-$(function() {
+	$(function() {
 
-    // Table setup
-    // ------------------------------
-    // Setting datatable defaults
-    $.extend( $.fn.dataTable.defaults, {
-        autoWidth: false,
-        dom: '<"datatable-header"fBl><"datatable-scroll-wrap"t><"datatable-footer"ip>',
-        language: {
-            search: '<span>Filter:</span> _INPUT_',
-            searchPlaceholder: 'Type to filter...',
-            lengthMenu: '<span>Show:</span> _MENU_',
-            paginate: { 'first': 'First', 'last': 'Last', 'next': '&rarr;', 'previous': '&larr;' }
-        }
-    });
+		// Table setup
+		// ------------------------------
+		// Setting datatable defaults
+		$.extend($.fn.dataTable.defaults, {
+			autoWidth: false,
+			dom: '<"datatable-header"fBl><"datatable-scroll-wrap"t><"datatable-footer"ip>',
+			language: {
+				search: '<span>Filter:</span> _INPUT_',
+				searchPlaceholder: 'Type to filter...',
+				lengthMenu: '<span>Show:</span> _MENU_',
+				paginate: {
+					'first': 'First',
+					'last': 'Last',
+					'next': '&rarr;',
+					'previous': '&larr;'
+				}
+			}
+		});
 
-    // Basic initialization
-    $('.datatable-button-html5-basic').DataTable({
-    	"order": [[ 0, "desc" ]]
-    });
-});
+		// Basic initialization
+		$('.datatable-button-html5-basic').DataTable({
+			"order": [
+				[0, "desc"]
+			]
+		});
+	});
 </script>
 <script type="text/javascript">
-    $(document).ready(function()
-    {
-    });
-	$('#form-customer').validator().on('submit', function (e) 
-    {
-        if (e.isDefaultPrevented()) 
-        {
-        }else { 
-            $(':input[type="submit"]').prop('disabled', true);
-            var data = $(this).serialize();
-            $.ajax({
-                   type      :      'POST',
-                   url       :      '../transaction.php',
-                   data      :       data,
-                    success  :       function(msg)     
-                    {  
-                        if (msg=='1'){
-                         	
-					         $.jGrowl('New supplier successfully added.', {
-			                    header: 'Success Notification',
-			                    theme: 'alert-styled-right bg-success'
-			                });
-					        setTimeout(function(){  window.location='supplier.php';  }, 1500);
-                        }else{
-                         	alert('Something went wrong!');
-                        }
-                    },
-                    error  :       function(msg)     
-                    { 
-                        alert('Something went wrong!');
-                    }
-            });
-            return false;
-        } 
-    });
+	$(document).ready(function() {});
+	$('#form-customer').validator().on('submit', function(e) {
+		if (e.isDefaultPrevented()) {} else {
+			$(':input[type="submit"]').prop('disabled', true);
+			var data = $(this).serialize();
+			$.ajax({
+				type: 'POST',
+				url: '../transaction.php',
+				data: data,
+				success: function(msg) {
+					if (msg == '1') {
 
-    function view_details(el)
-    {
-    	var cust_id = $(el).attr('cust_id'); 
-    	window.location='customer-details.php?cust_id='+cust_id;
-    }
+						$.jGrowl('New supplier successfully added.', {
+							header: 'Success Notification',
+							theme: 'alert-styled-right bg-success'
+						});
+						setTimeout(function() {
+							window.location = 'supplier.php';
+						}, 1500);
+					} else {
+						alert('Something went wrong!');
+					}
+				},
+				error: function(msg) {
+					alert('Something went wrong!');
+				}
+			});
+			return false;
+		}
+	});
 
-    function edit_details(el)
-    {   
-    	$("#modal_edit").modal('show');
-    	$("#supplier_name").val($(el).attr('supplier_name'));
-    	$("#supplier_address").val($(el).attr('supplier_address'));
-    	$("#supplier_contact").val($(el).attr('supplier_contact'));
-    	$("#supplier_id").val($(el).attr('supplier_id'));	
-    }
+	function view_details(el) {
+		var cust_id = $(el).attr('cust_id');
+		window.location = 'customer-details.php?cust_id=' + cust_id;
+	}
 
-    $('#form-customer-edit').validator().on('submit', function (e) 
-    {
-        if (e.isDefaultPrevented()) 
-        {
-        }else { 
-            $(':input[type="submit"]').prop('disabled', true);
-            var data = $(this).serialize();
-            $.ajax({
-                   type      :      'POST',
-                   url       :      '../transaction.php',
-                   data      :       data,
-                    success  :       function(msg)     
-                    {  
-                        if (msg=='1'){
-                         	
-					         $.jGrowl('Supplier successfully updated.', {
-			                    header: 'Success Notification',
-			                    theme: 'alert-styled-right bg-success'
-			                });
-					        setTimeout(function(){  window.location='supplier.php';  }, 1500);
-                        }else{
-                         	alert('Something went wrong!');
-                        }
-                    },
-                    error  :       function(msg)     
-                    { 
-                        alert('Something went wrong!');
-                    }
-            });
-            return false;
-        } 
-    });
+	function edit_details(el) {
+		$("#modal_edit").modal('show');
+		$("#supplier_name").val($(el).attr('supplier_name'));
+		$("#supplier_address").val($(el).attr('supplier_address'));
+		$("#supplier_contact").val($(el).attr('supplier_contact'));
+		$("#supplier_id").val($(el).attr('supplier_id'));
+	}
+
+	$('#form-customer-edit').validator().on('submit', function(e) {
+		if (e.isDefaultPrevented()) {} else {
+			$(':input[type="submit"]').prop('disabled', true);
+			var data = $(this).serialize();
+			$.ajax({
+				type: 'POST',
+				url: '../transaction.php',
+				data: data,
+				success: function(msg) {
+					if (msg == '1') {
+
+						$.jGrowl('Supplier successfully updated.', {
+							header: 'Success Notification',
+							theme: 'alert-styled-right bg-success'
+						});
+						setTimeout(function() {
+							window.location = 'supplier.php';
+						}, 1500);
+					} else {
+						alert('Something went wrong!');
+					}
+				},
+				error: function(msg) {
+					alert('Something went wrong!');
+				}
+			});
+			return false;
+		}
+	});
 </script>
+
 </html>

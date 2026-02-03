@@ -7,26 +7,26 @@ $result = $db->query($query);
     .navbar-brand {
         display: flex;
         align-items: center;
-        /* vertically center image + text */
+
         gap: 0px;
-        /* space between logo and text */
+
         font-weight: 800;
         color: white;
-        /* adjust to your navbar color */
+
         text-decoration: none;
         font-size: 50px;
     }
 
     .navbar-brand img {
-        height: 40px;
-        /* adjust logo height */
+        height: 65px;
+
         width: auto;
         object-fit: contain;
     }
 
     .navbar-brand span {
         white-space: nowrap;
-        /* prevent text from wrapping to next line */
+
     }
 </style>
 
@@ -34,7 +34,7 @@ $result = $db->query($query);
     <!-- Main navbar -->
     <div class="navbar navbar-inverse bg-teal-400 navbar-fixed-top">
         <div class="navbar-header">
-            <a class="navbar-brand" href="index.php"><img style="height: 40px!important" src="../images/farmers-logo.png" alt=""><span>Lourdes Farmers Multi-Purpose Cooperative</span></a>
+            <a class="navbar-brand" href="index.php"><img src="../images/your_logo.png" alt=""><span>OCC Cooperative</span></a>
             <ul class="nav navbar-nav visible-xs-block">
                 <li><a data-toggle="collapse" data-target="#navbar-mobile"><i class="icon-tree5"></i></a></li>
             </ul>
@@ -129,71 +129,115 @@ $result = $db->query($query);
     <!-- /page container -->
 </body>
 <?php require('includes/footer.php'); ?>
-
-<!--  modal add-->
+<!-- Modal Add Member -->
 <div id="modal_new" class="modal fade">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg"> <!-- wider modal -->
         <div class="modal-content">
-            <form action="#" id="form-customer" class="form-horizontal" data-toggle="validator" role="form">
+
+            <form action="#" id="form-customer" class="form-horizontal" role="form">
                 <input type="hidden" name="save-customer">
 
-                <div class="modal-header">
-                    <button type="button" class="close" data-dismiss="modal">&times;</button>
-                    <h5 class="modal-title">New Member Form</h5>
+                <div class="modal-header bg-teal">
+                    <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+                    <h5 class="modal-title"><i class="icon-user-plus"></i> Register New Member</h5>
                 </div>
 
                 <div class="modal-body">
-                    <!-- Name -->
-                    <div class="form-group">
-                        <label class="col-sm-3 control-label">Name</label>
-                        <div class="col-sm-9">
-                            <div class="input-group input-group-xlg">
-                                <span class="input-group-addon"><i class="icon-pencil7 text-size-base"></i></span>
-                                <input class="form-control" name="name" placeholder="Name" type="text" required>
+
+                    <!-- NAME ROW -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="control-label font-weight-semibold">First Name</label>
+                            <div class="input-group">
+                                <span class="input-group-addon"><i class="icon-user"></i></span>
+                                <input class="form-control input-lg" name="first_name" placeholder="Enter first name" required>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="control-label font-weight-semibold">Last Name</label>
+                            <div class="input-group">
+                                <span class="input-group-addon"><i class="icon-user"></i></span>
+                                <input class="form-control input-lg" name="last_name" placeholder="Enter last name" required>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Address -->
-                    <div class="form-group">
-                        <label class="col-sm-3 control-label">Address</label>
-                        <div class="col-sm-9">
-                            <textarea name="address" rows="5" cols="5" class="form-control" placeholder="Address"></textarea>
-                        </div>
-                    </div>
+                    <hr>
 
-                    <!-- Contact -->
-                    <div class="form-group">
-                        <label class="col-sm-3 control-label">Contact</label>
-                        <div class="col-sm-9">
-                            <div class="input-group input-group-xlg">
-                                <span class="input-group-addon"><i class="icon-pencil7 text-size-base"></i></span>
-                                <input class="form-control" name="contact" placeholder="Contact" type="text">
+                    <!-- PERSONAL INFO -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="control-label font-weight-semibold">Gender</label>
+                            <select name="gender" class="form-control input-lg" required>
+                                <option value="">-- Select Gender --</option>
+                                <option>Male</option>
+                                <option>Female</option>
+                                <option>Other</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="control-label font-weight-semibold">Contact Number</label>
+                            <div class="input-group">
+                                <span class="input-group-addon"><i class="icon-phone"></i></span>
+                                <input class="form-control input-lg" name="contact" placeholder="09XXXXXXXXX">
                             </div>
                         </div>
                     </div>
 
-                    <!-- Initial Capital Share -->
-                    <div class="form-group">
-                        <label class="col-sm-3 control-label">Capital Share</label>
-                        <div class="col-sm-9">
-                            <div class="input-group input-group-xlg">
-                                <span class="input-group-addon"><i class="icon-coin-dollar"></i></span>
-                                <input class="form-control" name="capital_share" placeholder="0.00" type="number" step="0.01" min="0" value="0">
+                    <hr>
+
+                    <!-- ACCOUNT INFO -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="control-label font-weight-semibold">Email Address</label>
+                            <div class="input-group">
+                                <span class="input-group-addon"><i class="icon-envelop"></i></span>
+                                <input type="email" class="form-control input-lg" name="email" placeholder="example@email.com" required>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="control-label font-weight-semibold">Password</label>
+                            <div class="input-group">
+                                <span class="input-group-addon"><i class="icon-lock2"></i></span>
+                                <input type="password" class="form-control input-lg" name="password" placeholder="Enter password" required>
                             </div>
                         </div>
                     </div>
+
+                    <hr>
+
+                    <!-- ADDRESS -->
+                    <div class="form-group">
+                        <label class="control-label font-weight-semibold">Complete Address</label>
+                        <textarea name="address" rows="3" class="form-control" placeholder="Street, Barangay, City, Province"></textarea>
+                    </div>
+
+                    <!-- CAPITAL SHARE -->
+                    <div class="form-group">
+                        <label class="control-label font-weight-semibold">Capital Share Contribution</label>
+                        <div class="input-group">
+                            <span class="input-group-addon">₱</span>
+                            <input class="form-control input-lg" name="capital_share" type="number" step="0.01" min="0" value="0">
+                        </div>
+                    </div>
+
                 </div>
 
                 <div class="modal-footer">
-                    <button type="submit" class="btn bg-teal-400 btn-labeled">
-                        <b><i class="icon-add"></i></b> Save Member
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn bg-teal-600 btn-lg">
+                        <i class="icon-check"></i> Save Member
                     </button>
                 </div>
+
             </form>
         </div>
     </div>
 </div>
+
 
 
 <div id="modal_edit" class="modal fade">

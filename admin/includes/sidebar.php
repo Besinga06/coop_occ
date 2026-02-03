@@ -1,6 +1,6 @@
 <ul class="nav navbar-nav">
 
-    <!-- ADMIN -->
+
     <?php if ($_SESSION['session_type'] == "admin") { ?>
 
         <li><a href="index.php"><i class="icon-home"></i> &nbsp; Dashboard</a></li>
@@ -51,9 +51,11 @@
                 <li><a href="system-history.php"><i class="icon-dots"></i> System History</a></li>
             </ul>
         </li>
+
     <?php } ?>
 
-    
+
+
     <?php if ($_SESSION['session_type'] == "treasurer") { ?>
 
         <li class="dropdown">
@@ -80,7 +82,6 @@
     <?php } ?>
 
 
-   
     <?php if ($_SESSION['session_type'] == "cashier") { ?>
 
 
@@ -93,7 +94,6 @@
             </ul>
         </li>
 
-       
         <li class="dropdown">
             <a href="#" class="dropdown-toggle" data-toggle="dropdown">
                 <i class="icon-chart position-left"></i> Reports <span class="caret"></span>
@@ -102,6 +102,17 @@
                 <li><a href="daily_sales.php"><i class="icon-dots"></i> Daily Collection</a></li>
                 <li><a href="sales-report.php"><i class="icon-dots"></i> Sales</a></li>
             </ul>
+        </li>
+
+    <?php } ?>
+
+
+    <?php if ($_SESSION['session_type'] == "member") { ?>
+
+        <li>
+            <a href="index.php">
+                <i class="icon-home"></i> &nbsp; Dashboard
+            </a>
         </li>
 
     <?php } ?>

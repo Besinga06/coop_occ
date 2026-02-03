@@ -53,7 +53,7 @@ while ($row = $result->fetch_assoc()) {
 
 /* ================= UPDATE MODE ================= */
 if (isset($_GET['update'])) {
-	
+
 	echo "<script> var is_update = true; </script>";
 	$sales_no = intval($_GET['sales_no']);
 
@@ -106,7 +106,7 @@ if ($row = $result_beginning->fetch_assoc()) {
 	<div class="main-div">
 		<div class="top-content">
 			<div class="logo">
-				<img src="../images/farmers-logo.png">
+				<img src="../images/your_logo.png">
 			</div>
 			<div class="search-div">
 				<div class="form-group has-feedback has-feedback-left input-text">

@@ -179,7 +179,7 @@ require('db_connect.php');
 if (isset($_SESSION['expences-report-user']) != "") {
 	$user_query_name = "SELECT * FROM tbl_users WHERE user_id='" . $_SESSION['expences-report-user'] . "' ";
 	$user_queryname = $db->query($user_query_name);
-	while ($row = $user_queryname->fetchArray()) {
+	while ($row = $user_queryname->fetch_assoc()) {
 		$selected_user = $row['fullname'];
 	}
 } else {
@@ -242,7 +242,7 @@ if (isset($_SESSION['expences-date-required'])) {
 	<!-- Main navbar -->
 	<div class="navbar navbar-inverse bg-teal-400 navbar-fixed-top">
 		<div class="navbar-header">
-			<a class="navbar-brand" href="index.php"><img style="height: 40px!important" src="../images/farmers-logo.png" alt=""><span>Lourdes Farmers Multi-Purpose Cooperative</span></a>
+			<a class="navbar-brand" href="index.php"><img style="height: 65px!important" src="../images/your_logo.png" alt=""><span>OCC Cooperative</span></a>
 			<ul class="nav navbar-nav visible-xs-block">
 				<li><a data-toggle="collapse" data-target="#navbar-mobile"><i class="icon-tree5"></i></a></li>
 			</ul>

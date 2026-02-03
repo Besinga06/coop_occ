@@ -30,7 +30,7 @@
 	<!-- Main navbar -->
 	<div class="navbar navbar-inverse bg-teal-400 navbar-fixed-top">
 		<div class="navbar-header">
-			<a class="navbar-brand" href="index.php"><img style="height: 40px!important" src="../images/farmers-logo.png" alt=""><span>Lourdes Farmers Multi-Purpose Cooperative</span></a>
+			<a class="navbar-brand" href="index.php"><img style="height: 65px!important" src="../images/your_logo.png" alt=""><span>OCC Cooperative</span></a>
 			<ul class="nav navbar-nav visible-xs-block">
 				<li><a data-toggle="collapse" data-target="#navbar-mobile"><i class="icon-tree5"></i></a></li>
 			</ul>
@@ -93,10 +93,12 @@
 								</thead>
 								<tbody>
 									<?php
-									$query = "SELECT * FROM tbl_users WHERE user_id!='" . $_SESSION['user_id'] . "'";
+									$query = "SELECT * FROM tbl_users 
+          WHERE usertype IN (1,2,3) 
+          AND user_id != '" . $_SESSION['user_id'] . "'";
 									$result = $db->query($query);
 
-									while ($row = $result->fetch_assoc()) {  // <-- changed here
+									while ($row = $result->fetch_assoc()) {
 									?>
 										<tr>
 											<td>87989<?= $row['user_id']; ?></td>
@@ -106,7 +108,7 @@
 												<?php
 												if ($row['usertype'] == 1) echo "Admin";
 												elseif ($row['usertype'] == 2) echo "Cashier";
-												else echo "Treasurer";
+												elseif ($row['usertype'] == 3) echo "Treasurer";
 												?>
 											</td>
 											<td style="text-align: center;">
@@ -120,6 +122,7 @@
 											</td>
 										</tr>
 									<?php } ?>
+
 								</tbody>
 							</table>
 						</div>

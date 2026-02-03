@@ -1,6 +1,17 @@
 <?php
 require('includes/header.php');
+
+function money($value)
+{
+    if ($value == 0 || $value === null) {
+        return '~';
+    }
+    return rtrim(rtrim(number_format($value, 2), '0'), '.');
+}
+
+
 $year = isset($_GET['year']) ? $_GET['year'] : date('Y');
+
 
 // -------------------------
 // Fetch Members and Totals
@@ -10,28 +21,28 @@ $members = $db->query("
         c.cust_id, 
         c.name,
         IFNULL((
-            SELECT SUM(CAST(amount AS REAL)) 
+            SELECT SUM(CAST(amount AS DECIMAL(12,2))) 
             FROM tbl_capital_share cs 
             WHERE cs.cust_id = c.cust_id 
-              AND strftime('%Y', cs.contribution_date) = '$year'
+              AND YEAR(cs.contribution_date) = '$year'
         ),0) AS total_share,
         (
             IFNULL((
-                SELECT SUM(CAST(total_amount AS REAL)) 
+                SELECT SUM(CAST(total_amount AS DECIMAL(12,2))) 
                 FROM tbl_sales s 
                 WHERE s.cust_id = c.cust_id 
                   AND s.sales_type = 1
-                  AND strftime('%Y', s.sales_date) = '$year'
+                  AND YEAR(s.sales_date) = '$year'
             ),0)
             +
             IFNULL((
-                SELECT SUM(CAST(p.amount_paid AS REAL))
+                SELECT SUM(CAST(p.amount_paid AS DECIMAL(12,2)))
                 FROM tbl_payments p
                 WHERE p.sales_no IN (
                     SELECT s2.sales_no FROM tbl_sales s2
                     WHERE s2.cust_id = c.cust_id 
                       AND s2.sales_type = 0
-                      AND strftime('%Y', s2.sales_date) = '$year'
+                      AND YEAR(s2.sales_date) = '$year'
                 )
             ),0)
         ) AS total_purchase
@@ -40,38 +51,44 @@ $members = $db->query("
     ORDER BY c.name ASC
 ");
 
+
 // -------------------------
 // Overall Totals
 // -------------------------
 $overall = $db->query("
     SELECT 
-        IFNULL((SELECT SUM(CAST(amount AS REAL))
+        IFNULL((SELECT SUM(CAST(amount AS DECIMAL(12,2)))
                 FROM tbl_capital_share
-                WHERE strftime('%Y', contribution_date) = '$year'
+                WHERE YEAR(contribution_date) = '$year'
                   AND cust_id != 1),0) AS overall_share,
         (
-            IFNULL((SELECT SUM(CAST(total_amount AS REAL)) 
+            IFNULL((SELECT SUM(CAST(total_amount AS DECIMAL(12,2))) 
                     FROM tbl_sales s 
                     JOIN tbl_customer c ON s.cust_id = c.cust_id
                     WHERE s.sales_type = 1
-                      AND strftime('%Y', s.sales_date) = '$year'
+                      AND YEAR(s.sales_date) = '$year'
                       AND c.cust_id != 1),0)
             +
-            IFNULL((SELECT SUM(CAST(p.amount_paid AS REAL))
+            IFNULL((SELECT SUM(CAST(p.amount_paid AS DECIMAL(12,2)))
                     FROM tbl_payments p
                     WHERE p.sales_no IN (
                         SELECT s2.sales_no FROM tbl_sales s2 
                         JOIN tbl_customer c2 ON s2.cust_id = c2.cust_id
                         WHERE s2.sales_type = 0
-                          AND strftime('%Y', s2.sales_date) = '$year'
+                          AND YEAR(s2.sales_date) = '$year'
                           AND c2.cust_id != 1
                     )),0)
         ) AS overall_purchase
-")->fetchArray(SQLITE3_ASSOC);
+");
 
-$overallShare = $overall['overall_share'];
-$overallPurchase = $overall['overall_purchase'];
+$overallRow = $overall->fetch_assoc();
+$overallShare = $overallRow['overall_share'];
+$overallPurchase = $overallRow['overall_purchase'];
 
+
+// -------------------------
+// Distribution History
+// -------------------------
 $history = $db->query("
     SELECT 
         dc.id,
@@ -82,30 +99,33 @@ $history = $db->query("
         IFNULL(SUM(dr.dividend), 0) AS total_dividend,
         IFNULL(SUM(dr.patronage), 0) AS total_patronage,
         IFNULL(SUM(dr.total_benefit), 0) AS total_benefit,
+
         -- Overall capital shares for the year
-        IFNULL((SELECT SUM(CAST(amount AS REAL)) 
+        IFNULL((SELECT SUM(CAST(amount AS DECIMAL(12,2))) 
                 FROM tbl_capital_share 
-                WHERE strftime('%Y', contribution_date) = dc.year
+                WHERE YEAR(contribution_date) = dc.year
                   AND cust_id != 1), 0) AS overall_share,
+
         -- Overall total purchases for the year
         (
-            IFNULL((SELECT SUM(CAST(total_amount AS REAL)) 
+            IFNULL((SELECT SUM(CAST(total_amount AS DECIMAL(12,2))) 
                     FROM tbl_sales s 
                     JOIN tbl_customer c ON s.cust_id = c.cust_id
                     WHERE s.sales_type = 1
-                      AND strftime('%Y', s.sales_date) = dc.year
+                      AND YEAR(s.sales_date) = dc.year
                       AND c.cust_id != 1),0)
             +
-            IFNULL((SELECT SUM(CAST(p.amount_paid AS REAL))
+            IFNULL((SELECT SUM(CAST(p.amount_paid AS DECIMAL(12,2)))
                     FROM tbl_payments p
                     WHERE p.sales_no IN (
                         SELECT s2.sales_no FROM tbl_sales s2 
                         JOIN tbl_customer c2 ON s2.cust_id = c2.cust_id
                         WHERE s2.sales_type = 0
-                          AND strftime('%Y', s2.sales_date) = dc.year
+                          AND YEAR(s2.sales_date) = dc.year
                           AND c2.cust_id != 1
                     )),0)
         ) AS overall_purchase
+
     FROM distribution_cycles dc
     LEFT JOIN distribution_records dr ON dr.cycle_id = dc.id
     GROUP BY dc.id, dc.year, dc.dividend_amount, dc.patronage_amount
@@ -113,6 +133,7 @@ $history = $db->query("
 ");
 
 ?>
+
 <style>
     .navbar-brand {
         display: flex;
@@ -144,7 +165,7 @@ $history = $db->query("
     <!-- Main navbar -->
     <div class="navbar navbar-inverse bg-teal-400 navbar-fixed-top">
         <div class="navbar-header">
-            <a class="navbar-brand" href="index.php"><img style="height: 40px!important" src="../images/farmers-logo.png" alt=""><span>Lourdes Farmers Multi-Purpose Cooperative</span></a>
+            <a class="navbar-brand" href="index.php"><img style="height: 65px!important" src="../images/your_logo.png" alt=""><span>occ Cooperative</span></a>
             <ul class="nav navbar-nav visible-xs-block">
                 <li><a data-toggle="collapse" data-target="#navbar-mobile"><i class="icon-tree5"></i></a></li>
             </ul>
@@ -258,16 +279,35 @@ $history = $db->query("
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php while ($row = $members->fetchArray(SQLITE3_ASSOC)) { ?>
-                                        <tr data-id="<?= $row['cust_id']; ?>" data-share="<?= $row['total_share']; ?>" data-purchase="<?= $row['total_purchase']; ?>">
+                                    <?php while ($row = $members->fetch_assoc()) { ?>
+                                        <tr
+                                            data-id="<?= $row['cust_id']; ?>"
+                                            data-share="<?= $row['total_share']; ?>"
+                                            data-purchase="<?= $row['total_purchase']; ?>">
                                             <td><?= htmlspecialchars($row['name']); ?></td>
-                                            <td class="text-right">₱ <?= number_format($row['total_share'], 2); ?></td>
-                                            <td class="text-right">₱ <?= number_format($row['total_purchase'], 2); ?></td>
-                                            <td class="dividend text-right" title="Dividend = Capital Share ÷ Total Shares × Dividend Pool">₱ 0.00 <i class="icon-info22 text-info"></i></td>
-                                            <td class="patronage text-right" title="Patronage = Total Purchases ÷ Overall Purchases × Patronage Pool">₱ 0.00 <i class="icon-info22 text-info"></i></td>
-                                            <td class="total-benefit text-right" title="Total Benefit = Dividend + Patronage">₱ 0.00 <i class="icon-info22 text-info"></i></td>
+
+                                            <td class="text-right">
+                                                ₱ <?= money($row['total_share']); ?>
+                                            </td>
+
+                                            <td class="text-right">
+                                                ₱ <?= money($row['total_purchase']); ?>
+                                            </td>
+
+                                            <td class="dividend text-right" title="Dividend = Capital Share ÷ Total Shares × Dividend Pool">
+                                                ₱ ~ <i class="icon-info22 text-info"></i>
+                                            </td>
+
+                                            <td class="patronage text-right" title="Patronage = Total Purchases ÷ Overall Purchases × Patronage Pool">
+                                                ₱ ~ <i class="icon-info22 text-info"></i>
+                                            </td>
+
+                                            <td class="total-benefit text-right" title="Total Benefit = Dividend + Patronage">
+                                                ₱ ~ <i class="icon-info22 text-info"></i>
+                                            </td>
                                         </tr>
                                     <?php } ?>
+
 
                                 </tbody>
                             </table>
@@ -294,19 +334,44 @@ $history = $db->query("
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php while ($row = $history->fetchArray(SQLITE3_ASSOC)) { ?>
+                                    <?php while ($row = $history->fetch_assoc()) { ?>
                                         <tr>
                                             <td><?= $row['year'] ?></td>
-                                            <td class="text-center"><?= $row['total_members'] ?></td>
-                                            <td class="text-right">₱ <?= number_format($row['overall_share'], 2) ?></td>
-                                            <td class="text-right">₱ <?= number_format($row['overall_purchase'], 2) ?></td>
-                                            <td class="text-right">₱ <?= number_format($row['dividend_amount'], 2) ?></td>
-                                            <td class="text-right">₱ <?= number_format($row['patronage_amount'], 2) ?></td>
-                                            <td class="text-right">₱ <?= number_format($row['total_dividend'], 2) ?></td>
-                                            <td class="text-right">₱ <?= number_format($row['total_patronage'], 2) ?></td>
-                                            <td class="text-right">₱ <?= number_format($row['total_benefit'], 2) ?></td>
+
+                                            <td class="text-center">
+                                                <?= $row['total_members'] ?: '~'; ?>
+                                            </td>
+
+                                            <td class="text-right">
+                                                ₱ <?= money($row['overall_share']); ?>
+                                            </td>
+
+                                            <td class="text-right">
+                                                ₱ <?= money($row['overall_purchase']); ?>
+                                            </td>
+
+                                            <td class="text-right">
+                                                ₱ <?= money($row['dividend_amount']); ?>
+                                            </td>
+
+                                            <td class="text-right">
+                                                ₱ <?= money($row['patronage_amount']); ?>
+                                            </td>
+
+                                            <td class="text-right">
+                                                ₱ <?= money($row['total_dividend']); ?>
+                                            </td>
+
+                                            <td class="text-right">
+                                                ₱ <?= money($row['total_patronage']); ?>
+                                            </td>
+
+                                            <td class="text-right">
+                                                ₱ <?= money($row['total_benefit']); ?>
+                                            </td>
                                         </tr>
                                     <?php } ?>
+
                                 </tbody>
                             </table>
                         </div>

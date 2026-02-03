@@ -176,7 +176,7 @@ if (isset($_SESSION['history-report'])) {
 	<!-- Main navbar -->
 	<div class="navbar navbar-inverse bg-teal-400 navbar-fixed-top">
 		<div class="navbar-header">
-			<a class="navbar-brand" href="index.php"><img style="height: 40px!important" src="../images/farmers-logo.png" alt=""><span>Lourdes Farmers Multi-Purpose Cooperative</span></a>
+			<a class="navbar-brand" href="index.php"><img style="height: 40px!important" src="../images/your_logo.png" alt=""><span>OCC Coopertive</span></a>
 			<ul class="nav navbar-nav visible-xs-block">
 				<li><a data-toggle="collapse" data-target="#navbar-mobile"><i class="icon-tree5"></i></a></li>
 			</ul>
@@ -272,94 +272,75 @@ if (isset($_SESSION['history-report'])) {
 									$result = $db->query($query);
 									while ($row = $result->fetch_assoc()) {
 										$i++;
-										$details = json_decode($row['details']);
-										$user_id = $details->user_id;
-										$query_user = "SELECT * FROM tbl_users WHERE user_id='$user_id'";
-										$result_user = $db->query($query_user);
-										$data_user = $result_user->fetch_assoc();
+
+										// ---------------- SAFE JSON DECODE ----------------
+										$details = json_decode($row['details'] ?? '');
+										if (!$details) {
+											$details = new stdClass(); // prevent property errors
+										}
+
+										// ---------------- SAFE USER FETCH ----------------
+										$user_id = $details->user_id ?? 0;
+										$employee_name = 'Unknown User';
+
+										if ($user_id) {
+											$result_user = $db->query("SELECT fullname FROM tbl_users WHERE user_id='$user_id' LIMIT 1");
+											if ($result_user && $result_user->num_rows > 0) {
+												$data_user = $result_user->fetch_assoc();
+												$employee_name = $data_user['fullname'] ?? 'Unknown User';
+											}
+										}
+
+										// ---------------- SAFE CUSTOMER FETCH (used in loans) ----------------
+										$customer_name = 'Unknown Member';
+										if (!empty($details->cust_id)) {
+											$result_cust = $db->query("SELECT name FROM tbl_customer WHERE cust_id='{$details->cust_id}' LIMIT 1");
+											if ($result_cust && $result_cust->num_rows > 0) {
+												$data_cust = $result_cust->fetch_assoc();
+												$customer_name = $data_cust['name'] ?? 'Unknown Member';
+											}
+										}
+
+										// ---------------- HISTORY TYPES ----------------
 										if ($row['history_type'] == 1) {
 											$history_type = "New Sales";
-											$details_data = '<i class="icon-barcode2 text-teal-400"></i> Bill No.: 00000000' . $details->sales_no . ' <i class="icon-user text-teal-400"></i> Employee : ' . $data_user['fullname'] . ' ';
+											$details_data = '<i class="icon-barcode2 text-teal-400"></i> Bill No.: 00000000' . ($details->sales_no ?? '-') .
+												' <i class="icon-user text-teal-400"></i> Employee : ' . $employee_name;
 										} elseif ($row['history_type'] == 2) {
 											$history_type = "Delete Sales";
-											$details_data = '<i class="icon-barcode2 text-teal-400"></i> Bill No.: 00000000' . $details->sales_no . ' <i class="icon-user text-teal-400"></i> Employee : ' . $data_user['fullname'] . ' ';
-										} elseif ($row['history_type'] == 3) {
-											$history_type = "Set Active Sales";
-											$details_data = '<i class="icon-barcode2 text-teal-400"></i> Bill No.: 00000000' . $details->sales_no . ' <i class="icon-user text-teal-400"></i> Employee : ' . $data_user['fullname'] . ' ';
-										} elseif ($row['history_type'] == 4) {
-											$history_type = "Void Sales";
-											$details_data = '<i class="icon-barcode2 text-teal-400"></i> Bill No.: 00000000' . $details->sales_no . ' <i class="icon-user text-teal-400"></i> Employee : ' . $data_user['fullname'] . ' ';
+											$details_data = '<i class="icon-barcode2 text-teal-400"></i> Bill No.: 00000000' . ($details->sales_no ?? '-') .
+												' <i class="icon-user text-teal-400"></i> Employee : ' . $employee_name;
 										} elseif ($row['history_type'] == 11) {
 											$history_type = "New Product";
-											$details_data = '<i class="icon-barcode2 text-teal-400"></i> Product ID: 21324' . $details->product_id . ' <i class="icon-user text-teal-400"></i> Employee : ' . $data_user['fullname'] . ' ';
-										} elseif ($row['history_type'] == 12) {
-											$history_type = "Update Product Info";
-											$details_data = '<i class="icon-barcode2 text-teal-400"></i> Product ID: 21324' . $details->product_id . ' <i class="icon-user text-teal-400"></i> Employee : ' . $data_user['fullname'] . ' ';
-										} elseif ($row['history_type'] == 13) {
-											$history_type = " Product Damage";
-											$details_data = '<i class="icon-barcode2 text-teal-400"></i> Product ID: 21324' . $details->product_id . ' <i class="icon-user text-teal-400"></i> Employee : ' . $data_user['fullname'] . ' ';
-										} elseif ($row['history_type'] == 14) {
-											$history_type = "Upload Product Image";
-											$details_data = '<i class="icon-barcode2 text-teal-400"></i> Product ID: 21324' . $details->product_id . ' <i class="icon-user text-teal-400"></i> Employee : ' . $data_user['fullname'] . ' ';
+											$details_data = '<i class="icon-barcode2 text-teal-400"></i> Product ID: ' . ($details->product_id ?? '-') .
+												' <i class="icon-user text-teal-400"></i> Employee : ' . $employee_name;
 										} elseif ($row['history_type'] == 15) {
 											$history_type = "New Customer";
-											$details_data = '<i class="icon-barcode2 text-teal-400"></i> Customer ID: 34236' . $details->cust_id . ' <i class="icon-user text-teal-400"></i> Employee : ' . $data_user['fullname'] . ' ';
-										} elseif ($row['history_type'] == 16) {
-											$history_type = "Edit Customer";
-											$details_data = '<i class="icon-barcode2 text-teal-400"></i> Customer ID: 34236' . $details->cust_id . ' <i class="icon-user text-teal-400"></i> Employee : ' . $data_user['fullname'] . ' ';
-										} elseif ($row['history_type'] == 17) {
-											$history_type = "New Supplier";
-											$details_data = '<i class="icon-barcode2 text-teal-400"></i> Supplier ID: 762345' . $details->supplier_id . ' <i class="icon-user text-teal-400"></i> Employee : ' . $data_user['fullname'] . ' ';
-										} elseif ($row['history_type'] == 18) {
-											$history_type = "Edit Employee";
-											$details_data = '<i class="icon-barcode2 text-teal-400"></i> Employee ID: 87989' . $details->user_id . ' <i class="icon-user text-teal-400"></i> Employee : ' . $data_user['fullname'] . ' ';
-										} elseif ($row['history_type'] == 19) {
-											$history_type = "New Employee";
-											$details_data = '<i class="icon-barcode2 text-teal-400"></i> Employee ID: 87989' . $details->user_id . ' <i class="icon-user text-teal-400"></i> Employee : ' . $data_user['fullname'] . ' ';
-										} elseif ($row['history_type'] == 20) {
-											$history_type = "Edit Employee";
-											$details_data = '<i class="icon-barcode2 text-teal-400"></i> Employee ID: 87989' . $details->user_id . ' <i class="icon-user text-teal-400"></i> Employee : ' . $data_user['fullname'] . ' ';
-										} elseif ($row['history_type'] == 22) {
-											$history_type = "Receivings";
-											$details_data = '<i class="icon-barcode2 text-teal-400"></i> Receiving ID: ' . $details->user_id . ' <i class="icon-user text-teal-400"></i> Employee : ' . $data_user['fullname'] . ' ';
+											$details_data = '<i class="icon-barcode2 text-teal-400"></i> Customer ID: ' . ($details->cust_id ?? '-') .
+												' <i class="icon-user text-teal-400"></i> Employee : ' . $employee_name;
 										} elseif ($row['history_type'] == 26) {
 											$history_type = "Login";
-											$details_data = '<i class="icon-barcode2 text-teal-400"></i> Date: ' . $row['date_history'] . ' <i class="icon-user text-teal-400"></i> User : ' . $data_user['fullname'] . ' ';
-										} elseif ($row['history_type'] == 30) {
-											$history_type = "New Menu";
-											$details_data = '<i class="icon-clipboard3 text-teal-400"></i> Menu Code: ' . $details->menu_id . ' <i class="icon-user text-teal-400"></i> User : ' . $data_user['fullname'] . ' ';
+											$details_data = '<i class="icon-calendar text-teal-400"></i> Date: ' . $row['date_history'] .
+												' <i class="icon-user text-teal-400"></i> User : ' . $employee_name;
 										} elseif ($row['history_type'] == 40) {
 											$history_type = "Loan Application";
-
-											// decode details JSON
-											$details = json_decode($row['details']);
-
-											// fetch user
-											$query_user = "SELECT * FROM tbl_users WHERE user_id='" . $details->user_id . "'";
-											$result_user = $db->query($query_user);
-											$data_user = $result_user->fetch_assoc();
-
-											// fetch customer
-											$query_cust = "SELECT * FROM tbl_customer WHERE cust_id='" . $details->cust_id . "'";
-											$result_cust = $db->query($query_cust);
-											$data_cust = $result_cust->fetch_assoc();
-
-											$details_data = '<i class="icon-users text-teal-400"></i> Member: ' . $data_cust['name'] .
-												' <i class="icon-coin-dollar text-teal-400"></i> Amount: ' . $details->amount .
-												' <i class="icon-hour-glass2 text-teal-400"></i> Term: ' . $details->term . ' months' .
-												' <i class="icon-user text-teal-400"></i> Employee: ' . $data_user['fullname'];
+											$details_data = '<i class="icon-users text-teal-400"></i> Member: ' . $customer_name .
+												' <i class="icon-coin-dollar text-teal-400"></i> Amount: ' . ($details->amount ?? '-') .
+												' <i class="icon-hour-glass2 text-teal-400"></i> Term: ' . ($details->term ?? '-') . ' months' .
+												' <i class="icon-user text-teal-400"></i> Employee: ' . $employee_name;
 										} else {
 											$history_type = $row['history_type'];
 											$details_data = "Not Set";
 										}
-
 									?>
-										<td><?= $row['history_id'] ?></td>
-										<td><?= $row['date_history'] ?></td>
-										<td><?= $history_type ?></td>
-										<td><?= $details_data ?></td>
+								<tr>
+									<td><?= $row['history_id'] ?></td>
+									<td><?= $row['date_history'] ?></td>
+									<td><?= $history_type ?></td>
+									<td><?= $details_data ?></td>
 								</tr>
 							<?php } ?>
+
 							<?php if ($i == 0) { ?>
 								<tr>
 									<td colspan="10" align="center">

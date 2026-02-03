@@ -35,6 +35,9 @@ if (isset($_POST['check-login'])) {
         } elseif ($check['usertype'] == 2) {
             $_SESSION['session_type'] = 'cashier';
             echo "2";
+        } elseif ($check['usertype'] == 4) {
+            $_SESSION['session_type'] = 'member';
+            echo "4";
         } else {
             $_SESSION['session_type'] = 'treasurer';
             echo "3";
@@ -286,64 +289,104 @@ if (isset($_POST['update-cash'])) {
 
 
 if (isset($_POST['save-customer'])) {
+
     $data = array(
-        'name'    => trim($_POST['name']),
-        'address' => trim($_POST['address']),
-        'contact' => trim($_POST['contact']),
+        'first_name' => trim($_POST['first_name']),
+        'last_name'  => trim($_POST['last_name']),
+        'gender'     => $_POST['gender'],
+        'email'      => trim($_POST['email']),
+        'password'   => $_POST['password'],
+        'address'    => trim($_POST['address']),
+        'contact'    => trim($_POST['contact']),
         'capital_share' => isset($_POST['capital_share']) ? floatval($_POST['capital_share']) : 0
     );
-    echo save_customer($data);
+
+    echo save_member($data);
     exit;
 }
 
-function save_customer($data)
+function save_member($data)
 {
     require('db_connect.php');
 
-    // Check for duplicates in MySQL
-    $stmt = $db->prepare("SELECT COUNT(*) AS cnt FROM tbl_customer WHERE name = ? OR contact = ?");
-    $stmt->bind_param("ss", $data['name'], $data['contact']);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $row = $result->fetch_assoc();
-    $stmt->close();
+    $full_name = $data['first_name'] . ' ' . $data['last_name'];
 
-    if ($row['cnt'] > 0) {
+
+    $stmt = $db->prepare("SELECT user_id FROM tbl_users WHERE username = ?");
+    $stmt->bind_param("s", $data['email']);
+    $stmt->execute();
+    if ($stmt->get_result()->num_rows > 0) {
         return "duplicate";
     }
+    $stmt->close();
 
-    // Insert customer
-    $stmt = $db->prepare("INSERT INTO tbl_customer (name, address, contact) VALUES (?, ?, ?)");
-    $stmt->bind_param("sss", $data['name'], $data['address'], $data['contact']);
-    if ($stmt->execute()) {
+    $db->begin_transaction();
+
+    try {
+
+        $stmt = $db->prepare("INSERT INTO tbl_customer (name, address, contact) VALUES (?, ?, ?)");
+        $stmt->bind_param("sss", $full_name, $data['address'], $data['contact']);
+        $stmt->execute();
         $cust_id = $stmt->insert_id;
         $stmt->close();
 
-        // Insert capital share if any
-        if (!empty($data['capital_share']) && $data['capital_share'] > 0) {
-            $stmt2 = $db->prepare("INSERT INTO tbl_capital_share (cust_id, amount) VALUES (?, ?)");
-            $stmt2->bind_param("id", $cust_id, $data['capital_share']);
-            $stmt2->execute();
-            $stmt2->close();
+
+        $hashed_password = password_hash($data['password'], PASSWORD_DEFAULT);
+        $usertype = 4;
+
+        $stmt = $db->prepare("INSERT INTO tbl_users (username, password, usertype, fullname) VALUES (?, ?, ?, ?)");
+        $stmt->bind_param("ssis", $data['email'], $hashed_password, $usertype, $full_name);
+        $stmt->execute();
+        $user_id = $stmt->insert_id;
+        $stmt->close();
+
+
+        $stmt = $db->prepare("INSERT INTO tbl_members 
+            (user_id, cust_id, first_name, last_name, gender, email, address, phone, type) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)");
+
+        $stmt->bind_param(
+            "iissssss",
+            $user_id,
+            $cust_id,
+            $data['first_name'],
+            $data['last_name'],
+            $data['gender'],
+            $data['email'],
+            $data['address'],
+            $data['contact']
+        );
+        $stmt->execute();
+        $stmt->close();
+
+
+        if ($data['capital_share'] > 0) {
+            $stmt = $db->prepare("INSERT INTO tbl_capital_share (cust_id, amount) VALUES (?, ?)");
+            $stmt->bind_param("id", $cust_id, $data['capital_share']);
+            $stmt->execute();
+            $stmt->close();
         }
 
-        // Insert history
+
         $arrayData = array(
             'cust_id' => $cust_id,
             'user_id' => $_SESSION['user_id'] ?? 0
         );
-        $arrayGDetails = json_encode($arrayData);
+
+        $details = json_encode($arrayData);
         $today = date("Y-m-d H:i:s");
 
-        $stmt3 = $db->prepare("INSERT INTO tbl_history (date_history, details, history_type) VALUES (?, ?, '15')");
-        $stmt3->bind_param("ss", $today, $arrayGDetails);
-        $stmt3->execute();
-        $stmt3->close();
+        $stmt = $db->prepare("INSERT INTO tbl_history (date_history, details, history_type) VALUES (?, ?, '15')");
+        $stmt->bind_param("ss", $today, $details);
+        $stmt->execute();
+        $stmt->close();
 
+        $db->commit();
         return "1";
+    } catch (Exception $e) {
+        $db->rollback();
+        return "0";
     }
-
-    return "0";
 }
 
 // ///////////////////

@@ -2,6 +2,16 @@
 require('includes/header.php');
 
 
+function money($value)
+{
+    if ($value == 0 || $value === null) {
+        return '~';
+    }
+    return rtrim(rtrim(number_format($value, 2), '0'), '.');
+}
+
+
+
 // Get current year
 $currentYear = date('Y');
 
@@ -119,7 +129,7 @@ $members = $db->query("SELECT cust_id, name FROM tbl_customer WHERE cust_id != 1
     }
 
     .navbar-brand img {
-        height: 40px;
+        height: 65px;
 
         width: auto;
         object-fit: contain;
@@ -135,7 +145,7 @@ $members = $db->query("SELECT cust_id, name FROM tbl_customer WHERE cust_id != 1
     <!-- Main navbar -->
     <div class="navbar navbar-inverse bg-teal-400 navbar-fixed-top">
         <div class="navbar-header">
-            <a class="navbar-brand" href="index.php"><img src="../images/farmers-logo.png" alt=""><span>Lourdes Farmers Multi-Purpose Cooperative</span></a>
+            <a class="navbar-brand" href="index.php"><img src="../images/your_logo.png" alt=""><span>OCC Cooperative</span></a>
             <ul class="nav navbar-nav visible-xs-block">
                 <li><a data-toggle="collapse" data-target="#navbar-mobile"><i class="icon-tree5"></i></a></li>
             </ul>
@@ -184,7 +194,8 @@ $members = $db->query("SELECT cust_id, name FROM tbl_customer WHERE cust_id != 1
                         <div class="col-lg-6">
                             <div class="panel bg-success-400">
                                 <div class="panel-body">
-                                    <h3 class="no-margin">₱ <?= number_format($overall['Total'], 2); ?></h3>
+                                    <h3 class="no-margin">₱ <?= money($overall['Total']); ?></h3>
+
                                     Total Capital Shares (<?= $currentYear ?>)
                                 </div>
                             </div>
@@ -192,7 +203,8 @@ $members = $db->query("SELECT cust_id, name FROM tbl_customer WHERE cust_id != 1
                         <div class="col-lg-6">
                             <div class="panel bg-primary-400">
                                 <div class="panel-body">
-                                    <h3 class="no-margin">₱ <?= number_format($overall_purchase['total_purchase'], 2); ?></h3>
+                                    <h3 class="no-margin">₱ <?= money($overall_purchase['total_purchase']); ?></h3>
+
                                     Total Member Purchases (<?= $currentYear ?>)
                                 </div>
                             </div>
@@ -232,10 +244,12 @@ $members = $db->query("SELECT cust_id, name FROM tbl_customer WHERE cust_id != 1
                                         <tr>
                                             <td><?= htmlspecialchars($row['name']); ?></td>
                                             <?php for ($m = 1; $m <= 12; $m++) {
-                                                $month = str_pad($m, 2, "0", STR_PAD_LEFT);
-                                                echo '<td style="text-align:right">' . number_format($row[date('M', mktime(0, 0, 0, $m, 1))], 2) . '</td>';
+                                                $monthName = date('M', mktime(0, 0, 0, $m, 1));
+                                                echo '<td style="text-align:right">' . money($row[$monthName]) . '</td>';
                                             } ?>
-                                            <td style="text-align:right"><b><?= number_format($row['Total'], 2); ?></b></td>
+
+                                            <td style="text-align:right"><b><?= money($row['Total']); ?></b></td>
+
                                         </tr>
                                     <?php } ?>
                                 </tbody>
@@ -264,10 +278,11 @@ $members = $db->query("SELECT cust_id, name FROM tbl_customer WHERE cust_id != 1
                                         <?php
                                         $months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
                                         foreach ($months as $m) {
-                                            echo '<td style="text-align:right">' . number_format($overall[$m], 2) . '</td>';
+                                            echo '<td style="text-align:right">' . money($overall[$m]) . '</td>';
                                         }
                                         ?>
-                                        <td style="text-align:right"><?= number_format($overall['Total'], 2); ?></td>
+                                        <td style="text-align:right"><?= money($overall['Total']); ?></td>
+
                                     </tr>
                                 </table>
                             </div>
@@ -294,9 +309,10 @@ $members = $db->query("SELECT cust_id, name FROM tbl_customer WHERE cust_id != 1
                                     <?php while ($row = $purchases->fetch_assoc()) { ?>
                                         <tr>
                                             <td><?= htmlspecialchars($row['name']); ?></td>
-                                            <td style="text-align:right"><?= number_format($row['total_cash_sales'], 2); ?></td>
-                                            <td style="text-align:right"><?= number_format($row['total_paid_charge'], 2); ?></td>
-                                            <td style="text-align:right; font-weight:bold;"><?= number_format($row['total_purchase'], 2); ?></td>
+                                            <td style="text-align:right"><?= money($row['total_cash_sales']); ?></td>
+                                            <td style="text-align:right"><?= money($row['total_paid_charge']); ?></td>
+                                            <td style="text-align:right; font-weight:bold;"><?= money($row['total_purchase']); ?></td>
+
                                         </tr>
                                     <?php } ?>
                                 </tbody>
@@ -305,7 +321,8 @@ $members = $db->query("SELECT cust_id, name FROM tbl_customer WHERE cust_id != 1
 
                             <div class="well" style="margin-top:20px;">
                                 <h5><b>Overall Total Purchases (All Members - <?= $currentYear ?>)</b></h5>
-                                <h4 style="text-align:right; color:#337ab7;">₱ <?= number_format($overall_purchase['total_purchase'], 2); ?></h4>
+                                <h4 style="text-align:right; color:#337ab7;">₱ <?= money($overall_purchase['total_purchase']); ?></h4>
+
                             </div>
                         </div>
                     </div>
@@ -411,7 +428,7 @@ $members = $db->query("SELECT cust_id, name FROM tbl_customer WHERE cust_id != 1
                     var data = $(this).serialize();
                     $.ajax({
                         type: "POST",
-                        url: "process_capital_share.php",
+                        url: "../transaction.php",
                         data: data,
                         success: function(resp) {
                             $.jGrowl("Contribution saved successfully!", {

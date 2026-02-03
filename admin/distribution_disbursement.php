@@ -18,32 +18,39 @@ $disbursements = $db->query("
     ORDER BY d.disbursed_at DESC
 ");
 ?>
+
 <style>
     .navbar-brand {
-  display: flex;
-  align-items: center;   /* vertically center image + text */
-  gap: 0px;             /* space between logo and text */
-  font-weight: 800;
-  color: white;          /* adjust to your navbar color */
-  text-decoration: none;
-  font-size: 50px;
-}
+        display: flex;
+        align-items: center;
+        /* vertically center image + text */
+        gap: 0px;
+        /* space between logo and text */
+        font-weight: 800;
+        color: white;
+        /* adjust to your navbar color */
+        text-decoration: none;
+        font-size: 50px;
+    }
 
-.navbar-brand img {
-  height: 40px;          /* adjust logo height */
-  width: auto;
-  object-fit: contain;
-}
+    .navbar-brand img {
+        height: 40px;
+        /* adjust logo height */
+        width: auto;
+        object-fit: contain;
+    }
 
-.navbar-brand span {
-  white-space: nowrap;   /* prevent text from wrapping to next line */
-}
+    .navbar-brand span {
+        white-space: nowrap;
+        /* prevent text from wrapping to next line */
+    }
 </style>
+
 <body class="layout-boxed navbar-top">
     <!-- Main navbar -->
     <div class="navbar navbar-inverse bg-teal-400 navbar-fixed-top">
         <div class="navbar-header">
-            <a class="navbar-brand" href="index.php"><img style="height: 40px!important" src="../images/farmers-logo.png" alt=""><span>Lourdes Farmers Multi-Purpose Cooperative</span></a>
+            <a class="navbar-brand" href="index.php"><img style="height: 65px!important" src="../images/your_logo.png" alt=""><span>OCC Cooperative</span></a>
             <ul class="nav navbar-nav visible-xs-block">
                 <li><a data-toggle="collapse" data-target="#navbar-mobile"><i class="icon-tree5"></i></a></li>
             </ul>
@@ -88,9 +95,12 @@ $disbursements = $db->query("
                                     <label>Cycle</label>
                                     <select id="cycle_id" class="form-control">
                                         <option value="">-- Select Cycle --</option>
-                                        <?php while ($cycle = $cycles->fetchArray(SQLITE3_ASSOC)) { ?>
-                                            <option value="<?= $cycle['id'] ?>">Cycle <?= $cycle['id'] ?> - <?= $cycle['year'] ?></option>
+                                        <?php while ($cycle = $cycles->fetch_assoc()) { ?>
+                                            <option value="<?= $cycle['id'] ?>">
+                                                Cycle <?= $cycle['id'] ?> - <?= $cycle['year'] ?>
+                                            </option>
                                         <?php } ?>
+
                                     </select>
                                 </div>
                             </div>
@@ -171,99 +181,111 @@ $disbursements = $db->query("
     <!-- JS -->
     <script src="../assets/js/plugins/tables/datatables/datatables.min.js"></script>
     <script src="../assets/js/plugins/notifications/jgrowl.min.js"></script>
-<script>
-$(function() {
+    <script>
+        $(function() {
 
-    $('#disbursement-table').DataTable({
-        "order": [[7,"desc"]],
-        "lengthMenu": [[10,25,50],[10,25,50]]
-    });
+            $('#disbursement-table').DataTable({
+                "order": [
+                    [7, "desc"]
+                ],
+                "lengthMenu": [
+                    [10, 25, 50],
+                    [10, 25, 50]
+                ]
+            });
 
-    // Load records when cycle is selected
-    $('#cycle_id').on('change', function() {
-        const cycle_id = $(this).val();
-        const year = $('#year').val();
-        if(!cycle_id) return;
+            // Load records when cycle is selected
+            $('#cycle_id').on('change', function() {
+                const cycle_id = $(this).val();
+                const year = $('#year').val();
+                if (!cycle_id) return;
 
-        $.ajax({
-            url: '../transaction.php',
-            type: 'POST',
-            data: {action:'get_distribution_records', cycle_id, year},
-            dataType:'json',
-            success:function(records){
-                const table = $('#disbursement-table').DataTable();
-                table.clear();
+                $.ajax({
+                    url: '../transaction.php',
+                    type: 'POST',
+                    data: {
+                        action: 'get_distribution_records',
+                        cycle_id,
+                        year
+                    },
+                    dataType: 'json',
+                    success: function(records) {
+                        const table = $('#disbursement-table').DataTable();
+                        table.clear();
 
-                records.forEach(r=>{
-                    const ref = r.reference_no ? `<a href="#" class="view-receipt" 
+                        records.forEach(r => {
+                            const ref = r.reference_no ? `<a href="#" class="view-receipt" 
                                     data-ref="${r.reference_no}" 
                                     data-member="${r.customer_name}" 
                                     data-amount="${r.total_benefit}" 
                                     data-date="${r.disbursed_at}">${r.reference_no}</a>` : '';
 
-                    table.row.add([
-                        r.customer_name,
-                        '₱ ' + parseFloat(r.dividend).toFixed(2),
-                        '₱ ' + parseFloat(r.patronage).toFixed(2),
-                        '₱ ' + parseFloat(r.total_benefit).toFixed(2),
-                        r.amount_disbursed ? '₱ ' + parseFloat(r.amount_disbursed).toFixed(2) : '₱ 0.00',
-                        r.payment_method || '',
-                        ref,
-                        r.disbursed_at || '',
-                        r.amount_disbursed ? '<button class="btn btn-success btn-sm" disabled>Disbursed</button>' :
-                        '<button class="btn btn-teal btn-sm btn-disburse" data-id="'+r.id+'">Disburse</button>'
-                    ]).draw(false);
+                            table.row.add([
+                                r.customer_name,
+                                '₱ ' + parseFloat(r.dividend).toFixed(2),
+                                '₱ ' + parseFloat(r.patronage).toFixed(2),
+                                '₱ ' + parseFloat(r.total_benefit).toFixed(2),
+                                r.amount_disbursed ? '₱ ' + parseFloat(r.amount_disbursed).toFixed(2) : '₱ 0.00',
+                                r.payment_method || '',
+                                ref,
+                                r.disbursed_at || '',
+                                r.amount_disbursed ? '<button class="btn btn-success btn-sm" disabled>Disbursed</button>' :
+                                '<button class="btn btn-teal btn-sm btn-disburse" data-id="' + r.id + '">Disburse</button>'
+                            ]).draw(false);
+                        });
+                    }
                 });
-            }
-        });
-    });
+            });
 
-    let currentRecordId = null;
-    let currentMemberName = '';
-    let currentTotalBenefit = '';
-    let currentReferenceNo = '';
+            let currentRecordId = null;
+            let currentMemberName = '';
+            let currentTotalBenefit = '';
+            let currentReferenceNo = '';
 
-    // Open modal when disburse button clicked
-    $('#disbursement-table').on('click', '.btn-disburse', function() {
-        const row = $(this).closest('tr');
-        currentRecordId = $(this).data('id');
-        currentMemberName = row.find('td:eq(0)').text();
-        currentTotalBenefit = row.find('td:eq(3)').text().replace('₱','').trim();
-        currentReferenceNo = 'DISB-' + new Date().toISOString().replace(/[-T:.Z]/g,'').slice(0,14);
+            // Open modal when disburse button clicked
+            $('#disbursement-table').on('click', '.btn-disburse', function() {
+                const row = $(this).closest('tr');
+                currentRecordId = $(this).data('id');
+                currentMemberName = row.find('td:eq(0)').text();
+                currentTotalBenefit = row.find('td:eq(3)').text().replace('₱', '').trim();
+                currentReferenceNo = 'DISB-' + new Date().toISOString().replace(/[-T:.Z]/g, '').slice(0, 14);
 
-        $('#disburse_record_id').val(currentRecordId);
-        $('#disburse_member_name').text(currentMemberName);
-        $('#disburse_total_benefit').text(parseFloat(currentTotalBenefit).toFixed(2));
-        $('#disburse_reference_no_auto').text(currentReferenceNo);
+                $('#disburse_record_id').val(currentRecordId);
+                $('#disburse_member_name').text(currentMemberName);
+                $('#disburse_total_benefit').text(parseFloat(currentTotalBenefit).toFixed(2));
+                $('#disburse_reference_no_auto').text(currentReferenceNo);
 
-        $('#disburseModal').modal('show');
-    });
+                $('#disburseModal').modal('show');
+            });
 
-    // Confirm Disbursement
-    $('#disburse_confirm').on('click', function() {
-        $.ajax({
-            url:'../transaction.php',
-            type:'POST',
-            data:{
-                action:'save_disbursement',
-                record_id: currentRecordId,
-                payment_method:'cash',
-                reference_no: currentReferenceNo
-            },
-            dataType:'json',
-            success:function(resp){
-                $('#disburseModal').modal('hide');
-                if(resp.success){
-                    $.jGrowl('Member benefits disbursed successfully!', {header:'Success', theme:'bg-success'});
-                    $('#cycle_id').trigger('change');
+            // Confirm Disbursement
+            $('#disburse_confirm').on('click', function() {
+                $.ajax({
+                    url: '../transaction.php',
+                    type: 'POST',
+                    data: {
+                        action: 'save_disbursement',
+                        record_id: currentRecordId,
+                        payment_method: 'cash',
+                        reference_no: currentReferenceNo
+                    },
+                    dataType: 'json',
+                    success: function(resp) {
+                        $('#disburseModal').modal('hide');
+                        if (resp.success) {
+                            $.jGrowl('Member benefits disbursed successfully!', {
+                                header: 'Success',
+                                theme: 'bg-success'
+                            });
+                            $('#cycle_id').trigger('change');
 
-                    const member = currentMemberName;
-                    const amount = parseFloat(currentTotalBenefit).toFixed(2);
-                    const ref = currentReferenceNo;
-                    const date = resp.disbursed_at || new Date().toLocaleString();
+                            const member = currentMemberName;
+                            const amount = parseFloat(currentTotalBenefit).toFixed(2);
+                            const ref = currentReferenceNo;
+                            const date = resp.disbursed_at || new Date().toLocaleString();
 
-                    // Receipt layout
-                    $('#receipt-content').html(`
+                            // Receipt layout
+                            $('#receipt-content').html(`
                         <div class="receipt-div" style="font-family:Arial, sans-serif; font-size:14px;">
                             <div class="text-center">
                                 <p class="title"><b>LOURDES FARMERS MULTI-PURPOSE COOPERATIVE</b></p>
@@ -309,25 +331,27 @@ $(function() {
                         </div>
                     `);
 
-                    $('#modal-receipt').modal('show');
+                            $('#modal-receipt').modal('show');
 
-                } else {
-                    alert('Error saving disbursement.');
-                }
-            },
-            error:function(){ alert('Server error.'); }
-        });
-    });
+                        } else {
+                            alert('Error saving disbursement.');
+                        }
+                    },
+                    error: function() {
+                        alert('Server error.');
+                    }
+                });
+            });
 
-    // Clickable reference number to show receipt
-    $('#disbursement-table').on('click', '.view-receipt', function(e){
-        e.preventDefault();
-        const member = $(this).data('member');
-        const amount = parseFloat($(this).data('amount')).toFixed(2);
-        const ref = $(this).data('ref');
-        const date = $(this).data('date');
+            // Clickable reference number to show receipt
+            $('#disbursement-table').on('click', '.view-receipt', function(e) {
+                e.preventDefault();
+                const member = $(this).data('member');
+                const amount = parseFloat($(this).data('amount')).toFixed(2);
+                const ref = $(this).data('ref');
+                const date = $(this).data('date');
 
-        $('#receipt-content').html(`
+                $('#receipt-content').html(`
             <div class="receipt-div" style="font-family:Arial, sans-serif; font-size:14px;">
                 <div class="text-center">
                     <p class="title"><b>LOURDES FARMERS MULTI-PURPOSE COOPERATIVE</b></p>
@@ -373,21 +397,21 @@ $(function() {
             </div>
         `);
 
-        $('#modal-receipt').modal('show');
-    });
+                $('#modal-receipt').modal('show');
+            });
 
-    // Print Receipt using delegated event
-    $(document).on('click', '.btn-print-receipt-inline', function() {
-        var printContents = document.querySelector('.receipt-div').innerHTML;
-        var w = window.open('', '_blank', 'width=600,height=700');
-        w.document.write('<html><head><title>Receipt</title></head><body>');
-        w.document.write(printContents);
-        w.document.write('</body></html>');
-        w.document.close();
-        w.print();
-    });
+            // Print Receipt using delegated event
+            $(document).on('click', '.btn-print-receipt-inline', function() {
+                var printContents = document.querySelector('.receipt-div').innerHTML;
+                var w = window.open('', '_blank', 'width=600,height=700');
+                w.document.write('<html><head><title>Receipt</title></head><body>');
+                w.document.write(printContents);
+                w.document.write('</body></html>');
+                w.document.close();
+                w.print();
+            });
 
-});
-</script>
+        });
+    </script>
 
 </body>
