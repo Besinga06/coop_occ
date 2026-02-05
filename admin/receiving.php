@@ -152,7 +152,7 @@ if ($row = $result_beginning->fetch_assoc()) {
 				<?php if ($_SESSION['session_type'] == "admin") { ?>
 					<a title="Home" class="top-row3-link" href="index.php"> <i class="icon-home2" style="color: #fff"></i></a>
 				<?php } else { ?>
-					<a title="Profile" class="top-row3-link" href="../transaction.php?admin-logout=yes"> <i class="icon-switch2"></i></a>
+					<a title="log-out" class="top-row3-link" href="../transaction.php?admin-logout=yes"> <i class="icon-switch2"></i></a>
 				<?php } ?>
 			</div>
 		</div>
@@ -165,6 +165,7 @@ if ($row = $result_beginning->fetch_assoc()) {
 								<tr>
 									<th width="text-align:center;">#</th>
 									<th width="350px">Name</th>
+									<th style="text-align: left;width: 20px;">Unit</th>
 									<th style="text-align: right;width: 180px;">Price</th>
 									<th style="max-width:70px;text-align: center">Quantity</th>
 									<th style='text-align: left;width: 150px;padding-left: 65px'>Total</th>
@@ -504,6 +505,7 @@ if ($row = $result_beginning->fetch_assoc()) {
 				$("#spinner_div").fadeOut(1000);
 			});
 
+
 			$(document).scannerDetection({
 				timeBeforeScanTest: 200,
 				startChar: [120],
@@ -515,14 +517,14 @@ if ($row = $result_beginning->fetch_assoc()) {
 						type: 'POST',
 						url: '../transaction.php',
 						data: {
-							save_cartbarcode: "",
+							save_cart2barcode: "",
 							barcode: barcode
 						},
 						success: function(msg) {
 							console.log(msg);
 							if (msg == '1') {
 								total();
-								view_cart();
+								view_cart2();
 								$("#show-loader").html('');
 							}
 							if (msg == '2') {

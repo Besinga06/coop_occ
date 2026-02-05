@@ -17,4 +17,6 @@ if ($db->connect_error) {
 
 // Optional: set charset to utf8
 $db->set_charset("utf8");
-?>
+
+
+?> 

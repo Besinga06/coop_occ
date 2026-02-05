@@ -267,6 +267,10 @@ while ($row = $result_beginning->fetch_assoc()) {
                                     <span class="">F11</span>
                                     <div class="btn-action-text">My Sales</div>
                                 </div>
+                                <div class="btn-action" onclick="add_product()">
+                                    <span class="">F6</span>
+                                    <div class="btn-action-text">Add Product</div>
+                                </div>
                                 <div class="btn-action" onclick="receiving()">
                                     <span class="">F6</span>
                                     <div class="btn-action-text">Receiving</div>
@@ -665,7 +669,7 @@ while ($row = $result_beginning->fetch_assoc()) {
                         </div>
 
 
-                        <!-- <div id="scanner-container" style="width: 400px; height: 300px;"></div> -->
+
 
 
 
@@ -680,12 +684,13 @@ while ($row = $result_beginning->fetch_assoc()) {
                         <script type="text/javascript" src="../assets/js/core/libraries/jquery.min.js"></script>
                         <script type="text/javascript" src="../assets/js/core/libraries/bootstrap.min.js"></script>
                         <script type="text/javascript" src="../js/pos.js"></script>
+                        <script type="text/javascript" src="../js/jquery.scannerdetection.js"></script>
                         <script type="text/javascript" src="../js/jquery.key.js"></script>
                         <script type="text/javascript" src="../assets/js/plugins/notifications/jgrowl.min.js"></script>
                         <script type="text/javascript" src="../assets/js/plugins/forms/inputs/touchspin.min.js"></script>
                         <script src="https://unpkg.com/@zxing/library@latest"></script>
 
-                        <!-- <script src="../js/quagga.min.js"></script> -->
+
 
                         <script src="../js/validator.min.js"></script>
                         <script type="text/javascript">
@@ -823,154 +828,47 @@ while ($row = $result_beginning->fetch_assoc()) {
                                 });
                             }
 
+                            // Barcode Scanner Detection
+                            $(document).scannerDetection({
 
-                            function startCameraScanner() {
-                                const scannerContainer = document.querySelector('#scanner-container');
-                                if (!scannerContainer) {
-                                    console.error('Scanner container not found!');
-                                    return;
+                                timeBeforeScanTest: 150, // time to detect end of scan
+                                avgTimeByChar: 30, // scanner speed
+                                endChar: [9, 13], // Tab or Enter ends scan
+                                preventDefault: true,
+
+                                onComplete: function(barcode) {
+
+                                    // Clean the barcode
+                                    barcode = barcode.trim()
+                                        .replace(/\s+/g, '')
+                                        .replace(/[^\x20-\x7E]/g, '');
+
+                                    console.log("SCANNED BARCODE:", barcode);
+
+                                    // Ignore if user is typing in an input field
+                                    if ($("input:focus, textarea:focus").length > 0) {
+                                        console.log("Scan ignored — typing in input");
+                                        return;
+                                    }
+
+                                    // Show loader
+                                    $("#show-loader").html(
+                                        '<i class="icon-spinner2 spinner" style="z-index:30;position:absolute;font-size:50px;color:#fff"></i>'
+                                    );
+
+                                    // Add to cart using ONE function
+                                    addBarcodeToCart(barcode);
+                                },
+
+                                onError: function(string) {
+                                    console.log("Scanner error:", string);
                                 }
-
-
-                                navigator.mediaDevices.getUserMedia({
-                                        video: {
-                                            facingMode: "environment"
-                                        }
-                                    })
-                                    .then(stream => {
-
-                                        let video = document.createElement('video');
-                                        video.srcObject = stream;
-                                        video.setAttribute('playsinline', true);
-                                        video.style.display = 'none';
-                                        document.body.appendChild(video);
-                                        video.play();
-
-                                        // Initialize Quagga
-                                        Quagga.init({
-                                            inputStream: {
-                                                name: "Live",
-                                                type: "LiveStream",
-                                                target: scannerContainer,
-                                                constraints: {
-                                                    facingMode: "environment",
-                                                    width: {
-                                                        min: 640,
-                                                        ideal: 1280
-                                                    },
-                                                    height: {
-                                                        min: 480,
-                                                        ideal: 720
-                                                    }
-                                                },
-                                                area: {
-                                                    top: "0%",
-                                                    right: "0%",
-                                                    left: "0%",
-                                                    bottom: "0%"
-                                                }
-                                            },
-                                            decoder: {
-                                                readers: ["code_128_reader", "ean_reader", "ean_8_reader", "code_39_reader"],
-                                                multiple: false
-                                            },
-                                            locate: true,
-                                            numOfWorkers: navigator.hardwareConcurrency || 4,
-                                            frequency: 10,
-                                            halfSample: true,
-                                            patchSize: "medium"
-                                        }, function(err) {
-                                            if (err) {
-                                                console.error("Quagga init error:", err);
-                                                return;
-                                            }
-                                            Quagga.start();
-                                            console.log("Camera scanner started.");
-                                        });
-
-                                        let lastScanned = null;
-
-                                        Quagga.onDetected(function(result) {
-                                            const barcode = result.codeResult.code;
-                                            if (barcode !== lastScanned) {
-                                                lastScanned = barcode;
-                                                console.log("Barcode detected:", barcode);
-                                                addBarcodeToCart(barcode);
-
-                                                Quagga.pause();
-                                                setTimeout(() => Quagga.start(), 1000);
-                                            }
-                                        });
-                                    })
-                                    .catch(err => {
-                                        console.error("Camera access denied or unavailable:", err);
-                                        alert("Camera not available. Please check your permissions.");
-                                    });
-                            }
-
-                            $(document).ready(function() {
-                                startCameraScanner();
                             });
 
 
-
-
-                            // $(document).scannerDetection({
-                            //     timeBeforeScanTest: 200,
-                            //     startChar: [120],
-                            //     endChar: [13],
-                            //     avgTimeByChar: 40,
-                            //     onComplete: function(barcode, qty) {
-                            //         $("#show-loader").html('<i class="icon-spinner2 spinner" style="z-index: 30;position: absolute;font-size: 50px;color: #fff"></i>');
-                            //         $.ajax({
-                            //             type: 'POST',
-                            //             url: '../transaction.php',
-                            //             dataType: 'JSON',
-                            //             data: {
-                            //                 save_cartbarcode: "",
-                            //                 barcode: barcode
-                            //             },
-                            //             success: function(msg) {
-                            //                 console.log('msg', msg);
-                            //                 if (msg['message'] == 'save' || msg['message'] == 'save2') {
-                            //                     total();
-                            //                     view_cart();
-                            //                     $("#show-loader").html('');
-
-                            //                 } else if (msg['message'] == 'unsave') {
-                            //                     beep_error();
-                            //                     $.jGrowl('Desired quantity <b>(' + msg['quantity_order'] + ')</b> is greather than quantity left <b>(' + msg['quantity_left'] + ')</b>.Please check your inventory.', {
-                            //                         header: 'Error Notification',
-                            //                         theme: 'alert-styled-right bg-danger'
-                            //                     });
-                            //                     $("#show-loader").html('');
-                            //                 } else if (msg['message'] == 'unsave2') {
-                            //                     beep_error();
-                            //                     $.jGrowl("Product code does not exist!", {
-                            //                         header: 'Error Notification',
-                            //                         theme: 'alert-styled-right bg-danger'
-                            //                     });
-                            //                     $("#show-loader").html('');
-                            //                 } else {
-                            //                     $.jGrowl("Something went wrong!", {
-                            //                         header: 'Error Notification',
-                            //                         theme: 'alert-styled-right bg-danger'
-                            //                     });
-                            //                 }
-                            //             },
-                            //             error: function(msg) {
-                            //                 $.jGrowl("Something went wrong!", {
-                            //                     header: 'Error Notification',
-                            //                     theme: 'alert-styled-right bg-danger'
-                            //                 });
-                            //             }
-                            //         });
-                            //     }
-                            // });
-
-                            function receiving() {
-                                window.location.href = 'receiving.php'; // Replace with your target page
-                            }
+                            // function receiving() {
+                            //     window.location.href = 'receiving.php'; // Replace with your target page
+                            // }
 
                             function profile() {
                                 window.location.href = 'profile.php'; // Replace with your target page
@@ -1001,10 +899,10 @@ while ($row = $result_beginning->fetch_assoc()) {
                                 my_sale();
                             });
 
-                            // $.key('f6', function() {
-                            //     $('.modal').modal('hide');
-                            //     $("#modal-new").modal('show');
-                            // });
+                            $.key('f6', function() {
+                                $('.modal').modal('hide');
+                                $("#modal-new").modal('show');
+                            });
 
                             $.key('f3', function() {
                                 var amount = parseFloat($("#show-discount").text());

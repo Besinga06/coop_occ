@@ -8,8 +8,8 @@ $result_unit = $db->query($unit);
   <thead>
     <tr style="border-bottom: 4px solid #ddd;background: #eee;color: #404040!important">
       <th>Image</th>
-      <!-- <th >Product Code</th> -->
-      <th>Product ID</th>
+      <th>Product Code</th>
+      <!-- <th>Product ID</th> -->
       <th>Product Name</th>
       <th> In Stock</th>
       <th>Price</th>
@@ -29,8 +29,8 @@ $result_unit = $db->query($unit);
     ?>
       <tr style="cursor: pointer;color: #404040!important" title="View Details" onclick="view_details(this)" product_id="<?= $row['product_id']; ?>">
         <td> <img alt="<?= $image_file ?>" style="width: 90px;height: 90px;border: 2px solid #eee" src="<?= $image_file ?>" /> </td>
-        <!-- <td><img alt="<?= $product_code ?>" src="barcode.php?codetype=Code39&size=40&text=<?= $row['product_code']; ?>&print=true" /></td> -->
-        <td style="width: 160px">21324<?= $row['product_id']; ?></td>
+        <td><img alt="<?= $product_code ?>" src="barcode.php?codetype=Code39&size=40&text=<?= $row['product_code']; ?>&print=true" /></td>
+        <!-- <td style="width: 160px">21324<?= $row['product_id']; ?></td> -->
         <td><b><?= $row['product_name']; ?></b></td>
         <td style="text-align: center;"><?= $row['quantity']; ?></td>
         <td style="text-align: right;width: 160px"><?= number_format($row['selling_price'], 2); ?></td>

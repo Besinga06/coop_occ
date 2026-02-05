@@ -271,21 +271,26 @@ $result_unit = $db->query($unit);
                     type: 'POST',
                     url: '../transaction.php',
                     data: $('#form-new').serialize(),
-                    success: function(msg) {
-                        msg = msg.trim();
-                        if (msg !== '') window.location.href = 'product-details.php?product_id=' + msg;
-                        else {
-                            alert('Save failed.');
+                    dataType: 'json', // expect JSON
+                    success: function(response) {
+                        console.log('AJAX Response:', response); // <-- DEBUG HERE
+
+                        if (response.status === 'success') {
+                            window.location.href = 'product-details.php?product_id=' + response.product_id;
+                        } else {
+                            alert('Save failed: ' + response.message);
                             $('#btn-submit').prop('disabled', false);
                         }
                     },
-                    error: function() {
-                        alert('Something went wrong!');
+                    error: function(xhr, status, error) {
+                        console.error('AJAX error:', status, error, xhr.responseText);
+                        alert('Something went wrong! Check console.');
                         $('#btn-submit').prop('disabled', false);
                     }
                 });
                 return false;
             });
+
         });
 
         // JS Functions

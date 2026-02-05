@@ -32,53 +32,61 @@ function save_product($data)
 {
     require('db_connect.php');
 
+    header('Content-Type: application/json'); // important for AJAX
+
+    // Escape text fields
+    $product_code   = $db->real_escape_string($data['product_code']);
+    $unit           = $db->real_escape_string($data['unit']);
+    $product_name   = $db->real_escape_string($data['product_name']);
+    $quantity       = (int)$data['quantity'];
+    $critical_qty   = (int)$data['critical_qty'];
+    $selling_price  = (float)$data['selling_price'];
+    $supplier_price = (float)$data['supplier_price'];
+
+    // Insert product
     $query = "
         INSERT INTO tbl_products 
         (product_code, unit, product_name, quantity, critical_qty, selling_price, supplier_price)
         VALUES (
-            '{$data['product_code']}',
-            '{$data['unit']}',
-            '{$data['product_name']}',
-            '{$data['quantity']}',
-            '{$data['critical_qty']}',
-            '{$data['selling_price']}',
-            '{$data['supplier_price']}'
+            '$product_code',
+            '$unit',
+            '$product_name',
+            $quantity,
+            $critical_qty,
+            $selling_price,
+            $supplier_price
         )
     ";
 
     if ($db->query($query)) {
 
-        // get last inserted product_id (MySQL way)
+
         $product_id = $db->insert_id;
-
-        $arrayData = [
-            'product_id' => $product_id,
-            'user_id'    => $_SESSION['user_id']
-        ];
-
+        $arrayData = ['product_id' => $product_id, 'user_id' => $_SESSION['user_id']];
         $arrayGDetails = json_encode($arrayData);
         $today = date("Y-m-d H:i:s");
 
-        // insert history
-        $insert_history = "
+        // Insert history
+        $db->query("
             INSERT INTO tbl_history (date_history, details, history_type)
             VALUES ('$today', '$arrayGDetails', '11')
-        ";
-        $db->query($insert_history);
+        ");
 
-        // insert product history
-        $quantity = $data['quantity'];
-        $query_history = "
+        // Insert product history
+        $db->query("
             INSERT INTO tbl_product_history
             (hist_date, details, details_type, product_id, qty, balance, type)
             VALUES ('$today', '', '2', '$product_id', '$quantity', '$quantity', '2')
-        ";
-        $db->query($query_history);
+        ");
 
-        // return product id to AJAX
-        echo $product_id;
+        // Return success JSON
+        echo json_encode(['status' => 'success', 'product_id' => $product_id]);
+    } else {
+        // Return error JSON
+        echo json_encode(['status' => 'error', 'message' => $db->error]);
     }
 }
+
 
 
 // function save_category($data)
@@ -557,8 +565,8 @@ function view_cart2($data)
                 <i title='Delete' onclick='delete_cart(this)' cart_id='" . $row['cart_id'] . "' style='cursor:pointer;color:#c00505 !important' class='icon-trash'></i>&nbsp;&nbsp;
                 " . $row['product_name'] . "
             </td>
-            <td style='text-align:center;width:100px'>" . $row['unit'] . "</td>
-            <td style='text-align:center;width:130px'>
+            <td style='text-align:right;width:80px'>" . $row['unit'] . "</td>
+            <td style='text-align:center;width:150px'>
                 <input style='width:130px;border:1px solid #787878;' onkeydown='update_price(this)' 
                        cart_id='" . $row['cart_id'] . "' value='" . $row['price'] . "' type='number' min='0.00' step='0.01'>
             </td>

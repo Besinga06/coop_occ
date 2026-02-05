@@ -65,15 +65,19 @@ if (isset($_POST['check-login'])) {
 
 if (isset($_POST['save-product'])) {
     require('db_connect.php');
+
+    // Collect and sanitize input
     $data = array(
-        'product_code' => $_POST['product_code'],
-        'unit' => $_POST['unit'],
-        'product_name' => mysqli_real_escape_string($db, $_POST['product_name']),
-        'quantity' => $_POST['quantity'],
-        'critical_qty' => $_POST['critical_qty'],
-        'selling_price' => $_POST['selling_price'],
+        'product_code'   => $_POST['product_code'],
+        'unit'           => $_POST['unit'],
+        'product_name'   => mysqli_real_escape_string($db, $_POST['product_name']),
+        'quantity'       => $_POST['quantity'],
+        'critical_qty'   => $_POST['critical_qty'],
+        'selling_price'  => $_POST['selling_price'],
         'supplier_price' => $_POST['supplier_price']
     );
+
+
     save_product($data);
 }
 
@@ -438,99 +442,97 @@ if (isset($_POST['save_cart2'])) {
 
 
 if (isset($_POST['save_cartbarcode'])) {
+
     require('db_connect.php');
 
+    if (!isset($_SESSION['user_id'])) {
+        echo json_encode(['message' => 'unauthenticated']);
+        exit;
+    }
+
+    $user_id = $_SESSION['user_id'];
     $barcode = trim($_POST['barcode']);
     $barcode = preg_replace('/[^\x20-\x7E]/', '', $barcode);
 
-    // Escape for MySQL
+
     $barcode = $db->real_escape_string($barcode);
 
-    $products = "SELECT * FROM tbl_products WHERE product_code = '$barcode'";
-    $result_products = $db->query($products);
-
-    $i = 0;
-    $product_id = 0;
-    $product_qty = 0;
-
-    if ($result_products && $result_products->num_rows > 0) {
-        $row = $result_products->fetch_assoc();
-        $product_id  = $row['product_id'];
-        $product_qty = $row['quantity']; // available stock
-        $i = 1;
-    }
+    // Fetch product
+    $stmt = $db->prepare("SELECT product_id, quantity FROM tbl_products WHERE product_code = ?");
+    $stmt->bind_param("s", $barcode);
+    $stmt->execute();
+    $result = $stmt->get_result();
 
     header('Content-Type: application/json');
 
-    if ($i > 0) {
-        $user_id = $_SESSION['user_id'] ?? 0;
+    if ($result && $result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        $product_id = $row['product_id'];
+        $product_stock = (int)$row['quantity'];
 
-        $data = [
-            'type'       => 'add',
-            'product_id' => $product_id,
-            'quantity'   => 1,
-            'user_id'    => $user_id
-        ];
-
-        // Check current cart quantity
-        $cart_sql = "
-            SELECT quantity_order 
-            FROM tbl_cart 
-            WHERE product_id = '$product_id' 
-              AND user_id = '$user_id'
-        ";
-        $cart_check = $db->query($cart_sql);
+        // Check current cart
+        $stmt_cart = $db->prepare("SELECT quantity_order FROM tbl_cart WHERE product_id = ? AND user_id = ?");
+        $stmt_cart->bind_param("ii", $product_id, $user_id);
+        $stmt_cart->execute();
+        $cart_result = $stmt_cart->get_result();
 
         $current_qty = 0;
-        if ($cart_check && $cart_check->num_rows > 0) {
-            $cart_data = $cart_check->fetch_assoc();
-            $current_qty = $cart_data['quantity_order'];
+        if ($cart_result && $cart_result->num_rows > 0) {
+            $cart_data = $cart_result->fetch_assoc();
+            $current_qty = (int)$cart_data['quantity_order'];
         }
 
-        $desired_qty = $current_qty + $data['quantity'];
+        $desired_qty = $current_qty + 1;
 
-        if ($desired_qty > $product_qty) {
-            // Desired quantity exceeds stock
+        if ($desired_qty > $product_stock) {
             echo json_encode([
-                'message'        => 'unsave3',
+                'message' => 'unsave',
                 'quantity_order' => $desired_qty,
-                'quantity_left'  => $product_qty
+                'quantity_left' => $product_stock
             ]);
         } else {
-            // Save normally
-            save_cart($data, true);
+            // Save or update cart
+            save_cart([
+                'type' => 'add',
+                'product_id' => $product_id,
+                'quantity' => 1,
+                'user_id' => $user_id
+            ], true);
+
             echo json_encode(['message' => 'save']);
         }
     } else {
-        echo json_encode(['message' => 'unsave2']); // product not found
+        // Product not found
+        echo json_encode(['message' => 'not_found']);
     }
 
     exit;
 }
 
 
-// if (isset($_POST['save_cartbarcode'])) {
-//     require('db_connect.php');
-//     $i = 0;
-//     $products = "SELECT * FROM tbl_products WHERE product_code='" . $_POST['barcode'] . "' ";
-//     $result_products = $db->query($products);
-//     while ($row = $result_products->fetchArray()) {
-//         $product_id = $row['product_id'];
-//         $i++;
-//     }
-//     if ($i > 0) {
-//         $data = array('product_id' => $product_id, 'quantity' => 1, 'user_id' => $_SESSION['user_id']);
-//         save_cart($data);
-//     } else {
-//         $json_data = array('message' => 'unsave2');
-//         echo json_encode($json_data);
-//     }
-// }
 
-if (isset($_POST['save-cart2'])) {
-    $data = array('product_id' => $_POST['product_id'], 'quantity' => $_POST['quantity'], 'user_id' => $_SESSION['user_id']);
-    save_cart2($data);
+if (isset($_POST['save_cartbarcode'])) {
+    require('db_connect.php');
+    $i = 0;
+    $products = "SELECT * FROM tbl_products WHERE product_code='" . $_POST['barcode'] . "' ";
+    $result_products = $db->query($products);
+    while ($row = $result_products->fetch_assoc()) {
+        $product_id = $row['product_id'];
+        $i++;
+    }
+    if ($i > 0) {
+        $data = array('product_id' => $product_id, 'quantity' => 1, 'user_id' => $_SESSION['user_id']);
+        save_cart($data);
+    } else {
+        $json_data = array('message' => 'unsave2');
+        echo json_encode($json_data);
+    }
 }
+
+// if (isset($_POST['save-cart2'])) {
+//     $data = array('product_id' => $_POST['product_id'], 'quantity' => $_POST['quantity'], 'user_id' => $_SESSION['user_id']);
+//     save_cart2($data);
+// }
 
 if (isset($_GET['view_cart'])) {
     $data = array('user_id' => $_SESSION['user_id']);

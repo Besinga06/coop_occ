@@ -151,7 +151,7 @@ $payments = $db->query("
     <!-- Main navbar -->
     <div class="navbar navbar-inverse bg-teal-400 navbar-fixed-top">
         <div class="navbar-header">
-            <a class="navbar-brand" href="index.php"><img style="height: 40px!important" src="../images/farmers-logo.png" alt=""><span>Lourdes Farmers Multi-Purpose Cooperative</span></a>
+            <a class="navbar-brand" href="index.php"><img style="height: 65px!important" src="../images/your_logo.png" alt=""><span>OCC Cooperative</span></a>
             <ul class="nav navbar-nav visible-xs-block">
                 <li><a data-toggle="collapse" data-target="#navbar-mobile"><i class="icon-tree5"></i></a></li>
             </ul>
@@ -206,40 +206,41 @@ $payments = $db->query("
                                                 <?php
                                                 /* ---------- TOTAL CASH SALES ---------- */
                                                 $total_cash_result = $db->query("
-    SELECT COALESCE(SUM(total_amount), 0) AS total_cash
-    FROM tbl_sales
-    WHERE cust_id = $cust_id
-      AND sales_type = 1
-      AND YEAR(sales_date) = $year
-");
+                                                SELECT COALESCE(SUM(total_amount), 0) AS total_cash
+                                              FROM tbl_sales
+                                              WHERE cust_id = $cust_id
+                                              AND sales_type = 1
+                                              AND YEAR(sales_date) = $year
+                                                                        ");
                                                 $total_cash_row = $total_cash_result->fetch_assoc();
                                                 $total_cash = $total_cash_row['total_cash'];
 
                                                 /* ---------- TOTAL CHARGE PAID ---------- */
                                                 $total_charge_paid_result = $db->query("
-    SELECT 
-        COALESCE(SUM(per_sale.payments_made), 0) AS total_charge_paid
-    FROM (
-        SELECT 
-            s.sales_no,
+                                                SELECT 
+                                               COALESCE(SUM(per_sale.payments_made), 0) AS total_charge_paid
+                                               FROM (
+                                               SELECT 
+                                               s.sales_no,
 
-            /* SAME FORMULA AS YOUR REFERENCE QUERY */
-            (COALESCE(p.total_paid, 0) + COALESCE(s.amount_paid, 0)) AS payments_made
+                                              
+                                               (COALESCE(p.total_paid, 0) + COALESCE(s.amount_paid, 0)) AS payments_made
 
-        FROM tbl_sales s
+                                               FROM tbl_sales s
 
-        LEFT JOIN (
-            SELECT sales_no, SUM(amount_paid) AS total_paid
-            FROM tbl_payments
-            GROUP BY sales_no
-        ) p ON s.sales_no = p.sales_no
+                                               LEFT JOIN (
+                                              SELECT sales_no, SUM(amount_paid) AS total_paid
+                                              FROM tbl_payments
+                                              GROUP BY sales_no
+                                              ) p ON s.sales_no = p.sales_no
 
-        WHERE s.cust_id = $cust_id
-          AND s.sales_type = 0
-          AND s.sales_status != 3
-          AND YEAR(s.sales_date) = $year
-    ) per_sale
-");
+                                              WHERE s.cust_id = $cust_id
+                                              AND s.sales_type = 0
+                                              AND s.sales_status != 3
+                                              AND YEAR(s.sales_date) = $year
+                                                               ) per_sale
+                                                ");
+
                                                 $total_charge_paid_row = $total_charge_paid_result->fetch_assoc();
                                                 $total_charge_paid = $total_charge_paid_row['total_charge_paid'];
                                                 ?>
