@@ -509,25 +509,75 @@ if (isset($_POST['save_cartbarcode'])) {
     exit;
 }
 
+if (isset($_POST['save_cart2barcode'])) {
 
 
-if (isset($_POST['save_cartbarcode'])) {
+
     require('db_connect.php');
-    $i = 0;
-    $products = "SELECT * FROM tbl_products WHERE product_code='" . $_POST['barcode'] . "' ";
-    $result_products = $db->query($products);
-    while ($row = $result_products->fetch_assoc()) {
+
+    header('Content-Type: application/json');
+
+    if (!isset($_SESSION['user_id'])) {
+        echo json_encode(['message' => 'unauthenticated']);
+        exit; // ✅ STOP SCRIPT
+    }
+
+    $user_id = $_SESSION['user_id'];
+
+    $barcode = trim($_POST['barcode']);
+    $barcode = preg_replace('/[^\x20-\x7E]/', '', $barcode);
+
+    $stmt = $db->prepare("SELECT product_id, quantity, supplier_price FROM tbl_products WHERE product_code = ?");
+    $stmt->bind_param("s", $barcode);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    if ($result && $result->num_rows > 0) {
+
+        $row = $result->fetch_assoc();
         $product_id = $row['product_id'];
-        $i++;
+        $current_stock = (int)$row['quantity'];
+        $supplier_price = $row['supplier_price'];
+
+        // Increase stock
+        $new_stock = $current_stock + 1;
+        $stmt_update = $db->prepare("UPDATE tbl_products SET quantity = ? WHERE product_id = ?");
+        $stmt_update->bind_param("ii", $new_stock, $product_id);
+        $stmt_update->execute();
+
+        // Receiving cart logic
+        $stmt_cart = $db->prepare("SELECT cart_id, quantity_order FROM tbl_cart2 WHERE product_id = ? AND user_id = ?");
+        $stmt_cart->bind_param("ii", $product_id, $user_id);
+        $stmt_cart->execute();
+        $cart_result = $stmt_cart->get_result();
+
+        if ($cart_result->num_rows > 0) {
+            $cart_data = $cart_result->fetch_assoc();
+            $new_qty = $cart_data['quantity_order'] + 1;
+
+            $stmt_up_cart = $db->prepare("UPDATE tbl_cart2 SET quantity_order = ? WHERE cart_id = ?");
+            $stmt_up_cart->bind_param("ii", $new_qty, $cart_data['cart_id']);
+            $stmt_up_cart->execute();
+        } else {
+            $stmt_ins = $db->prepare("INSERT INTO tbl_cart2 (product_id, quantity_order, user_id, price) VALUES (?, 1, ?, ?)");
+            $stmt_ins->bind_param("iid", $product_id, $user_id, $supplier_price);
+            $stmt_ins->execute();
+        }
+
+        echo json_encode([
+            'message' => 'save',
+            'product_id' => $product_id,
+            'new_stock' => $new_stock,
+            'user_id' => $user_id
+        ]);
+        exit;
     }
-    if ($i > 0) {
-        $data = array('product_id' => $product_id, 'quantity' => 1, 'user_id' => $_SESSION['user_id']);
-        save_cart($data);
-    } else {
-        $json_data = array('message' => 'unsave2');
-        echo json_encode($json_data);
-    }
+
+    echo json_encode(['message' => 'not_found']);
+    exit; 
 }
+
+
 
 // if (isset($_POST['save-cart2'])) {
 //     $data = array('product_id' => $_POST['product_id'], 'quantity' => $_POST['quantity'], 'user_id' => $_SESSION['user_id']);

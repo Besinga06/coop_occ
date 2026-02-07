@@ -111,14 +111,14 @@ if ($row = $result_beginning->fetch_assoc()) {
 			<div class="search-div">
 				<div class="form-group has-feedback has-feedback-left input-text">
 					<?php if (isset($_GET['update'])) {  ?>
-						<input style="padding-right:32px" autocomplete="off" value="<?php if (!empty($_SESSION['pos-custid_update'])) {
+						<input style="padding-right:32px" autocomplete="off" value="<?php if (!empty($_SESSION['session_supplier'])) {
 																						echo $_SESSION['pos-customer_update'];
 																					} else {
 																						echo 'Walk-in Customer';
 																					} ?>" class="form-control" placeholder="Customer" type="text" id="customer-input">
 
 					<?php } else { ?>
-						<input style="padding-right:32px" autocomplete="off" value="<?php if (!empty($_SESSION['pos-customer'])) {
+						<input style="padding-right:32px" autocomplete="off" value="<?php if (!empty($_SESSION['session_supplier'])) {
 																						echo $_SESSION['pos-name'];
 																					} else {
 																						echo '';
@@ -190,6 +190,10 @@ if ($row = $result_beginning->fetch_assoc()) {
 								<div class="btn-action" onclick="view_products()">
 									<span class="">F12</span>
 									<div class="btn-action-text">Products</div>
+								</div>
+								<div class="btn-action" onclick="new_product()">
+									<span class="">F4</span>
+									<div class="btn-action-text">New <br> Product</div>
 								</div>
 								<div class="btn-action" onclick="new_supplier()">
 									<span class="">F6</span>
@@ -445,6 +449,115 @@ if ($row = $result_beginning->fetch_assoc()) {
 				</div>
 			</div>
 		</div>
+
+		<!-- New Product Modal -->
+		<div id="modal-add-new" class="modal fade" data-backdrop="static" data-keyboard="false">
+			<div class="modal-dialog">
+				<div class="modal-content">
+					<div class="modal-header">
+						<button type="button" data-toggle="tooltip" title="Press Esc" class="close" data-dismiss="modal">&times;</button>
+						<h5 class="modal-title">New Product Form</h5>
+					</div>
+					<div class="modal-body">
+						<form action="#" id="form-new" class="form-horizontal" data-toggle="validator" role="form">
+							<input type="hidden" name="save-product">
+							<div class="form-body" style="padding-top:20px">
+								<div id="display-msg"></div>
+
+								<!-- Product Name -->
+								<div class="form-group">
+									<label class="col-sm-3 control-label">Product Name</label>
+									<div class="col-sm-9">
+										<div class="input-group input-group-xlg">
+											<span class="input-group-addon"><i class="icon-pencil7"></i></span>
+											<input class="form-control currency" autocomplete="off" name="product_name" id="product_name" placeholder="Enter Product Name" type="text" required data-error="Product Name is required.">
+										</div>
+										<div class="help-block with-errors"></div>
+									</div>
+								</div>
+
+								<!-- Product Code -->
+								<div class="form-group">
+									<label class="col-sm-3 control-label">Product Code</label>
+									<div class="col-sm-9">
+										<div class="input-group input-group-xlg">
+											<span class="input-group-addon"><i class="icon-pencil7"></i></span>
+											<input class="form-control currency" autocomplete="off" name="product_code" id="product-code" placeholder="Enter product code" type="text" minlength="8" required data-error="Product Code is required & minimum 8 numbers.">
+											<span class="input-group-addon text-teal" style="cursor:pointer" title="Auto Generate"><i class="icon-database-refresh"></i></span>
+										</div>
+										<div class="help-block with-errors"></div>
+									</div>
+								</div>
+
+								<!-- Selling Price -->
+								<div class="form-group">
+									<label class="col-sm-3 control-label">Selling Price</label>
+									<div class="col-sm-9">
+										<div class="input-group input-group-xlg">
+											<span class="input-group-addon"><i class="icon-pencil7"></i></span>
+											<input class="form-control filterme" autocomplete="off" name="selling_price" placeholder="Enter selling price" type="text" required data-error="Please enter valid amount.">
+										</div>
+										<div class="help-block with-errors"></div>
+									</div>
+								</div>
+
+								<!-- Supplier Price -->
+								<div class="form-group">
+									<label class="col-sm-3 control-label">Supplier Price</label>
+									<div class="col-sm-9">
+										<div class="input-group input-group-xlg">
+											<span class="input-group-addon"><i class="icon-pencil7"></i></span>
+											<input class="form-control filterme" autocomplete="off" name="supplier_price" placeholder="Enter supplier price" type="text" required data-error="Please enter valid amount.">
+										</div>
+										<div class="help-block with-errors"></div>
+									</div>
+								</div>
+
+								<!-- Beginning Quantity -->
+								<div class="form-group">
+									<label class="col-sm-3 control-label">Beginning Quantity</label>
+									<div class="col-sm-9">
+										<div class="input-group input-group-xlg">
+											<span class="input-group-addon"><i class="icon-pencil7"></i></span>
+											<input class="form-control currency" autocomplete="off" name="quantity" onkeypress="return numbersonly(event)" placeholder="Enter quantity" type="text" required data-error="Please enter valid quantity.">
+										</div>
+										<div class="help-block with-errors"></div>
+									</div>
+								</div>
+
+								<!-- Reorder Level -->
+								<div class="form-group">
+									<label class="col-sm-3 control-label">Reorder Level</label>
+									<div class="col-sm-9">
+										<div class="input-group input-group-xlg">
+											<span class="input-group-addon"><i class="icon-pencil7"></i></span>
+											<input class="form-control currency" autocomplete="off" name="critical_qty" onkeypress="return numbersonly(event)" placeholder="Enter quantity" type="text" required data-error="Please enter valid quantity.">
+										</div>
+										<div class="help-block with-errors"></div>
+									</div>
+								</div>
+
+								<!-- Unit -->
+								<div class="form-group">
+									<label class="col-sm-3 control-label">Unit</label>
+									<div class="col-sm-9">
+										<div class="input-group input-group-xlg">
+											<span class="input-group-addon"><i class="icon-pencil7"></i></span>
+											<input type="text" class="form-control" placeholder="pcs,kg,ml,pack,box,etc." name="unit" required data-error="Please enter unit.">
+										</div>
+										<div class="help-block with-errors"></div>
+									</div>
+								</div>
+
+							</div>
+							<div class="modal-footer">
+								<button id="btn-submit" type="submit" class="btn bg-teal-400 btn-labeled"><b><i class="icon-add"></i></b> Save Products</button>
+							</div>
+						</form>
+					</div>
+				</div>
+			</div>
+		</div>
 		<input type="hidden" id="new-sales"></input>
 		<input type="hidden" id="discount-open">
 		<input type="hidden" id="receiving-input">
@@ -463,6 +576,18 @@ if ($row = $result_beginning->fetch_assoc()) {
 
 		<script src="../js/validator.min.js"></script>
 		<script type="text/javascript">
+			let typingInInput = false;
+
+			$(document).on('focus', 'input, textarea, select', function() {
+				typingInInput = true;
+			});
+
+			$(document).on('blur', 'input, textarea, select', function() {
+				typingInInput = false;
+			});
+
+
+
 			function changeAmount(eve) {
 				if ((eve.which != 46 || $(this).val().indexOf('.') != -1) && (eve.which < 48 || eve.which > 57) || (eve.which == 46 && $(this).caret().start == 0)) {
 					eve.preventDefault();
@@ -507,52 +632,56 @@ if ($row = $result_beginning->fetch_assoc()) {
 
 
 			$(document).scannerDetection({
-				timeBeforeScanTest: 200,
-				startChar: [120],
-				endChar: [13],
+				timeBeforeScanTest: 150,
 				avgTimeByChar: 40,
-				onComplete: function(barcode, qty) {
-					$("#show-loader").html('<i class="icon-spinner2 spinner" style="z-index: 30;position: absolute;font-size: 50px;color: #fff"></i>');
+				endChar: [9, 13],
+				preventDefault: false,
+
+				onComplete: function(barcode) {
+					$("#show-loader").html('<i class="icon-spinner2 spinner" style="z-index:30;position:absolute;font-size:50px;color:#fff"></i>');
+
 					$.ajax({
 						type: 'POST',
 						url: '../transaction.php',
+						dataType: 'json',
 						data: {
-							save_cart2barcode: "",
+							save_cart2barcode: 1,
 							barcode: barcode
 						},
 						success: function(msg) {
-							console.log(msg);
-							if (msg == '1') {
+							$("#show-loader").html('');
+							if (msg.message === 'save') {
 								total();
-								view_cart2();
-								$("#show-loader").html('');
-							}
-							if (msg == '2') {
-								alert('Product is not exist');
-								$("#show-loader").html('');
+								view_cart(msg.user_id); // <-- pass user_id here
+								beep_success();
 							}
 						},
-						error: function(msg) {
-							alert('Something went wrong!');
-						}
+
 					});
 				}
 			});
 
-			$.key('y', function() {
-				if ($("#receiving-cancel-input").val() == 'yes') {
-					cancel_receving();
-				}
-				if ($("#receiving-input").val() == 'yes') {
-					add_payment();
+
+			$.key('n', function() {
+				if (!typingInInput) { // <-- only run if not typing
+					$('.modal').modal('hide');
+					$("#receiving-cancel-input").val("");
+					$("#receiving-input").val("");
 				}
 			});
 
-			$.key('n', function() {
-				$('.modal').modal('hide');
-				$("#receiving-cancel-input").val("");
-				$("#receiving-input").val("");
+			$.key('y', function() {
+				if (!typingInInput) {
+					if ($("#receiving-cancel-input").val() == 'yes') {
+						cancel_receving();
+					}
+					if ($("#receiving-input").val() == 'yes') {
+						add_payment();
+					}
+				}
 			});
+
+
 
 			function add_payment() {
 				$("#modal-confirm").modal('hide');
@@ -595,7 +724,7 @@ if ($row = $result_beginning->fetch_assoc()) {
 			}
 
 			function pos() {
-				window.location.href = 'pos.php'; // Replace with your target page
+				window.location.href = 'pos.php';
 			}
 
 			$.key('esc', function() {
@@ -608,6 +737,7 @@ if ($row = $result_beginning->fetch_assoc()) {
 
 
 			$.key('f1', function() {
+
 				receive_confirm();
 			});
 			$.key('f2', function() {
@@ -616,9 +746,12 @@ if ($row = $result_beginning->fetch_assoc()) {
 			$.key('f6', function() {
 				new_supplier();
 			});
+			$.key('f4', function() {
+				new_product();
+			});
 
 			$.key('f7', function() {
-				window.location.href = 'pos.php'; // Same target page
+				window.location.href = 'pos.php';
 			});
 
 
@@ -669,6 +802,70 @@ if ($row = $result_beginning->fetch_assoc()) {
 					});
 					return false;
 				}
+			});
+
+			function new_product() {
+				$('#form-new')[0].reset();
+				$('#display-msg').html('');
+
+
+				$('#modal-add-new').modal('show');
+				setTimeout(function() {
+					$('#product_name').focus();
+				}, 500);
+			}
+
+
+			$('#form-new').validator().on('submit', function(e) {
+				if (e.isDefaultPrevented()) return false;
+
+				e.preventDefault();
+				$('#btn-submit').prop('disabled', true);
+
+				$.ajax({
+					type: 'POST',
+					url: '../transaction.php',
+					data: $('#form-new').serialize(),
+					dataType: 'json',
+					success: function(response) {
+						console.log('AJAX Response:', response);
+
+						if (response.status === 'success') {
+
+
+							$.jGrowl('Product successfully added!', {
+								header: 'Success Notification',
+								theme: 'alert-styled-right bg-success'
+							});
+
+
+							$('#form-new')[0].reset();
+							$('#display-msg').html('');
+							$('#product_name').focus();
+
+							$('#btn-submit').prop('disabled', false);
+
+
+							setTimeout(function() {
+								$('#modal-add-new').modal('hide');
+							}, 1500);
+
+						} else {
+							alert('Save failed: ' + response.message);
+							$('#btn-submit').prop('disabled', false);
+						}
+					},
+					error: function(xhr, status, error) {
+						console.error('AJAX error:', status, error, xhr.responseText);
+						$.jGrowl('Something went wrong while saving.', {
+							header: 'Error Notification',
+							theme: 'alert-styled-right bg-danger'
+						});
+						$('#btn-submit').prop('disabled', false);
+					}
+				});
+
+				return false;
 			});
 
 

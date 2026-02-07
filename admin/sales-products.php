@@ -39,6 +39,7 @@ $result_unit = $db->query($unit);
   </tbody>
 </table>
 
+
 <!-- Core JS files -->
 <script type="text/javascript" src="../assets/js/core/libraries/jquery.min.js"></script>
 <!-- /core JS files -->
@@ -74,6 +75,8 @@ $result_unit = $db->query($unit);
 
       }
     });
+
+
 
 
   });
