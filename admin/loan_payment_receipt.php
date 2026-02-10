@@ -7,7 +7,7 @@ if (!isset($_GET['receipt'])) {
 
 $receipt_number = $_GET['receipt'];
 
-// Prepare statement to prevent SQL injection
+
 $stmt = $db->prepare("
     SELECT r.loan_app_id,
            r.schedule_id,
@@ -27,7 +27,7 @@ $stmt = $db->prepare("
     WHERE r.receipt_number = ?
 ");
 
-$stmt->bind_param("s", $receipt_number); // "s" = string
+$stmt->bind_param("s", $receipt_number);
 $stmt->execute();
 
 $result = $stmt->get_result();
@@ -39,14 +39,14 @@ if (!$payment) {
     die("Receipt not found.");
 }
 
-// $payment now contains the repayment details as associative array
+
 ?>
 
 
 <div class="receipt-div" id="print-receipt">
     <div class="text-center">
-        <p class="title"><b>LOURDES FARMERS MULTI-PURPOSE COOPERATIVE</b></p>
-        <p>Brgy Lourdes, Alubijid Mis'Or</p>
+        <p class="title"><b>OCC COOPERATIVE</b></p>
+        <p>Opol Community College Mis'Or</p>
         <p>Loan Payment Receipt</p>
         <hr>
     </div>
@@ -90,7 +90,7 @@ if (!$payment) {
                 <p>Issued by:</p><br><br>
                 _________________________<br>
                 Authorized Signature
-            </td>
+            </td>s
             <td align="right">
                 <p>Received by:</p><br><br>
                 _________________________<br>

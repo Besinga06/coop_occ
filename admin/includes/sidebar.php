@@ -110,7 +110,7 @@
     <?php if ($_SESSION['session_type'] == "member") { ?>
 
         <li>
-            <a href="index.php">
+            <a href="../member/dashboard.php">
                 <i class="icon-home"></i> &nbsp; Dashboard
             </a>
         </li>

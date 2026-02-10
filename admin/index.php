@@ -50,7 +50,7 @@ $customer_result = $db->query($customer_select);
 $customer_row = $customer_result->fetch_assoc();
 $customer_total = $customer_row['total_customer'];
 
-$user_select = "SELECT COUNT(*) AS total_user FROM tbl_users WHERE usertype != 1";
+$user_select = "SELECT COUNT(*) AS total_user FROM tbl_users WHERE usertype != 4";
 $user_result = $db->query($user_select);
 $user_row = $user_result->fetch_assoc();
 $user_total = $user_row['total_user'];

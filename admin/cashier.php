@@ -94,14 +94,14 @@
 								<tbody>
 									<?php
 									$query = "SELECT * FROM tbl_users 
-          WHERE usertype IN (1,2,3) 
-          AND user_id != '" . $_SESSION['user_id'] . "'";
+                                  WHERE usertype IN (1,2,3) 
+                                 AND user_id != '" . $_SESSION['user_id'] . "'";
 									$result = $db->query($query);
 
 									while ($row = $result->fetch_assoc()) {
 									?>
 										<tr>
-											<td>87989<?= $row['user_id']; ?></td>
+											<td><?= $row['user_id']; ?></td>
 											<td><?= $row['fullname']; ?></td>
 											<td><?= $row['username']; ?></td>
 											<td>

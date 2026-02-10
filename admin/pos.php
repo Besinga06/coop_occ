@@ -130,6 +130,26 @@ while ($row = $result_beginning->fetch_assoc()) {
         height: 75px !important;
         font-size: 20px !important;
     }
+
+    #page-loader {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #ffffff;
+        /* solid white */
+        display: none;
+        /* ONLY THIS */
+        justify-content: center;
+        align-items: center;
+        z-index: 99999;
+    }
+
+    .page-loader-img {
+        width: 90px;
+        /* adjust size */
+    }
 </style>
 
 <!DOCTYPE html>
@@ -150,6 +170,10 @@ while ($row = $result_beginning->fetch_assoc()) {
     <link rel="stylesheet" href="../css/pos.css">
     <!-- <link href="../css/my_css.css" rel="stylesheet" type="text/css" /> -->
 </head>
+
+<div id="page-loader">
+    <img src="../images/LoaderIcon.gif" alt="Loading..." class="page-loader-img">
+</div>
 
 <body>
     <div class="main-div">
@@ -975,9 +999,21 @@ while ($row = $result_beginning->fetch_assoc()) {
                             });
 
 
-                            function receiving() {
-                                window.location.href = 'receiving.php';
+                            function showPageLoader() {
+                                $("#page-loader").css("display", "flex").hide().fadeIn(100);
                             }
+
+                            $(window).on('load', function() {
+                                $("#page-loader").fadeOut(100);
+                            });
+
+                            function receiving() {
+                                showPageLoader();
+                                setTimeout(function() {
+                                    window.location.href = 'receiving.php';
+                                }, 1000);
+                            }
+
 
                             function profile() {
                                 window.location.href = 'profile.php';

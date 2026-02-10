@@ -6,7 +6,7 @@ if (!isset($_GET['loan_id'])) {
 }
 $loan_id = (int) $_GET['loan_id'];
 
-// Fetch loan, customer, and disbursement info using MySQLi prepared statement
+
 $query = "
     SELECT l.loan_app_id,
            c.name AS member_name,
@@ -54,8 +54,8 @@ $total_payable = round($emi * $term, 2);
 
 <div class="receipt-div" id="print-receipt">
     <div class="text-center">
-        <p class="title"><b>LOURDES FARMERS MULTI-PURPOSE COOPERATIVE</b></p>
-        <p>Brgy Lourdes, Alubijid Mis'Or</p>
+        <p class="title"><b>OCC COOPERATIVE</b></p>
+        <p>Opol Community College, Mis'Or</p>
         <p>Loan Disbursement Receipt</p>
 
         <hr>
@@ -82,7 +82,7 @@ $total_payable = round($emi * $term, 2);
                 <th>Principal Amount</th>
                 <th>Term (months)</th>
                 <th>Interest Rate</th>
-                <th>Monthly EMI</th>
+                <th>Monthly</th>
                 <th>Total Payable</th>
             </tr>
         </thead>

@@ -5,7 +5,7 @@ if (isset($_GET['sales_no'])) {
     $sales_no = $_GET['sales_no'];
 }
 
-//$sales_no = '0931619438605102';
+
 
 $query = "SELECT * FROM tbl_sales  INNER JOIN tbl_products ON tbl_sales.product_id=tbl_products.product_id INNER JOIN tbl_users ON tbl_sales.user_id=tbl_users.user_id  LEFT JOIN tbl_customer  ON tbl_sales.cust_id=tbl_customer.cust_id WHERE tbl_sales.sales_no='" . $sales_no . "'  ";
 //$query = "SELECT * FROM tbl_sales  INNER JOIN tbl_products ON tbl_sales.product_id=tbl_products.product_id INNER JOIN tbl_users ON tbl_sales.user_id=tbl_users.user_id ORDER BY sales_id DESC LIMIT 0,1  ";
@@ -155,9 +155,9 @@ while ($row = $result->fetch_assoc()) {
                     <tr valign="top">
                         <th class="text-left" width="60%" style="line-height: 3px;">
                             <div>
-                                <p class="text-title">LOURDES FARMERS<br><br>MULTI-PURPOS COOPERATIVE</p>
+                                <p class="text-title">OCC<br><br>COOPERATIVE</p>
                                 <p class="text-title">POS</p>
-                                <p class="title-p2" style="font-size:11px">BRGY LOURDES ALUBIJID Mis'Or</p>
+                                <p class="title-p2" style="font-size:11px">Opol Community College, Mis'Or</p>
                                 <!-- <p class="title-p2" style="font-size:11px">Non Vat Reg. TIN 704-089-270-001</p> -->
                             </div>
                         </th>
@@ -300,10 +300,10 @@ while ($row = $result->fetch_assoc()) {
                     <tr valign="top">
                         <th class="text-left" width="60%" style="line-height: 3px;">
                             <div>
-                                <p class="text-title">LOURDES FARMERS<br><br>MULTI-PURPOS COOPERATIVE</p>
+                                <p class="text-title">OCC<br><br>COOPERATIVE</p>
                                 <p class="text-title">POS</p>
 
-                                <p class="title-p2" style="font-size:11px">BRGY LOURDES ALUBIJID Mis'Or</p>
+                                <p class="title-p2" style="font-size:11px">Opol Community College Mis'Or</p>
 
                             </div>
                         </th>

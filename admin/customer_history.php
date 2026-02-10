@@ -8,7 +8,7 @@ if (!isset($_GET['cust_id'])) {
 $cust_id = (int)$_GET['cust_id'];
 $year = isset($_GET['year']) ? (int)$_GET['year'] : date('Y');
 
-/* ---------- CUSTOMER INFO ---------- */
+//--------- CUSTOMER INFO ---------- 
 $customer_result = $db->query("
     SELECT * 
     FROM tbl_customer 
@@ -16,7 +16,7 @@ $customer_result = $db->query("
 ");
 $customer = $customer_result->fetch_assoc();
 
-/* ---------- CAPITAL SHARE TOTAL (YEAR) ---------- */
+// ---------- CAPITAL SHARE TOTAL (YEAR) ---------- 
 $capital_result = $db->query("
     SELECT SUM(amount) AS total_capital
     FROM tbl_capital_share
@@ -25,7 +25,7 @@ $capital_result = $db->query("
 ");
 $capital = $capital_result->fetch_assoc();
 
-/* ---------- CAPITAL SHARE CONTRIBUTIONS ---------- */
+//---------- CAPITAL SHARE CONTRIBUTIONS ---------- 
 $contributions = $db->query("
     SELECT *
     FROM tbl_capital_share
@@ -34,7 +34,7 @@ $contributions = $db->query("
     ORDER BY contribution_date DESC
 ");
 
-/* ---------- CASH SALES SUMMARY ---------- */
+// ---------- CASH SALES SUMMARY ---------- 
 $cash_sales = $db->query("
     SELECT 
         s.sales_no,
@@ -60,14 +60,14 @@ $charge_sales = $db->query("
         p.product_name,
         s.quantity_order AS total_quantity,
 
-        /* Original amounts */
+
         s.subtotal,
         s.total_amount,
 
         /* TOTAL PAYMENTS FROM BOTH SOURCES */
         (COALESCE(pay.total_paid, 0) + COALESCE(s.amount_paid, 0)) AS payments_made,
 
-        /* CORRECT BALANCE */
+     
         s.total_amount - (COALESCE(pay.total_paid, 0) + COALESCE(s.amount_paid, 0)) AS balance
 
     FROM tbl_sales s
@@ -90,7 +90,7 @@ $charge_sales = $db->query("
 ");
 
 
-/* ---------- DISBURSED BENEFITS ---------- */
+// ---------- DISBURSED BENEFITS ---------- 
 $disbursed = $db->query("
     SELECT
         dd.reference_no,
@@ -105,7 +105,7 @@ $disbursed = $db->query("
     ORDER BY dd.disbursed_at DESC
 ");
 
-/* ---------- PAYMENTS ---------- */
+// ---------- PAYMENTS ---------- 
 $payments = $db->query("
     SELECT *
     FROM tbl_payments
@@ -124,7 +124,7 @@ $payments = $db->query("
     .navbar-brand {
         display: flex;
         align-items: center;
-        /* vertically center image + text */
+        /*/ vertically center image + text */
         gap: 0px;
         /* space between logo and text */
         font-weight: 800;
@@ -217,7 +217,7 @@ $payments = $db->query("
 
                                                 /* ---------- TOTAL CHARGE PAID ---------- */
                                                 $total_charge_paid_result = $db->query("
-                                                SELECT 
+                                               SELECT 
                                                COALESCE(SUM(per_sale.payments_made), 0) AS total_charge_paid
                                                FROM (
                                                SELECT 

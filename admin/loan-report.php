@@ -152,7 +152,7 @@ $summary = $summary_query ? $summary_query->fetch_assoc() : [
 <body class="layout-boxed navbar-top">
     <div class="navbar navbar-inverse bg-teal-400 navbar-fixed-top">
         <div class="navbar-header">
-            <a class="navbar-brand" href="index.php"><img src="../images/your_logo.png" alt=""><span>Lourdes Farmers Multi-Purpose Cooperative</span></a>
+            <a class="navbar-brand" href="index.php"><img src="../images/your_logo.png" alt=""><span>OCC COOPERATIVE</span></a>
             <ul class="nav navbar-nav visible-xs-block">
                 <li><a data-toggle="collapse" data-target="#navbar-mobile"><i class="icon-tree5"></i></a></li>
             </ul>

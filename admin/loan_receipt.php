@@ -60,8 +60,8 @@ for ($i = 1; $i <= $term; $i++) {
 
 <div class="receipt-div" id="print-receipt">
     <div class="text-center">
-        <p class="title"><b>LOURDES FARMERS MULTI-PURPOSE COOPERATIVE</b></p>
-        <p>Brgy Lourdes, Alubijid Mis'Or</p>
+        <p class="title"><b>OCC COOPERATIVE</b></p>
+        <p>Opol Community College Mis'Or</p>
         <p><b>Loan Approval Receipt</b></p>
         <hr>
     </div>

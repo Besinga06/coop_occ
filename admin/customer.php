@@ -1,6 +1,16 @@
 <?php require('includes/header.php'); ?>
 <?php
-$query = "SELECT * FROM tbl_customer where cust_id!=1 ";
+$query = "
+    SELECT
+        c.cust_id,
+        c.name,
+        c.address,
+        c.contact,
+        m.type AS member_type
+    FROM tbl_customer c
+    LEFT JOIN tbl_members m ON m.cust_id = c.cust_id
+    WHERE c.cust_id != 1
+";
 $result = $db->query($query);
 ?>
 <style>
@@ -72,9 +82,12 @@ $result = $db->query($query);
                         </ul>
                     </div>
                 </div>
-                <!-- /page header -->
 
-                <!-- Content area -->
+
+
+
+
+
                 <div class="content">
 
                     <div class="panel  panel-white border-top-xlg border-top-teal-400">
@@ -85,33 +98,51 @@ $result = $db->query($query);
                             <table class="table datatable-button-html5-basic table-hover table-bordered" width="100%">
                                 <thead>
                                     <tr style="border-bottom: 4px solid #ddd;background: #eee;">
-                                        <th>Memeber ID</th>
+                                        <th hidden>Memeber ID</th>
                                         <th>Name</th>
                                         <th>Address</th>
                                         <th>Contact</th>
-                                        <th></th>
+                                        <th>Member Type</th>
+                                        <!-- <th></th> -->
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <?php while ($row = $result->fetch_assoc()) { ?>
                                         <tr style="cursor:pointer;" onclick="view_details(this)" title="View Customer History">
-                                            <td>34236<?= $row['cust_id']; ?></td>
+
+                                            <td hidden>34236<?= $row['cust_id']; ?></td>
                                             <td><?= $row['name']; ?></td>
                                             <td><?= $row['address']; ?></td>
                                             <td><?= $row['contact']; ?></td>
-                                            <td onclick="event.stopPropagation(); edit_details(this);"
+
+
+                                            <td>
+                                                <span style="" class="label <?= $row['member_type'] === 'regular'
+                                                                                ? 'label-success'
+                                                                                : 'label-info'; ?>">
+                                                    <?= ucfirst($row['member_type']); ?>
+                                                </span>
+                                            </td>
+
+                                            <!-- ACTION BUTTON -->
+                                            <!-- <td onclick="event.stopPropagation(); edit_details(this);"
                                                 cust_id="<?= $row['cust_id']; ?>"
                                                 name="<?= $row['name']; ?>"
                                                 address="<?= $row['address']; ?>"
                                                 contact="<?= $row['contact']; ?>"
-                                                title="Edit" style="width: 40px;text-align: center;">
-                                                <button type="button" class="btn border-teal text-teal-400 btn-flat btn-icon btn-xs">
+                                                member_type="<?= $row['member_type']; ?>"
+                                                title="Edit"
+                                                style="width:40px;text-align:center;">
+                                                <button type="button"
+                                                    class="btn border-teal text-teal-400 btn-flat btn-icon btn-xs">
                                                     <i class="icon-pencil7"></i>
                                                 </button>
-                                            </td>
+                                            </td> -->
+
                                         </tr>
                                     <?php } ?>
                                 </tbody>
+
                             </table>
                         </div>
                     </div>
@@ -129,9 +160,9 @@ $result = $db->query($query);
     <!-- /page container -->
 </body>
 <?php require('includes/footer.php'); ?>
-<!-- Modal Add Member -->
+
 <div id="modal_new" class="modal fade">
-    <div class="modal-dialog modal-lg"> <!-- wider modal -->
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
 
             <form action="#" id="form-customer" class="form-horizontal" role="form">
@@ -139,38 +170,34 @@ $result = $db->query($query);
 
                 <div class="modal-header bg-teal">
                     <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
-                    <h5 class="modal-title"><i class="icon-user-plus"></i> Register New Member</h5>
+                    <h5 class="modal-title">
+                        <i class="icon-user-plus"></i> Register New Member
+                    </h5>
                 </div>
-
+    
                 <div class="modal-body">
 
-                    <!-- NAME ROW -->
+
                     <div class="row">
                         <div class="col-md-6">
-                            <label class="control-label font-weight-semibold">First Name</label>
-                            <div class="input-group">
-                                <span class="input-group-addon"><i class="icon-user"></i></span>
-                                <input class="form-control input-lg" name="first_name" placeholder="Enter first name" required>
-                            </div>
+                            <label>First Name</label>
+                            <input class="form-control input-lg" name="first_name" required>
                         </div>
 
                         <div class="col-md-6">
-                            <label class="control-label font-weight-semibold">Last Name</label>
-                            <div class="input-group">
-                                <span class="input-group-addon"><i class="icon-user"></i></span>
-                                <input class="form-control input-lg" name="last_name" placeholder="Enter last name" required>
-                            </div>
+                            <label>Last Name</label>
+                            <input class="form-control input-lg" name="last_name" required>
                         </div>
                     </div>
 
                     <hr>
 
-                    <!-- PERSONAL INFO -->
+
                     <div class="row">
                         <div class="col-md-6">
-                            <label class="control-label font-weight-semibold">Gender</label>
+                            <label>Gender</label>
                             <select name="gender" class="form-control input-lg" required>
-                                <option value="">-- Select Gender --</option>
+                                <option value="">-- Select --</option>
                                 <option>Male</option>
                                 <option>Female</option>
                                 <option>Other</option>
@@ -178,49 +205,57 @@ $result = $db->query($query);
                         </div>
 
                         <div class="col-md-6">
-                            <label class="control-label font-weight-semibold">Contact Number</label>
-                            <div class="input-group">
-                                <span class="input-group-addon"><i class="icon-phone"></i></span>
-                                <input class="form-control input-lg" name="contact" placeholder="09XXXXXXXXX">
-                            </div>
+                            <label>Contact Number</label>
+                            <input class="form-control input-lg" name="contact">
                         </div>
                     </div>
 
                     <hr>
 
-                    <!-- ACCOUNT INFO -->
+
                     <div class="row">
                         <div class="col-md-6">
-                            <label class="control-label font-weight-semibold">Email Address</label>
-                            <div class="input-group">
-                                <span class="input-group-addon"><i class="icon-envelop"></i></span>
-                                <input type="email" class="form-control input-lg" name="email" placeholder="example@email.com" required>
-                            </div>
+                            <label>Email</label>
+                            <input type="email" class="form-control input-lg" name="email" required>
                         </div>
 
                         <div class="col-md-6">
-                            <label class="control-label font-weight-semibold">Password</label>
-                            <div class="input-group">
-                                <span class="input-group-addon"><i class="icon-lock2"></i></span>
-                                <input type="password" class="form-control input-lg" name="password" placeholder="Enter password" required>
-                            </div>
+                            <label>Password</label>
+                            <input type="password" class="form-control input-lg" name="password" required>
                         </div>
                     </div>
 
                     <hr>
 
-                    <!-- ADDRESS -->
+
                     <div class="form-group">
-                        <label class="control-label font-weight-semibold">Complete Address</label>
-                        <textarea name="address" rows="3" class="form-control" placeholder="Street, Barangay, City, Province"></textarea>
+                        <label>Complete Address</label>
+                        <textarea name="address" rows="3" class="form-control"></textarea>
                     </div>
 
-                    <!-- CAPITAL SHARE -->
-                    <div class="form-group">
-                        <label class="control-label font-weight-semibold">Capital Share Contribution</label>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label>Member Type</label>
+                            <select name="member_type" id="member_type" class="form-control input-lg" required>
+                                <option value="">-- Select Member Type --</option>
+                                <option value="regular">Regular</option>
+                                <option value="associate">Associate</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <hr>
+                    <div class="form-group" id="capitalShareGroup">
+                        <label>Capital Share Contribution</label>
                         <div class="input-group">
                             <span class="input-group-addon">₱</span>
-                            <input class="form-control input-lg" name="capital_share" type="number" step="0.01" min="0" value="0">
+                            <input type="number"
+                                name="capital_share"
+                                class="form-control input-lg"
+                                min="0"
+                                step="0.01"
+                                value="0">
                         </div>
                     </div>
 
@@ -298,6 +333,18 @@ $result = $db->query($query);
 <script type="text/javascript" src="../assets/js/plugins/notifications/jgrowl.min.js"></script>
 <script src="../js/validator.min.js"></script>
 <script type="text/javascript">
+    document.getElementById('member_type').addEventListener('change', function() {
+        const capitalGroup = document.getElementById('capitalShareGroup');
+        const capitalInput = capitalGroup.querySelector('input');
+
+        if (this.value === 'associate') {
+            capitalGroup.style.display = 'none';
+            capitalInput.value = 0;
+        } else {
+            capitalGroup.style.display = 'block';
+        }
+    });
+
     $(function() {
 
         // Table setup
@@ -383,6 +430,7 @@ $result = $db->query($query);
             return false;
         }
     });
+
 
     $('#form-customer-edit').validator().on('submit', function(e) {
         if (!e.isDefaultPrevented()) {

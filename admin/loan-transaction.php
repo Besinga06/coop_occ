@@ -1,8 +1,8 @@
 <?php
 require('includes/header.php');
 
-// Fetch all loans
-$loans = $db->query("
+
+$loanQuery = "
     SELECT 
         l.loan_app_id,
         c.name AS member_name,
@@ -21,32 +21,36 @@ $loans = $db->query("
     JOIN tbl_loan_disbursement d ON d.loan_app_id = l.loan_app_id
     JOIN tbl_loan_transactions t ON l.loan_app_id = t.loan_app_id
     ORDER BY t.disbursement_date DESC
-");
+";
+
+$loans_active = $db->query($loanQuery);
+$loans_paid   = $db->query($loanQuery);
+
 ?>
 <style>
     .navbar-brand {
         display: flex;
         align-items: center;
-        /* vertically center image + text */
+
         gap: 0px;
-        /* space between logo and text */
+
         font-weight: 800;
         color: white;
-        /* adjust to your navbar color */
+
         text-decoration: none;
         font-size: 50px;
     }
 
     .navbar-brand img {
         height: 40px;
-        /* adjust logo height */
+
         width: auto;
         object-fit: contain;
     }
 
     .navbar-brand span {
         white-space: nowrap;
-        /* prevent text from wrapping to next line */
+
     }
 </style>
 
@@ -105,35 +109,32 @@ $loans = $db->query("
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php while ($loan = $loans->fetch_assoc()): ?>
+                                    <?php while ($loan = $loans_active->fetch_assoc()): ?>
                                         <?php
                                         $loanId = (int)$loan['loan_app_id'];
 
-                                        // Get total paid
+
                                         $stmt_paid = $db->prepare("SELECT SUM(amount_paid) AS total_paid FROM tbl_loan_repayment WHERE loan_app_id = ?");
                                         $stmt_paid->bind_param("i", $loanId);
                                         $stmt_paid->execute();
-                                        $result_paid = $stmt_paid->get_result()->fetch_assoc();
-                                        $paid = $result_paid['total_paid'] ?? 0;
+                                        $paid = $stmt_paid->get_result()->fetch_assoc()['total_paid'] ?? 0;
+
                                         $balance = $loan['total_payable'] - $paid;
-
-                                        if ($balance <= 0) continue; // Skip fully paid loans
-
-                                        // Get next unpaid schedule
+                                        if ($balance <= 0) continue;
                                         $stmt_schedule = $db->prepare("
-        SELECT schedule_id, due_date, principal_due, interest_due, penalty_due, total_due
-        FROM tbl_loan_schedule
-        WHERE loan_app_id = ? AND status = 'unpaid'
-        ORDER BY due_date ASC
-        LIMIT 1
-    ");
+                                        SELECT schedule_id, due_date, principal_due, interest_due, penalty_due, total_due
+                                        FROM tbl_loan_schedule
+                                        WHERE loan_app_id = ? AND status = 'unpaid'
+                                        ORDER BY due_date ASC
+                                        LIMIT 1
+                                          ");
                                         $stmt_schedule->bind_param("i", $loanId);
                                         $stmt_schedule->execute();
                                         $nextSchedule = $stmt_schedule->get_result()->fetch_assoc();
 
                                         $monthly_due = $nextSchedule['total_due'] ?? 0;
                                         $schedule_id = $nextSchedule['schedule_id'] ?? null;
-                                        $status = $loan['loan_status'] ?? '';
+
                                         ?>
                                         <tr>
                                             <td><b><?= htmlspecialchars($loan['member_name']) ?></b></td>
@@ -162,11 +163,12 @@ $loans = $db->query("
                                     <?php endwhile; ?>
 
                                 </tbody>
+
                             </table>
                         </div>
                     </div>
 
-                    <!-- Fully Paid Loans -->
+
                     <div class="panel panel-white border-top-xlg border-top-success">
                         <div class="panel-heading">
                             <h6 class="panel-title">
@@ -188,26 +190,19 @@ $loans = $db->query("
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php
-                                    // Resetting the result pointer is not needed in MySQLi unless you specifically re-use the result.
-                                    // Assuming $loans is a mysqli_result object from a previous query:
-                                    while ($loan = $loans->fetch_assoc()):
+                                    <?php while ($loan = $loans_paid->fetch_assoc()): ?>
+                                        <?php
                                         $loanId = (int)$loan['loan_app_id'];
 
-                                        // Get total paid
+
                                         $stmt_paid = $db->prepare("SELECT SUM(amount_paid) AS total_paid FROM tbl_loan_repayment WHERE loan_app_id = ?");
                                         $stmt_paid->bind_param("i", $loanId);
                                         $stmt_paid->execute();
-                                        $result_paid = $stmt_paid->get_result()->fetch_assoc();
-                                        $paid = $result_paid['total_paid'] ?? 0;
+                                        $paid = $stmt_paid->get_result()->fetch_assoc()['total_paid'] ?? 0;
 
                                         $balance = $loan['total_payable'] - $paid;
-
-                                        if ($balance > 0) continue; // skip active loans
-
-                                        $monthly_due = 0;
-                                        $status = 'Fully Paid';
-                                    ?>
+                                        if ($balance > 0) continue;
+                                        ?>
                                         <tr>
                                             <td><b><?= htmlspecialchars($loan['member_name']) ?></b></td>
                                             <td class="text-right"><?= number_format($loan['approved_amount'], 2) ?></td>
@@ -215,14 +210,16 @@ $loans = $db->query("
                                             <td><?= number_format($loan['interest_rate']) ?>%</td>
                                             <td class="text-right"><?= number_format($loan['total_payable'], 2) ?></td>
                                             <td class="text-success text-right"><?= number_format($paid, 2) ?></td>
-                                            <td><?= $status ?></td>
+                                            <td><span class="label label-success">Fully Paid</span></td>
                                             <td>
                                                 <a href="loan_ledger_detail.php?loan_id=<?= $loanId ?>" class="btn btn-xxs btn-primary">View</a>
                                             </td>
                                         </tr>
+
                                     <?php endwhile; ?>
 
                                 </tbody>
+
                             </table>
                         </div>
                     </div>

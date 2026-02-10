@@ -83,6 +83,28 @@ if ($row = $result_beginning->fetch_assoc()) {
 }
 ?>
 
+<style>
+	#page-loader {
+		position: fixed;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+		background: #ffffff;
+		/* solid white */
+		display: none;
+		/* ONLY THIS */
+		justify-content: center;
+		align-items: center;
+		z-index: 99999;
+	}
+
+	.page-loader-img {
+		width: 90px;
+		/* adjust size */
+	}
+</style>
+
 <!DOCTYPE html>
 <html lang="en">
 <meta http-equiv="content-type" content="text/html;charset=UTF-8" />
@@ -101,6 +123,10 @@ if ($row = $result_beginning->fetch_assoc()) {
 	<link rel="stylesheet" href="../css/pos.css">
 	<!-- <link href="../css/my_css.css" rel="stylesheet" type="text/css" /> -->
 </head>
+
+<div id="page-loader">
+	<img src="../images/LoaderIcon.gif" alt="Loading..." class="page-loader-img">
+</div>
 
 <body>
 	<div class="main-div">
@@ -723,9 +749,21 @@ if ($row = $result_beginning->fetch_assoc()) {
 
 			}
 
-			function pos() {
-				window.location.href = 'pos.php';
+			function showPageLoader() {
+				$("#page-loader").css("display", "flex").hide().fadeIn(100);
 			}
+
+			$(window).on('load', function() {
+				$("#page-loader").fadeOut(100);
+			});
+
+			function pos() {
+				showPageLoader();
+				setTimeout(function() {
+					window.location.href = 'pos.php';
+				}, 1000);
+			}
+
 
 			$.key('esc', function() {
 				if ($("#new-sales").val() == "yes") {

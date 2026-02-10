@@ -1060,28 +1060,52 @@ function searh_supplier($data)
 function save_receiving($data)
 {
     require('db_connect.php');
+
+    // Session user and supplier
     $user_id = $_SESSION['user_id'];
     $supplier_id = $_SESSION['pos-supplier'];
     $today = date("Y-m-d H:i:s");
 
-    $query_products = "SELECT * FROM tbl_cart2 INNER JOIN tbl_products ON tbl_cart2.product_id=tbl_products.product_id WHERE tbl_cart2.user_id='$user_id'";
+    // Fetch all products in cart for this user
+    $query_products = "SELECT * FROM tbl_cart2 
+                       INNER JOIN tbl_products ON tbl_cart2.product_id=tbl_products.product_id 
+                       WHERE tbl_cart2.user_id='$user_id'";
     $result_products = $db->query($query_products);
 
+    if (!$result_products || $result_products->num_rows == 0) {
+        echo "0"; // No products in cart
+        return;
+    }
+
     $subtotal_amount = 0;
-    $discount = 0;
+    $discount_total = 0;
+
+    // Generate unique receiving number
     $receiving_no = '120' . round(microtime(true) * 10) . $user_id;
 
-    // Calculate subtotal and discount
+    // First loop: calculate subtotal and total discount
     while ($row = $result_products->fetch_assoc()) {
         $quantity_order = $row['quantity_order'];
         $price = $row['price'];
-        $discount = $row['discount'];
+        $discount = $row['discount'] ?? 0;
+
         $subtotal_amount += $price * $quantity_order;
+        $discount_total += $discount;
     }
 
-    $total_amount = $subtotal_amount - $discount;
+    $total_amount = $subtotal_amount - $discount_total;
 
-    // Reset pointer to insert each product
+    // -------------------- ADD SYSTEM HISTORY --------------------
+    $history_data = array(
+        'receiving_no' => $receiving_no,
+        'user_id' => $user_id,
+        'supplier_id' => $supplier_id,
+        'total_amount' => $total_amount
+    );
+    $db->query("INSERT INTO tbl_history (date_history, details, history_type) 
+                VALUES ('$today', '" . json_encode($history_data) . "', '12')"); // 12 = Receiving
+
+    // Reset pointer to loop again for product updates
     $result_products->data_seek(0);
 
     while ($row = $result_products->fetch_assoc()) {
@@ -1092,25 +1116,22 @@ function save_receiving($data)
 
         $balance_quantity = $quantity + $quantity_order;
 
-        // Insert product history
-        $query_history = "INSERT INTO tbl_product_history (hist_date, details, details_type, product_id, qty, balance, type) 
-                          VALUES ('$today', '$receiving_no', '2', '$product_id', '$quantity_order', '$balance_quantity', '2')";
-        $db->query($query_history);
+        // -------------------- INSERT INTO PRODUCT HISTORY --------------------
+        $db->query("INSERT INTO tbl_product_history (hist_date, details, details_type, product_id, qty, balance, type)
+                    VALUES ('$today', '$receiving_no', '2', '$product_id', '$quantity_order', '$balance_quantity', '2')");
 
-        // Update product quantity
-        $query_update = "UPDATE tbl_products SET quantity='$balance_quantity' WHERE product_id='$product_id'";
-        $db->query($query_update);
+        // -------------------- UPDATE PRODUCT QUANTITY --------------------
+        $db->query("UPDATE tbl_products SET quantity='$balance_quantity' WHERE product_id='$product_id'");
 
-        // Insert into receivings table
-        $query_receiving = "INSERT INTO tbl_receivings (date_received, user_id, product_id, receiving_quantity, supplier_id, receiving_price, receiving_no, discount, sub_total, total_amount)
-                            VALUES ('$today', '$user_id', '$product_id', '$quantity_order', '$supplier_id', '$price', '$receiving_no', '$discount', '$subtotal_amount', '$total_amount')";
-        $db->query($query_receiving);
+        // -------------------- INSERT INTO RECEIVINGS TABLE --------------------
+        $db->query("INSERT INTO tbl_receivings (date_received, user_id, product_id, receiving_quantity, supplier_id, receiving_price, receiving_no, discount, sub_total, total_amount)
+                    VALUES ('$today', '$user_id', '$product_id', '$quantity_order', '$supplier_id', '$price', '$receiving_no', '$discount_total', '$subtotal_amount', '$total_amount')");
     }
 
-    // Clear cart
+    // -------------------- CLEAR CART --------------------
     $db->query("DELETE FROM tbl_cart2 WHERE user_id='$user_id'");
 
-    // Clear session supplier
+    // -------------------- CLEAR SUPPLIER SESSION --------------------
     $_SESSION['pos-supplier'] = "";
     $_SESSION['pos-supplier-name'] = "";
 

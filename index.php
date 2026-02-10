@@ -50,23 +50,23 @@
             opacity: 0.6;
         }
 
-        /* Style the logo image to be round */
+
         .logo-img {
             width: 130px;
-            /* adjust size */
+
             height: 130px;
-            /* same as width for perfect circle */
+
             border-radius: 50%;
-            /* makes it circular */
+
             object-fit: cover;
-            /* ensures image covers the circle */
+
             border: 3px solid #fff;
-            /* optional white border */
+
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            /* subtle shadow */
+
             display: block;
             margin: 0 auto 15px auto;
-            /* center horizontally with margin */
+
         }
     </style>
 </head>

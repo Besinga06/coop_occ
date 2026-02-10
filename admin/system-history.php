@@ -218,9 +218,11 @@ if (isset($_SESSION['history-report'])) {
 										<ul class="dropdown-menu dropdown-menu-right">
 											<li onclick="select_type(this)" status-val="1" status-name="New Sales"><a href="#"><i class="icon-circle text-default-400"></i> New Sales</a></li>
 											<li onclick="select_type(this)" status-val="2" status-name="Delete Sales"><a href="#"><i class="icon-circle text-default-400"></i> Delete Sales</a></li>
+											<li onclick="select_type(this)" status-val="12" status-name="New Received Product"><a href="#"><i class="icon-circle text-default-400"></i> New Received Product</a></li>
 											<li onclick="select_type(this)" status-val="3" status-name="Set Active Sales"><a href="#"><i class="icon-circle text-default-400"></i> Set Active Sales</a></li>
 											<li onclick="select_type(this)" status-val="11" status-name="New Product"><a href="#"><i class="icon-circle text-default-400"></i> New Product</a></li>
-											<li onclick="select_type(this)" status-val="26" status-name="New Product"><a href="#"><i class="icon-circle text-default-400"></i> Login</a></li>
+											<li onclick="select_type(this)" status-val="15" status-name="New Member"><a href="#"><i class="icon-circle text-default-400"></i> New Member</a></li>
+											<li onclick="select_type(this)" status-val="26" status-name="login"><a href="#"><i class="icon-circle text-default-400"></i> Login</a></li>
 											<li onclick="select_type(this)" status-val="" status-name="all"><a href="#"><i class="icon-circle text-default-400"></i> All</a></li>
 										</ul>
 									</div>
@@ -238,8 +240,7 @@ if (isset($_SESSION['history-report'])) {
 						</div>
 
 						<div class="panel-body product-div2">
-
-							<table class="table datatable-button-html5-basic table-hover table-bordered  ">
+							<table class="table datatable-button-html5-basic table-hover table-bordered">
 								<thead>
 									<tr style="border-bottom: 4px solid #ddd;background: #eee">
 										<th>History ID</th>
@@ -248,7 +249,7 @@ if (isset($_SESSION['history-report'])) {
 										<th>Details</th>
 									</tr>
 								</thead>
-								<tr>
+								<tbody>
 									<?php
 									if (isset($_SESSION['history-report'])) {
 										$from = $_SESSION['history-report-from'];
@@ -268,18 +269,17 @@ if (isset($_SESSION['history-report'])) {
 										$result = $db->query($query);
 									}
 									$i = 0;
-									$details_data = "";
+
 									$result = $db->query($query);
 									while ($row = $result->fetch_assoc()) {
 										$i++;
 
-										// ---------------- SAFE JSON DECODE ----------------
-										$details = json_decode($row['details'] ?? '');
-										if (!$details) {
-											$details = new stdClass(); // prevent property errors
-										}
 
-										// ---------------- SAFE USER FETCH ----------------
+										$details = json_decode($row['details'] ?? '');
+										if (!$details) $details = new stdClass();
+
+
+
 										$user_id = $details->user_id ?? 0;
 										$employee_name = 'Unknown User';
 
@@ -291,7 +291,7 @@ if (isset($_SESSION['history-report'])) {
 											}
 										}
 
-										// ---------------- SAFE CUSTOMER FETCH (used in loans) ----------------
+										// ---------------- SAFE CUSTOMER FETCH ----------------
 										$customer_name = 'Unknown Member';
 										if (!empty($details->cust_id)) {
 											$result_cust = $db->query("SELECT name FROM tbl_customer WHERE cust_id='{$details->cust_id}' LIMIT 1");
@@ -303,20 +303,24 @@ if (isset($_SESSION['history-report'])) {
 
 										// ---------------- HISTORY TYPES ----------------
 										if ($row['history_type'] == 1) {
-											$history_type = "New Sales";
-											$details_data = '<i class="icon-barcode2 text-teal-400"></i> Bill No.: 00000000' . ($details->sales_no ?? '-') .
+											$history_type = "Sales";
+											$details_data = '<i class="icon-cart text-teal-400"></i> Bill No.:' . ($details->sales_no ?? '-') .
 												' <i class="icon-user text-teal-400"></i> Employee : ' . $employee_name;
 										} elseif ($row['history_type'] == 2) {
 											$history_type = "Delete Sales";
-											$details_data = '<i class="icon-barcode2 text-teal-400"></i> Bill No.: 00000000' . ($details->sales_no ?? '-') .
+											$details_data = '<i class="icon-trash text-teal-400"></i> Bill No.:' . ($details->sales_no ?? '-') .
 												' <i class="icon-user text-teal-400"></i> Employee : ' . $employee_name;
 										} elseif ($row['history_type'] == 11) {
 											$history_type = "New Product";
 											$details_data = '<i class="icon-barcode2 text-teal-400"></i> Product ID: ' . ($details->product_id ?? '-') .
 												' <i class="icon-user text-teal-400"></i> Employee : ' . $employee_name;
+										} elseif ($row['history_type'] == 12) {
+											$history_type = "Received Product";
+											$details_data = '<i class="icon-download text-teal-400"></i> Receiving NO: ' . ($details->receiving_no ?? '-') .
+												' <i class="icon-user text-teal-400"></i> Employee : ' . $employee_name;
 										} elseif ($row['history_type'] == 15) {
-											$history_type = "New Customer";
-											$details_data = '<i class="icon-barcode2 text-teal-400"></i> Customer ID: ' . ($details->cust_id ?? '-') .
+											$history_type = "New Member";
+											$details_data = '<i class="icon-users text-teal-400"></i> Member ID: ' . ($details->cust_id ?? '-') .
 												' <i class="icon-user text-teal-400"></i> Employee : ' . $employee_name;
 										} elseif ($row['history_type'] == 26) {
 											$history_type = "Login";
@@ -333,22 +337,24 @@ if (isset($_SESSION['history-report'])) {
 											$details_data = "Not Set";
 										}
 									?>
-								<tr>
-									<td><?= $row['history_id'] ?></td>
-									<td><?= $row['date_history'] ?></td>
-									<td><?= $history_type ?></td>
-									<td><?= $details_data ?></td>
-								</tr>
-							<?php } ?>
+										<tr>
+											<td><?= $row['history_id'] ?></td>
+											<td><?= $row['date_history'] ?></td>
+											<td><?= $history_type ?></td>
+											<td><?= $details_data ?></td>
+										</tr>
+									<?php } ?>
 
-							<?php if ($i == 0) { ?>
-								<tr>
-									<td colspan="10" align="center">
-										<h2>No data found!</h2>
-									</td>
-								</tr>
-							<?php } ?>
+									<?php if ($i == 0) { ?>
+										<tr>
+											<td colspan="4" align="center">
+												<h2>No data found!</h2>
+											</td>
+										</tr>
+									<?php } ?>
+								</tbody>
 							</table>
+
 						</div>
 					</div>
 

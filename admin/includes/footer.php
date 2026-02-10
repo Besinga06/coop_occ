@@ -31,7 +31,7 @@ function numbersonly(e){
     }
 }
 
-// Decimal input handling
+
 $('.filterme').keypress(function(eve) {
     if ((eve.which != 46 || $(this).val().indexOf('.') != -1) && (eve.which < 48 || eve.which > 57) || (eve.which == 46 && $(this).caret().start == 0)) {
         eve.preventDefault();

@@ -6,7 +6,7 @@ date_default_timezone_get();
 //error_reporting(0);
 require('action/home.php');
 require('action/admin.php');
-require('backup.php'); // Include your backup functions
+require('backup.php');
 
 $base_url = "http://localhost:8080/api/public/api/";
 
@@ -58,7 +58,7 @@ if (isset($_POST['check-login'])) {
         $insert_history->bind_param("ssi", $today, $arrayGDetails, $history_type);
         $insert_history->execute();
     } else {
-        echo "4"; // login failed
+        echo "5";
     }
 }
 
@@ -145,43 +145,7 @@ if (isset($_POST['save-menu-inventory'])) {
 }
 ///////////converted
 
-// if (isset($_POST['save-menu-inventory-deduc'])) {
-//     require('db_connect.php');
-//     $menu_id = $_POST['menu_id'];
-//     $quantity = $_POST['quantity'];
-//     for ($i = 0; $i < count($menu_id); $i++) {
-//         $quantityData = $quantity[$i] != "" ? $quantity[$i] : 0;
-//         $menus = "SELECT * FROM  tbl_menu  WHERE menu_id='" . $menu_id[$i] . "' ";
-//         $result_menus = $db->query($menus);
-//         $row = $result_menus->fetch_assoc();
-//         $balance_quantity =   $row['quantity']  - $quantityData;
-//         $query_update = "UPDATE tbl_menu set quantity='" . $balance_quantity . "' WHERE menu_id='" . $menu_id[$i] . "'";
-//         if ($db->exec($query_update)) {
-//             echo "1";
-//         }
-//     }
-// }
 
-// if (isset($_POST['update-menu'])) {
-//     require('db_connect.php');
-//     //,is_track='".$_POST['is_track']."'
-//     $is_track = 0;
-//     if (isset($_POST['is_track'])) {
-//         $is_track = 1;
-//     }
-//     $query = "UPDATE tbl_menu set product_code='" . $_POST['product_code'] . "',unit='" . $_POST['unit'] . "',menu_name='" . $_POST['product_name'] . "',price='" . $_POST['selling_price'] . "'  WHERE menu_id='" . $_POST['menu_id'] . "'";
-//     if ($db->exec($query)) {
-//         echo '1';
-//     }
-// }
-
-// if (isset($_POST['update_menu_single'])) {
-//     require('db_connect.php');
-//     $query = "UPDATE tbl_menu set available='" . $_POST['available'] . "',quantity='" . $_POST['quantity'] . "' WHERE menu_id='" . $_POST['menu_id'] . "'";
-//     if ($db->exec($query)) {
-//         echo '1';
-//     }
-// }
 
 if (isset($_GET['check_employee_duplicate'])) {
     require('db_connect.php'); // $db is MySQLi connection
@@ -203,7 +167,7 @@ if (isset($_GET['check_employee_duplicate'])) {
 }
 
 if (isset($_GET['check_username_duplicate'])) {
-    require('db_connect.php'); // $db is MySQLi connection
+    require('db_connect.php');
     $username = trim($_GET['check_username_duplicate']);
 
     $stmt = $db->prepare("SELECT COUNT(*) as cnt FROM tbl_users WHERE username = ?");
@@ -227,7 +191,7 @@ if (isset($_POST['save-cashier'])) {
     $usertype = $_POST['usertype'];
     $status   = isset($_POST['field_status']) ? 0 : 1;
 
-    // 🔐 HASH THE PASSWORD
+
     $hashed_password = password_hash($password, PASSWORD_DEFAULT);
 
     $query = "INSERT INTO tbl_users 
@@ -256,20 +220,20 @@ if (isset($_POST['update-cashier'])) {
     $updates = [];
     $changed = false;
 
-    // Check name change
+
     if ($fullname !== $old['fullname']) {
         $updates[] = "fullname = '$fullname'";
         $changed = true;
     }
 
-    // Check password change
+
     if (!empty($password)) {
         $hashed = password_hash($password, PASSWORD_DEFAULT);
         $updates[] = "password = '$hashed'";
         $changed = true;
     }
 
-    // If nothing changed
+
     if (!$changed) {
         echo "no_changes";
         exit;
@@ -302,12 +266,14 @@ if (isset($_POST['save-customer'])) {
         'password'   => $_POST['password'],
         'address'    => trim($_POST['address']),
         'contact'    => trim($_POST['contact']),
+        'member_type' => $_POST['member_type'],
         'capital_share' => isset($_POST['capital_share']) ? floatval($_POST['capital_share']) : 0
     );
 
     echo save_member($data);
     exit;
 }
+
 
 function save_member($data)
 {
@@ -328,7 +294,10 @@ function save_member($data)
 
     try {
 
-        $stmt = $db->prepare("INSERT INTO tbl_customer (name, address, contact) VALUES (?, ?, ?)");
+
+        $stmt = $db->prepare(
+            "INSERT INTO tbl_customer (name, address, contact) VALUES (?, ?, ?)"
+        );
         $stmt->bind_param("sss", $full_name, $data['address'], $data['contact']);
         $stmt->execute();
         $cust_id = $stmt->insert_id;
@@ -338,19 +307,30 @@ function save_member($data)
         $hashed_password = password_hash($data['password'], PASSWORD_DEFAULT);
         $usertype = 4;
 
-        $stmt = $db->prepare("INSERT INTO tbl_users (username, password, usertype, fullname) VALUES (?, ?, ?, ?)");
-        $stmt->bind_param("ssis", $data['email'], $hashed_password, $usertype, $full_name);
+        $stmt = $db->prepare(
+            "INSERT INTO tbl_users (username, password, usertype, fullname)
+             VALUES (?, ?, ?, ?)"
+        );
+        $stmt->bind_param(
+            "ssis",
+            $data['email'],
+            $hashed_password,
+            $usertype,
+            $full_name
+        );
         $stmt->execute();
         $user_id = $stmt->insert_id;
         $stmt->close();
 
 
-        $stmt = $db->prepare("INSERT INTO tbl_members 
-            (user_id, cust_id, first_name, last_name, gender, email, address, phone, type) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)");
+        $stmt = $db->prepare(
+            "INSERT INTO tbl_members
+            (user_id, cust_id, first_name, last_name, gender, email, address, phone, type)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+        );
 
         $stmt->bind_param(
-            "iissssss",
+            "iisssssss",
             $user_id,
             $cust_id,
             $data['first_name'],
@@ -358,29 +338,34 @@ function save_member($data)
             $data['gender'],
             $data['email'],
             $data['address'],
-            $data['contact']
+            $data['contact'],
+            $data['member_type']
         );
         $stmt->execute();
         $stmt->close();
 
-
-        if ($data['capital_share'] > 0) {
-            $stmt = $db->prepare("INSERT INTO tbl_capital_share (cust_id, amount) VALUES (?, ?)");
+        if ($data['member_type'] === 'regular' && $data['capital_share'] > 0) {
+            $stmt = $db->prepare(
+                "INSERT INTO tbl_capital_share (cust_id, amount)
+                 VALUES (?, ?)"
+            );
             $stmt->bind_param("id", $cust_id, $data['capital_share']);
             $stmt->execute();
             $stmt->close();
         }
 
-
-        $arrayData = array(
+        $details = json_encode([
             'cust_id' => $cust_id,
             'user_id' => $_SESSION['user_id'] ?? 0
+        ]);
+
+
+        $today = date("Y-m-d H:i:s");
+        $stmt = $db->prepare(
+            "INSERT INTO tbl_history (date_history, details, history_type)
+             VALUES (?, ?, '15')"
         );
 
-        $details = json_encode($arrayData);
-        $today = date("Y-m-d H:i:s");
-
-        $stmt = $db->prepare("INSERT INTO tbl_history (date_history, details, history_type) VALUES (?, ?, '15')");
         $stmt->bind_param("ss", $today, $details);
         $stmt->execute();
         $stmt->close();
@@ -393,7 +378,7 @@ function save_member($data)
     }
 }
 
-// ///////////////////
+
 
 if (isset($_POST['update-customer'])) {
     $data = array('cust_id' => $_POST['cust_id'], 'name' => $_POST['name'], 'address' => $_POST['address'], 'contact' => $_POST['contact']);
@@ -574,7 +559,7 @@ if (isset($_POST['save_cart2barcode'])) {
     }
 
     echo json_encode(['message' => 'not_found']);
-    exit; 
+    exit;
 }
 
 
@@ -2476,11 +2461,11 @@ if (isset($_GET['deposit-report'])) {
         ";
     }
 
-    // total records
+
     $result = $db->query($queryTotal);
     $recordsTotal = $result->num_rows;
 
-    // fetch paginated data
+
     $records = $db->query($data_query);
     while ($row = $records->fetch_assoc()) {
         $data[] = array(
@@ -2524,20 +2509,20 @@ if (isset($_POST['save-payment-charge'])) {
     }
 
     if ($payment > $balance) {
-        echo 2; // Payment exceeds balance
+        echo 2;
     } else {
         $new_balance = $balance - $payment;
         $date = date("Y-m-d H:i:s");
 
-        // Insert payment
+
         $query = "INSERT INTO tbl_payments (date_payment, added_by, amount_paid, sales_no, cr_no)
                   VALUES ('$date', '$user_id', '$payment', '$sales_no', " . ($cr_no ?? 'NULL') . ")";
 
         if ($db->query($query)) {
-            // Update sales balance
+
             $query_update = "UPDATE tbl_sales SET balance='$new_balance' WHERE sales_no='$sales_no'";
             if ($db->query($query_update)) {
-                echo 1; // Success
+                echo 1;
             }
         }
     }
@@ -2571,7 +2556,7 @@ if (isset($_POST['update_delivery_address'])) {
     $query_update = "UPDATE tbl_sales SET delivery_address='$delivery_address' WHERE sales_no='$sales_no'";
 
     if ($db->query($query_update)) {
-        echo "1"; // Success
+        echo "1";
     }
 }
 
@@ -2584,7 +2569,7 @@ if (isset($_POST['update_salesman'])) {
     $query_update = "UPDATE tbl_sales SET salesman='$salesman' WHERE sales_no='$sales_no'";
 
     if ($db->query($query_update)) {
-        echo "1"; // Success
+        echo "1";
     }
 }
 
@@ -2611,7 +2596,7 @@ if (isset($_POST['save-loan-fund'])) {
 
     $fund_name = $db->real_escape_string(trim($_POST['fund_name']));
     $starting = floatval($_POST['starting_balance']);
-    $current = $starting; // initial current balance same as starting
+    $current = $starting;
 
     $query = "INSERT INTO tbl_loan_fund (fund_name, starting_balance, current_balance) 
               VALUES ('$fund_name', $starting, $current)";
@@ -2625,9 +2610,7 @@ if (isset($_POST['save-loan-fund'])) {
 }
 
 
-// ----------------------------
-// Save Loan Application
-// ----------------------------
+
 if (isset($_POST['save-loan-application'])) {
     require('db_connect.php');
 
@@ -2672,9 +2655,7 @@ if (isset($_POST['save-loan-application'])) {
     exit;
 }
 
-// ----------------------------
-// Approve Loan
-// ----------------------------
+
 if (isset($_POST['approve_loan'])) {
     require('db_connect.php');
 
@@ -2690,11 +2671,11 @@ if (isset($_POST['approve_loan'])) {
         exit;
     }
 
-    // Begin transaction
+
     $db->begin_transaction();
 
     try {
-        // Check fund balance
+
         $fund_balance_result = $db->query("SELECT current_balance FROM tbl_loan_fund WHERE fund_id=$fund_id");
         $fund_row = $fund_balance_result->fetch_assoc();
         $fund_balance = isset($fund_row['current_balance']) ? (float)$fund_row['current_balance'] : 0;
@@ -2703,7 +2684,7 @@ if (isset($_POST['approve_loan'])) {
             throw new Exception("Error: Fund balance is insufficient!");
         }
 
-        // Insert loan approval
+
         $approved_amount = $db->real_escape_string($approved_amount);
         $approved_term   = $db->real_escape_string($approved_term);
         $interest_rate   = $db->real_escape_string($interest_rate);
@@ -2717,18 +2698,18 @@ if (isset($_POST['approve_loan'])) {
             throw new Exception("Error inserting loan approval: " . $db->error);
         }
 
-        // Deduct approved amount from fund
+
         $new_balance = $fund_balance - $approved_amount;
         if (!$db->query("UPDATE tbl_loan_fund SET current_balance=$new_balance WHERE fund_id=$fund_id")) {
             throw new Exception("Error updating fund balance: " . $db->error);
         }
 
-        // Update loan application status
+
         if (!$db->query("UPDATE tbl_loan_application SET status='approved' WHERE loan_app_id=$loan_app_id")) {
             throw new Exception("Error updating loan status: " . $db->error);
         }
 
-        // Commit transaction
+
         $db->commit();
 
         echo "1";
@@ -2740,9 +2721,7 @@ if (isset($_POST['approve_loan'])) {
     }
 }
 
-// ----------------------------
-// Decline Loan
-// ----------------------------
+
 if (isset($_POST['decline_loan'])) {
     require('db_connect.php');
 
@@ -2767,9 +2746,7 @@ if (isset($_POST['decline_loan'])) {
     exit;
 }
 
-// ----------------------------
-// Disburse Loan (Flat Rate)
-// ----------------------------
+
 if (isset($_POST['disburse_loan'])) {
     require('db_connect.php');
 
@@ -2777,7 +2754,7 @@ if (isset($_POST['disburse_loan'])) {
     $amount_released = (float)$_POST['amount_released'];
     $mode = $_POST['mode'];
 
-    // Insert disbursement record
+
     $stmt = $db->prepare("
         INSERT INTO tbl_loan_disbursement 
         (loan_app_id, amount_released, mode, release_date) 
@@ -2787,10 +2764,10 @@ if (isset($_POST['disburse_loan'])) {
     $stmt->execute();
     $stmt->close();
 
-    // Update loan status
+
     $db->query("UPDATE tbl_loan_application SET status='disbursed' WHERE loan_app_id=$loan_id");
 
-    // Fetch approved loan details
+
     $result = $db->query("
         SELECT approved_amount, approved_term, interest_rate 
         FROM tbl_loan_approval 
@@ -2803,9 +2780,7 @@ if (isset($_POST['disburse_loan'])) {
         exit;
     }
 
-    // ----------------------------
-    // Flat Rate Interest Calculation
-    // ----------------------------
+
     $principal = $loan['approved_amount'];
     $term = (int)$loan['approved_term'];
     $interest_rate = (float)$loan['interest_rate'];
@@ -2821,9 +2796,7 @@ if (isset($_POST['disburse_loan'])) {
 
     $release_date = date('Y-m-d');
 
-    // ----------------------------
-    // Create Payment Schedule
-    // ----------------------------
+
     $stmt_sched = $db->prepare("
         INSERT INTO tbl_loan_schedule 
         (loan_app_id, due_date, principal_due, interest_due, total_due, penalty_due, status)
@@ -2838,9 +2811,7 @@ if (isset($_POST['disburse_loan'])) {
     }
     $stmt_sched->close();
 
-    // ----------------------------
-    // Insert Transaction Summary
-    // ----------------------------
+
     $due_date = date("Y-m-d", strtotime("+$term month", strtotime($release_date)));
 
     $stmt_txn = $db->prepare("
@@ -2857,14 +2828,14 @@ if (isset($_POST['disburse_loan'])) {
     exit;
 }
 
-// =========================
+
 // SAVE LOAN PAYMENT
-// =========================
+
 if (isset($_POST['save_payment'])) {
 
-    require('db_connect.php'); // mysqli connection = $db
+    require('db_connect.php');
 
-    $db->begin_transaction(); // Start transaction
+    $db->begin_transaction();
 
     try {
 
@@ -2877,9 +2848,7 @@ if (isset($_POST['save_payment'])) {
             throw new Exception("Invalid payment amount");
         }
 
-        // ======================
-        // FETCH SCHEDULE
-        // ======================
+
         $stmt = $db->prepare("
             SELECT principal_due, interest_due, penalty_due
             FROM tbl_loan_schedule
@@ -2893,9 +2862,7 @@ if (isset($_POST['save_payment'])) {
             throw new Exception("Schedule not found");
         }
 
-        // ======================
-        // PAYMENT PRIORITY
-        // ======================
+
         $interest_component = min($amount_paid, $sched['interest_due']);
         $remaining = $amount_paid - $interest_component;
 
@@ -2904,14 +2871,10 @@ if (isset($_POST['save_payment'])) {
 
         $principal_component = min($remaining, $sched['principal_due']);
 
-        // ======================
-        // RECEIPT NUMBER
-        // ======================
+
         $receipt_number = 'RCP-' . date('YmdHis') . '-' . rand(1000, 9999);
 
-        // ======================
-        // INSERT REPAYMENT
-        // ======================
+
         $stmt = $db->prepare("
             INSERT INTO tbl_loan_repayment
             (loan_app_id, schedule_id, amount_paid, principal_component, interest_component, penalty_component, payment_method, receipt_number)
@@ -2930,9 +2893,7 @@ if (isset($_POST['save_payment'])) {
         );
         $stmt->execute();
 
-        // ======================
-        // UPDATE SCHEDULE
-        // ======================
+
         $remaining_principal = max(0, $sched['principal_due'] - $principal_component);
         $remaining_interest  = max(0, $sched['interest_due'] - $interest_component);
         $remaining_penalty   = max(0, $sched['penalty_due'] - $penalty_component);
@@ -2955,9 +2916,7 @@ if (isset($_POST['save_payment'])) {
         );
         $stmt->execute();
 
-        // ======================
-        // RECALCULATE MONTHLY DUES
-        // ======================
+
         $res = $db->query("
             SELECT principal_due, interest_due, penalty_due
             FROM tbl_loan_schedule
@@ -2988,11 +2947,11 @@ if (isset($_POST['save_payment'])) {
             $stmt->execute();
         }
 
-        $db->commit(); // Success
+        $db->commit();
         echo json_encode(['success' => true, 'receipt' => $receipt_number]);
     } catch (Exception $e) {
 
-        $db->rollback(); // Undo everything
+        $db->rollback();
         echo json_encode(['success' => false, 'message' => $e->getMessage()]);
     }
 
@@ -3017,12 +2976,12 @@ if (isset($_POST['save-capital-share'])) {
         $stmt->bind_param("ids", $cust_id, $amount, $date);
 
         if ($stmt->execute()) {
-            echo "1"; // success
+            echo "1"; 
         } else {
-            echo "0"; // error
+            echo "0"; 
         }
     } else {
-        echo "0"; // invalid data
+        echo "0";
     }
     exit;
 }
@@ -3043,7 +3002,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         exit;
     }
 
-    // Check if distribution for this year already exists
+
     $stmt_check = $db->prepare("
         SELECT COUNT(*) AS cnt 
         FROM distribution_cycles 
@@ -3058,11 +3017,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         exit;
     }
 
-    // Begin transaction
+    
     $db->begin_transaction();
 
     try {
-        // Insert distribution cycle
+ 
         $stmt = $db->prepare("
             INSERT INTO distribution_cycles (dividend_amount, patronage_amount)
             VALUES (?, ?)
@@ -3071,7 +3030,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $stmt->execute();
         $cycle_id = $db->insert_id;
 
-        // Insert distribution records for members
+   
         $stmt = $db->prepare("
             INSERT INTO distribution_records
             (cycle_id, cust_id, share_capital, total_purchases, dividend, patronage, total_benefit)
@@ -3092,18 +3051,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $stmt->execute();
         }
 
-        $db->commit(); // Commit transaction
-        echo "1"; // success
+        $db->commit(); 
+        echo "1"; 
 
     } catch (Exception $e) {
-        $db->rollback(); // rollback transaction on error
+        $db->rollback(); 
         echo "0|" . $e->getMessage();
     }
 
     exit;
 }
 
-// Fetch distribution records for a cycle
+
 if (isset($_POST['action']) && $_POST['action'] === 'get_distribution_records') {
     require('db_connect.php');
     $cycle_id = intval($_POST['cycle_id']);
