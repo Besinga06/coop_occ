@@ -483,49 +483,49 @@ while ($row = $monthly_rep->fetch_assoc()) {
                                                     case 1:
                                                         $history_type = "New Sales";
                                                         $sales_no = $details->sales_no ?? "N/A";
-                                                        $details_data = '<i class="icon-barcode2 text-teal-400"></i> Bill No. #: 00000000' . $sales_no .
+                                                        $details_data = '<i class="icon-barcode2 text-teal-400"></i> Bill No. #:' . $sales_no .
                                                             ' <i class="icon-user text-teal-400"></i> Employee: ' . $user_fullname;
                                                         break;
                                                     case 2:
                                                         $history_type = "Delete Sales";
                                                         $sales_no = $details->sales_no ?? "N/A";
-                                                        $details_data = '<i class="icon-barcode2 text-teal-400"></i> Bill No. #: 00000000' . $sales_no .
+                                                        $details_data = '<i class="icon-barcode2 text-teal-400"></i> Bill No. #:' . $sales_no .
                                                             ' <i class="icon-user text-teal-400"></i> Employee: ' . $user_fullname;
                                                         break;
                                                     case 3:
                                                         $history_type = "Set Active Sales";
                                                         $sales_no = $details->sales_no ?? "N/A";
-                                                        $details_data = '<i class="icon-barcode2 text-teal-400"></i> Bill No. #: 00000000' . $sales_no .
+                                                        $details_data = '<i class="icon-barcode2 text-teal-400"></i> Bill No. #:' . $sales_no .
                                                             ' <i class="icon-user text-teal-400"></i> Employee: ' . $user_fullname;
                                                         break;
                                                     case 11:
                                                         $history_type = "New Product";
                                                         $product_id = $details->product_id ?? "N/A";
-                                                        $details_data = '<i class="icon-barcode2 text-teal-400"></i> Product ID: 21324' . $product_id .
+                                                        $details_data = '<i class="icon-barcode2 text-teal-400"></i> Product ID:' . $product_id .
                                                             ' <i class="icon-user text-teal-400"></i> Employee: ' . $user_fullname;
                                                         break;
                                                     case 12:
                                                         $history_type = "Update Product";
                                                         $product_id = $details->product_id ?? "N/A";
-                                                        $details_data = '<i class="icon-barcode2 text-teal-400"></i> Product ID: 21324' . $product_id .
+                                                        $details_data = '<i class="icon-barcode2 text-teal-400"></i> Product ID:' . $product_id .
                                                             ' <i class="icon-user text-teal-400"></i> Employee: ' . $user_fullname;
                                                         break;
                                                     case 15:
                                                         $history_type = "New Member";
                                                         $cust_id = $details->cust_id ?? "N/A";
-                                                        $details_data = '<i class="icon-barcode2 text-teal-400"></i> Member ID: 34236' . $cust_id .
+                                                        $details_data = '<i class="icon-barcode2 text-teal-400"></i> Member ID:' . $cust_id .
                                                             ' <i class="icon-user text-teal-400"></i> Employee: ' . $user_fullname;
                                                         break;
                                                     case 17:
                                                         $history_type = "New Supplier";
                                                         $supplier_id = $details->supplier_id ?? "N/A";
-                                                        $details_data = '<i class="icon-barcode2 text-teal-400"></i> Supplier ID: 762345' . $supplier_id .
+                                                        $details_data = '<i class="icon-barcode2 text-teal-400"></i> Supplier ID:' . $supplier_id .
                                                             ' <i class="icon-user text-teal-400"></i> Employee: ' . $user_fullname;
                                                         break;
                                                     case 19:
                                                         $history_type = "New Employee";
                                                         $employee_id = $details->user_id ?? "N/A";
-                                                        $details_data = '<i class="icon-barcode2 text-teal-400"></i> Employee ID: 87989' . $employee_id .
+                                                        $details_data = '<i class="icon-barcode2 text-teal-400"></i> Employee ID:' . $employee_id .
                                                             ' <i class="icon-user text-teal-400"></i> Employee: ' . $user_fullname;
                                                         break;
                                                     case 26:

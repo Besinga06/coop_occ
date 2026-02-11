@@ -2976,9 +2976,9 @@ if (isset($_POST['save-capital-share'])) {
         $stmt->bind_param("ids", $cust_id, $amount, $date);
 
         if ($stmt->execute()) {
-            echo "1"; 
+            echo "1";
         } else {
-            echo "0"; 
+            echo "0";
         }
     } else {
         echo "0";
@@ -3017,11 +3017,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         exit;
     }
 
-    
+
     $db->begin_transaction();
 
     try {
- 
+
         $stmt = $db->prepare("
             INSERT INTO distribution_cycles (dividend_amount, patronage_amount)
             VALUES (?, ?)
@@ -3030,7 +3030,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $stmt->execute();
         $cycle_id = $db->insert_id;
 
-   
+
         $stmt = $db->prepare("
             INSERT INTO distribution_records
             (cycle_id, cust_id, share_capital, total_purchases, dividend, patronage, total_benefit)
@@ -3051,11 +3051,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $stmt->execute();
         }
 
-        $db->commit(); 
-        echo "1"; 
-
+        $db->commit();
+        echo "1";
     } catch (Exception $e) {
-        $db->rollback(); 
+        $db->rollback();
         echo "0|" . $e->getMessage();
     }
 

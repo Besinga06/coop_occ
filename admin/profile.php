@@ -28,6 +28,75 @@ $result = $db->query($query);
 		white-space: nowrap;
 		/* prevent text from wrapping to next line */
 	}
+
+	/* Mobile App Style */
+	@media (max-width:768px) {
+		.content-wrapper {
+			padding: 10px;
+		}
+
+		.panel {
+			border-radius: 14px;
+			box-shadow: 0 4px 10px rgba(0, 0, 0, .06);
+		}
+
+		.col-sm-6.col-md-3 {
+			margin-bottom: 10px;
+		}
+
+		.panel .icon-3x {
+			font-size: 28px !important;
+		}
+
+		.table {
+			display: block;
+			overflow-x: auto;
+			white-space: nowrap;
+		}
+
+		.navbar-nav {
+			display: none;
+		}
+
+		body {
+			padding-bottom: 75px;
+		}
+	}
+
+	.mobile-bottom-nav {
+		display: none;
+	}
+
+	@media (max-width:768px) {
+		.mobile-bottom-nav {
+			display: flex;
+			position: fixed;
+			bottom: 0;
+			left: 0;
+			right: 0;
+			background: #fff;
+			border-top: 1px solid #ddd;
+			justify-content: space-around;
+			padding: 8px 0;
+			z-index: 9999;
+		}
+
+		.mobile-bottom-nav a {
+			text-align: center;
+			font-size: 11px;
+			color: #444;
+		}
+
+		.mobile-bottom-nav i {
+			display: block;
+			font-size: 20px;
+			margin-bottom: 2px;
+		}
+
+		.mobile-bottom-nav a.active {
+			color: #26a69a;
+		}
+	}
 </style>
 
 <body class="layout-boxed navbar-top">
@@ -58,13 +127,21 @@ $result = $db->query($query);
 				<div class="page-header page-header-default">
 					<div class="page-header-content">
 						<div class="page-title">
+
 							<h4><i class="icon-arrow-left52 position-left"></i> <span class="text-semibold">Dashboard</span> - My Profile</h4>
 						</div>
 					</div>
 
 					<div class="breadcrumb-line">
 						<ul class="breadcrumb">
-							<li><a href="index.php"><i class="icon-home2 position-left"></i>Dashboard</a></li>
+							<li>
+								<a href="<?= (isset($_SESSION['session_type']) && ($_SESSION['session_type'] == 'member' || $_SESSION['session_type'] == 4))
+												? '../member/dashboard.php'
+												: 'index.php'; ?>">
+									<i class="icon-home2 position-left"></i> Dashboard
+								</a>
+							</li>
+
 							<li class="active"><i class="icon-users position-left"></i>My Profile</li>
 						</ul>
 						<ul class="breadcrumb-elements">
@@ -104,7 +181,7 @@ $result = $db->query($query);
 								<div class="form-body" style="padding-top: 20px">
 
 									<div class="form-group">
-										<label for="exampleInputuname_4" class="col-sm-3 control-label">Employee Name</label>
+										<label for="exampleInputuname_4" class="col-sm-3 control-label">Fullname</label>
 										<div class="col-sm-9">
 											<div class="input-group input-group-xlg">
 												<span class="input-group-addon"><i class="icon-pencil7"></i></span>
@@ -173,6 +250,27 @@ $result = $db->query($query);
 
 
 </body>
+
+
+<div class="mobile-bottom-nav">
+	<a href="../member/capital_share.php">
+		<i class="icon-cart"></i>
+		Transaction
+	</a>
+
+	<a href="../member/dashboard.php">
+		<i class="icon-home"></i>
+		Home
+	</a>
+	<a href="loan.php">
+		<i class="icon-coins"></i>
+		Loans
+	</a>
+	<a href="../admin/profile.php" class="active">
+		<i class="icon-user"></i>
+		Profile
+	</a>
+</div>
 <?php require('includes/footer.php'); ?>
 
 <script type="text/javascript" src="../assets/js/plugins/tables/datatables/datatables.min.js"></script>

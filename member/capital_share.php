@@ -1,42 +1,39 @@
-<?php require('includes/header.php'); ?>
-
 <?php
-/*
-|--------------------------------------------------------------------------
-| DETERMINE CUSTOMER ID BASED ON ROLE
-|--------------------------------------------------------------------------
-*/
+require('../admin/includes/header.php');
 
-if (isset($_SESSION['session_type']) && $_SESSION['session_type'] === '4') {
 
-    // Logged in member → use their own ID from session
-    if (!isset($_SESSION['cust_id'])) {
-        die("Session error: Member ID not found.");
-    }
-
-    $cust_id = (int) $_SESSION['cust_id'];
-} else {
-
-    // Admin / staff → must pass cust_id in URL
-    if (!isset($_GET['cust_id'])) {
-        die("Invalid request: Missing customer ID.");
-    }
-
-    $cust_id = (int) $_GET['cust_id'];
+if (!isset($_SESSION['is_login_yes'], $_SESSION['user_id']) || $_SESSION['is_login_yes'] != 'yes') {
+    die("Unauthorized access. Please log in again.");
 }
 
-$cust_id = (int)$_GET['cust_id'];
-$year = isset($_GET['year']) ? (int)$_GET['year'] : date('Y');
+$user_id = (int) $_SESSION['user_id'];
 
-//--------- CUSTOMER INFO ---------- 
-$customer_result = $db->query("
-    SELECT * 
-    FROM tbl_customer 
-    WHERE cust_id = $cust_id
+
+$member_result = $db->query("
+    SELECT member_id, cust_id 
+    FROM tbl_members 
+    WHERE user_id = $user_id
+    LIMIT 1
 ");
+
+if (!$member_result || $member_result->num_rows == 0) {
+    die("Member is not linked to a customer record.");
+}
+
+$member_data = $member_result->fetch_assoc();
+$member_id = (int) $member_data['member_id'];
+$cust_id   = (int) $member_data['cust_id'];
+
+if ($cust_id <= 0) {
+    die("Invalid customer account.");
+}
+
+$year = isset($_GET['year']) ? (int) $_GET['year'] : date('Y');
+
+$customer_result = $db->query("SELECT * FROM tbl_customer WHERE cust_id = $cust_id");
 $customer = $customer_result->fetch_assoc();
 
-// ---------- CAPITAL SHARE TOTAL (YEAR) ---------- 
+
 $capital_result = $db->query("
     SELECT SUM(amount) AS total_capital
     FROM tbl_capital_share
@@ -45,23 +42,17 @@ $capital_result = $db->query("
 ");
 $capital = $capital_result->fetch_assoc();
 
-//---------- CAPITAL SHARE CONTRIBUTIONS ---------- 
 $contributions = $db->query("
     SELECT *
     FROM tbl_capital_share
     WHERE cust_id = $cust_id
       AND YEAR(contribution_date) = $year
-    ORDER BY contribution_date DESC
+    ORDER BY contribution_date  
 ");
 
-// ---------- CASH SALES SUMMARY ---------- 
+
 $cash_sales = $db->query("
-    SELECT 
-        s.sales_no,
-        s.sales_date,
-        p.product_name, 
-        s.quantity_order AS total_quantity,
-        s.total_amount
+    SELECT s.sales_no, s.sales_date, p.product_name, s.quantity_order AS total_quantity, s.total_amount
     FROM tbl_sales s
     INNER JOIN tbl_products p ON s.product_id = p.product_id
     WHERE s.sales_type = 1
@@ -70,54 +61,34 @@ $cash_sales = $db->query("
     ORDER BY s.sales_date, s.sales_no
 ");
 
+
 $charge_sales = $db->query("
     SELECT 
         s.sales_no,
         s.sales_date,
-        c.cust_id,
-        c.name AS customer_name,
-
         p.product_name,
         s.quantity_order AS total_quantity,
-
-
         s.subtotal,
         s.total_amount,
-
-        /* TOTAL PAYMENTS FROM BOTH SOURCES */
         (COALESCE(pay.total_paid, 0) + COALESCE(s.amount_paid, 0)) AS payments_made,
-
-     
         s.total_amount - (COALESCE(pay.total_paid, 0) + COALESCE(s.amount_paid, 0)) AS balance
-
     FROM tbl_sales s
-    INNER JOIN tbl_customer c ON c.cust_id = s.cust_id
     INNER JOIN tbl_products p ON s.product_id = p.product_id
-
-    /*  Aggregate installment payments */
     LEFT JOIN (
         SELECT sales_no, SUM(amount_paid) AS total_paid
         FROM tbl_payments
         GROUP BY sales_no
     ) pay ON pay.sales_no = s.sales_no
-
     WHERE s.sales_type = 0
       AND s.sales_status != 3
       AND s.cust_id = $cust_id
       AND YEAR(s.sales_date) = $year
-
     ORDER BY s.sales_date, s.sales_no
 ");
 
 
-// ---------- DISBURSED BENEFITS ---------- 
 $disbursed = $db->query("
-    SELECT
-        dd.reference_no,
-        dd.amount_disbursed,
-        dd.payment_method,
-        dd.disbursed_at,
-        dr.cycle_id
+    SELECT dd.reference_no, dd.amount_disbursed, dd.payment_method, dd.disbursed_at, dr.cycle_id
     FROM distribution_disbursements dd
     LEFT JOIN distribution_records dr ON dd.record_id = dr.id
     WHERE dd.cust_id = $cust_id
@@ -125,7 +96,7 @@ $disbursed = $db->query("
     ORDER BY dd.disbursed_at DESC
 ");
 
-// ---------- PAYMENTS ---------- 
+
 $payments = $db->query("
     SELECT *
     FROM tbl_payments
@@ -144,30 +115,29 @@ $payments = $db->query("
     .navbar-brand {
         display: flex;
         align-items: center;
-        /*/ vertically center image + text */
+
         gap: 0px;
-        /* space between logo and text */
+
         font-weight: 800;
         color: white;
-        /* adjust to your navbar color */
+
         text-decoration: none;
         font-size: 50px;
     }
 
     .navbar-brand img {
         height: 40px;
-        /* adjust logo height */
+
         width: auto;
         object-fit: contain;
     }
 
     .navbar-brand span {
         white-space: nowrap;
-        /* prevent text from wrapping to next line */
+
     }
 
 
-    /* Mobile App Style */
     @media (max-width:768px) {
         .content-wrapper {
             padding: 10px;
@@ -238,19 +208,18 @@ $payments = $db->query("
 </style>
 
 <body class="layout-boxed navbar-top">
-    <!-- Main navbar -->
+    <!-- NAVBAR -->
     <div class="navbar navbar-inverse bg-teal-400 navbar-fixed-top">
         <div class="navbar-header">
-            <a class="navbar-brand" href="index.php"><img style="height: 65px!important" src="../images/your_logo.png" alt=""><span>OCC Cooperative</span></a>
+            <a class="navbar-brand" href="index.php"><img style="height:65px!important" src="../images/your_logo.png" alt=""><span>OCC Cooperative</span></a>
             <ul class="nav navbar-nav visible-xs-block">
                 <li><a data-toggle="collapse" data-target="#navbar-mobile"><i class="icon-tree5"></i></a></li>
             </ul>
         </div>
         <div class="navbar-collapse collapse" id="navbar-mobile">
-            <?php require('includes/sidebar.php'); ?>
+            <?php require('../admin/includes/sidebar.php'); ?>
         </div>
     </div>
-
     <div class="page-container">
         <div class="page-content">
             <div class="content-wrapper">
@@ -286,7 +255,7 @@ $payments = $db->query("
 
                                 <div class="tab-content">
 
-                                    <!-- INFORMATION TAB -->
+
                                     <div class="tab-pane active" id="info">
                                         <div class="panel panel-white border-top-xlg border-top-teal-400">
                                             <div class="panel-heading">
@@ -294,7 +263,7 @@ $payments = $db->query("
                                             </div>
                                             <div class="panel-body">
                                                 <?php
-                                                /* ---------- TOTAL CASH SALES ---------- */
+
                                                 $total_cash_result = $db->query("
                                                 SELECT COALESCE(SUM(total_amount), 0) AS total_cash
                                               FROM tbl_sales
@@ -305,7 +274,7 @@ $payments = $db->query("
                                                 $total_cash_row = $total_cash_result->fetch_assoc();
                                                 $total_cash = $total_cash_row['total_cash'];
 
-                                                /* ---------- TOTAL CHARGE PAID ---------- */
+
                                                 $total_charge_paid_result = $db->query("
                                                SELECT 
                                                COALESCE(SUM(per_sale.payments_made), 0) AS total_charge_paid
@@ -365,7 +334,7 @@ $payments = $db->query("
                                         </div>
                                     </div>
 
-                                    <!-- CAPITAL SHARE TAB -->
+
                                     <div class="tab-pane" id="capital">
                                         <div class="panel panel-white border-top-xlg border-top-teal-400">
                                             <div class="panel-heading">
@@ -402,7 +371,7 @@ $payments = $db->query("
                                         </div>
                                     </div>
 
-                                    <!-- CASH SALES TAB -->
+
                                     <div class="tab-pane" id="cash">
                                         <div class="panel panel-white border-top-xlg border-top-teal-400">
                                             <div class="panel-heading">
@@ -459,7 +428,7 @@ $payments = $db->query("
                                         </div>
                                     </div>
 
-                                    <!-- CHARGE SALES TAB -->
+
                                     <div class="tab-pane" id="charge">
                                         <div class="panel panel-white border-top-xlg border-top-teal-400">
                                             <div class="panel-heading">
@@ -524,7 +493,7 @@ $payments = $db->query("
                                         </div>
                                     </div>
 
-                                    <!-- DISBURSED BENEFITS TAB -->
+
                                     <div class="tab-pane" id="benefits">
                                         <div class="panel panel-white border-top-xlg border-top-teal-400">
                                             <div class="panel-heading">
@@ -568,24 +537,20 @@ $payments = $db->query("
                                         </div>
                                     </div>
 
-                                </div> <!-- tab-content -->
-                            </div> <!-- tabbable -->
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- MOBILE APP NAVIGATION -->
+
                 <div class="mobile-bottom-nav">
-                    <a href="customer.php">
-                        <i class="icon-users"></i>
-                        Members
-                    </a>
-                    <a href="../admin/customer_history.php">
+                    <a href="capital_share.php" class="active">
                         <i class="icon-cart"></i>
                         transaction
                     </a>
 
-                    <a href="index.php" class="active">
+                    <a href="dashboard.php">
                         <i class="icon-home"></i>
                         Home
                     </a>
@@ -599,12 +564,12 @@ $payments = $db->query("
                     </a>
                 </div>
 
-                <?php require('includes/footer-text.php'); ?>
+                <?php require('../admin/includes/footer-text.php'); ?>
             </div>
         </div>
     </div>
 
-    <?php require('includes/footer.php'); ?>
+    <?php require('../admin/includes/footer.php'); ?>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -648,12 +613,10 @@ $payments = $db->query("
             }
 
             pdf.save("Member_History_<?= $year; ?>.pdf");
-
             tabs.forEach(tab => tab.classList.remove('active', 'show'));
             if (activeTab) $(activeTab).tab('show');
         });
     </script>
-
 </body>
 
 </html>

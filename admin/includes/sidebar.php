@@ -115,10 +115,23 @@
             </a>
         </li>
 
+        <li class="dropdown">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+                <i class="icon-cart position-left"></i> Transactions <span class="caret"></span>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-right">
+                <li><a href="..member/savings.php"><i class="icon-dots"></i>Savings</a></li>
+                <li><a href="../member/capital_share.php"><i class="icon-dots"></i>Capital Share</a></li>
+                <li><a href="loan.php"><i class="icon-dots"></i> Loan</a></li>
+                <!-- <li><a href="soa.php"><i class="icon-dots"></i>SOA</a></li> -->
+            </ul>
+        </li>
+
     <?php } ?>
 
 </ul>
 
 <ul class="nav navbar-nav navbar-right">
-    <?php require('includes/user-link.php'); ?>
+    <?php require(__DIR__ . '/user-link.php');
+    ?>
 </ul>

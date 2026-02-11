@@ -126,13 +126,191 @@ while ($row = $monthly_rep->fetch_assoc()) {
         white-space: nowrap;
         /* prevent text from wrapping to next line */
     }
+
+    /* Mobile App Style */
+    @media (max-width:768px) {
+        .content-wrapper {
+            padding: 10px;
+        }
+
+        .panel {
+            border-radius: 14px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, .06);
+        }
+
+        .col-sm-6.col-md-3 {
+            margin-bottom: 10px;
+        }
+
+        .panel .icon-3x {
+            font-size: 28px !important;
+        }
+
+        .table {
+            display: block;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+
+        .navbar-nav {
+            display: none;
+        }
+
+        body {
+            padding-bottom: 75px;
+        }
+    }
+
+    .mobile-bottom-nav {
+        display: none;
+    }
+
+    @media (max-width:768px) {
+        .mobile-bottom-nav {
+            display: flex;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #fff;
+            border-top: 1px solid #ddd;
+            justify-content: space-around;
+            padding: 8px 0;
+            z-index: 9999;
+        }
+
+        .mobile-bottom-nav a {
+            text-align: center;
+            font-size: 11px;
+            color: #444;
+        }
+
+        .mobile-bottom-nav i {
+            display: block;
+            font-size: 20px;
+            margin-bottom: 2px;
+        }
+
+        .mobile-bottom-nav a.active {
+            color: #26a69a;
+        }
+    }
+
+    /* DEFAULT */
+    .mobile-view {
+        display: none;
+    }
+
+    .desktop-view {
+        display: block;
+    }
+
+    /* MOBILE MODE */
+    @media (max-width: 768px) {
+
+        .desktop-view {
+            display: none;
+        }
+
+        .mobile-view {
+            display: block;
+        }
+
+        body {
+            background: #f4f6f9;
+            padding-bottom: 80px;
+        }
+
+        /* Header */
+        .mobile-header {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px;
+            font-weight: 700;
+            font-size: 20px;
+        }
+
+        .mobile-help {
+            background: #1e88e5;
+            color: #fff;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+
+        /* Balance Card */
+        .mobile-balance-card {
+            background: #1e88e5;
+            color: #fff;
+            margin: 15px;
+            padding: 20px;
+            border-radius: 18px;
+            position: relative;
+        }
+
+        .mobile-balance-card h2 {
+            margin: 10px 0;
+            font-size: 28px;
+        }
+
+        .quick-save {
+            position: absolute;
+            right: 15px;
+            bottom: 15px;
+            background: #fff;
+            color: #1e88e5;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+
+        /* Actions */
+        .mobile-actions {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .mobile-actions a {
+            background: #fff;
+            padding: 15px 5px;
+            border-radius: 12px;
+            font-size: 12px;
+            color: #333;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, .08);
+            text-decoration: none;
+        }
+    }
+
+    .balance-tabs {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 8px;
+    }
+
+    .balance-tabs .tab {
+        font-size: 13px;
+        padding: 4px 12px;
+        border-radius: 20px;
+        background: rgba(255, 255, 255, .25);
+        cursor: pointer;
+        font-weight: 600;
+    }
+
+    .balance-tabs .tab.active {
+        background: #fff;
+        color: #1e88e5;
+    }
 </style>
 
 <body class="layout-boxed navbar-top">
     <!-- Main navbar -->
     <div class="navbar navbar-inverse bg-teal-400 navbar-fixed-top">
         <div class="navbar-header">
-            <a class="navbar-brand" href="index.php"><img style="height: 65px!important" src="../images/your_logo.png" alt=""><span>OCC Cooperative</span></a>
+            <a class="navbar-brand" href="dashboard.php"><img style="height: 65px!important" src="../images/your_logo.png" alt=""><span>OCC Cooperative</span></a>
             <ul class="nav navbar-nav visible-xs-block">
                 <li><a data-toggle="collapse" data-target="#navbar-mobile"><i class="icon-tree5"></i></a></li>
             </ul>
@@ -144,24 +322,37 @@ while ($row = $monthly_rep->fetch_assoc()) {
     <!-- /main navbar -->
     <!-- Page container -->
     <div class="page-container">
+
+        <div class="mobile-view">
+            <!-- Balance Card -->
+            <div class="mobile-balance-card">
+
+                <!-- Tabs -->
+                <div class="balance-tabs">
+                    <span class="tab active" onclick="switchBalance('savings')">Savings</span>
+                    <span class="tab" onclick="switchBalance('capital')">Capital Share</span>
+                </div>
+
+                <small id="balance-label">REGULAR SAVINGS BALANCE</small>
+
+                <h2 id="balance-amount">
+                    ₱ <?= number_format($deposit, 2) ?>
+                </h2>
+
+            </div>
+
+        </div>
+
         <!-- Page content -->
         <div class="page-content">
             <!-- Main content -->
             <div class="content-wrapper">
                 <!-- Page header -->
-                <div class="page-header page-header-default">
-                    <div class="page-header-content">
-                        <div class="page-title">
-                            <h4><i class="icon-arrow-left52 position-left"></i> <span class="text-semibold">Dashboard</span></h4>
-                        </div>
-                    </div>
-                    <div class="breadcrumb-line">
-                        <ul class="breadcrumb">
-                            <li class="active"><i class="icon-home2 position-left"></i> Dashboard</li>
-                        </ul>
-                    </div>
-                </div>
+                <div class="page-header page-header-default"></div>
                 <!-- /page header -->
+
+
+
                 <?php require('../admin/includes/footer-text.php'); ?>
                 <!-- Content area -->
                 <div class="content">
@@ -282,454 +473,39 @@ while ($row = $monthly_rep->fetch_assoc()) {
                             </div>
                         </div>
                     </div>
-                    <div class="row">
-                        <div class="col-lg-12">
-                            <?php
-                            // Current year
-                            $year = date("Y");
-
-                            // Array to hold monthly totals
-                            $monthly_totals = [];
-
-                            // Loop through all 12 months
-                            for ($m = 1; $m <= 12; $m++) {
-                                $month = sprintf("%02d", $m); // "01", "02", etc.
-                                $month_str = "$year-$month";
-
-                                // Query: sum total_amount for this month
-                                $query = "SELECT SUM(total_amount) AS month_total 
-                               FROM tbl_sales 
-                               WHERE DATE_FORMAT(sales_date, '%Y-%m') = '$month_str'";
-
-                                $result = $db->query($query);
-                                $row = $result->fetch_assoc();
-
-                                $monthly_totals[$m] = $row['month_total'] ?? 0; // default to 0 if null
-                            }
-
-                            // Assign totals to variables for your chart
-                            $january_total   = $monthly_totals[1];
-                            $february_total  = $monthly_totals[2];
-                            $march_total     = $monthly_totals[3];
-                            $april_total     = $monthly_totals[4];
-                            $may_total       = $monthly_totals[5];
-                            $june_total      = $monthly_totals[6];
-                            $july_total      = $monthly_totals[7];
-                            $august_total    = $monthly_totals[8];
-                            $september_total = $monthly_totals[9];
-                            $october_total   = $monthly_totals[10];
-                            $november_total  = $monthly_totals[11];
-                            $december_total  = $monthly_totals[12];
-                            ?>
-
-                            <div class="panel panel-white">
-                                <div class="panel-heading">
-                                    <h6 class="panel-title"><i class="icon-calendar position-left"></i><b><?= date('Y') ?></b> Monthly Sales</h6>
-                                </div>
-                                <div class="panel-body" style="background-color: #263238; color: #fff;">
-                                    <style>
-                                        #chartdiv {
-                                            width: 100%;
-                                            height: 500px;
-                                        }
-                                    </style>
-
-                                    <!-- AmCharts resources -->
-                                    <script src="../amchart/amcharts.js"></script>
-                                    <script src="../amchart/serial.js"></script>
-                                    <script src="../amchart/export.min.js"></script>
-                                    <link rel="stylesheet" href="../amchart/export.css" type="text/css" media="all" />
-                                    <script src="../amchart/black.js"></script>
-
-                                    <script>
-                                        var chart = AmCharts.makeChart("chartdiv", {
-                                            "theme": "black",
-                                            "type": "serial",
-                                            "startDuration": 2,
-                                            "dataProvider": [{
-                                                    "country": "January",
-                                                    "visits": <?= $january_total ?>,
-                                                    "color": "#FF0F00"
-                                                },
-                                                {
-                                                    "country": "February",
-                                                    "visits": <?= $february_total ?>,
-                                                    "color": "#FF6600"
-                                                },
-                                                {
-                                                    "country": "March",
-                                                    "visits": <?= $march_total ?>,
-                                                    "color": "#FF9E01"
-                                                },
-                                                {
-                                                    "country": "April",
-                                                    "visits": <?= $april_total ?>,
-                                                    "color": "#FCD202"
-                                                },
-                                                {
-                                                    "country": "May",
-                                                    "visits": <?= $may_total ?>,
-                                                    "color": "#F8FF01"
-                                                },
-                                                {
-                                                    "country": "June",
-                                                    "visits": <?= $june_total ?>,
-                                                    "color": "#B0DE09"
-                                                },
-                                                {
-                                                    "country": "July",
-                                                    "visits": <?= $july_total ?>,
-                                                    "color": "#04D215"
-                                                },
-                                                {
-                                                    "country": "August",
-                                                    "visits": <?= $august_total ?>,
-                                                    "color": "#0D8ECF"
-                                                },
-                                                {
-                                                    "country": "September",
-                                                    "visits": <?= $september_total ?>,
-                                                    "color": "#0D52D1"
-                                                },
-                                                {
-                                                    "country": "October",
-                                                    "visits": <?= $october_total ?>,
-                                                    "color": "#2A0CD0"
-                                                },
-                                                {
-                                                    "country": "November",
-                                                    "visits": <?= $november_total ?>,
-                                                    "color": "#8A0CCF"
-                                                },
-                                                {
-                                                    "country": "December",
-                                                    "visits": <?= $december_total ?>,
-                                                    "color": "#CD0D74"
-                                                }
-                                            ],
-                                            "valueAxes": [{
-                                                "position": "left",
-                                                "title": "Amount"
-                                            }],
-                                            "graphs": [{
-                                                "balloonText": "[[category]]: <b>[[value]]</b>",
-                                                "fillColorsField": "color",
-                                                "fillAlphas": 1,
-                                                "lineAlpha": 0.1,
-                                                "type": "column",
-                                                "valueField": "visits"
-                                            }],
-                                            "depth3D": 20,
-                                            "angle": 30,
-                                            "chartCursor": {
-                                                "categoryBalloonEnabled": false,
-                                                "cursorAlpha": 0,
-                                                "zoomable": false
-                                            },
-                                            "categoryField": "country",
-                                            "categoryAxis": {
-                                                "gridPosition": "start",
-                                                "labelRotation": 90
-                                            },
-                                            "export": {
-                                                "enabled": false
-                                            }
-
-                                        });
-                                    </script>
-
-                                    <div id="chartdiv"></div>
-                                </div>
-                            </div>
-
-
-                            <div class="panel panel-white border-top-xlg border-top-teal-400">
-                                <div class="panel-heading">
-                                    <h6 class="panel-title"><i class="icon-chart text-teal-400"></i> Latest Sytem History</h6>
-                                </div>
-                                <div class="panel-body product-div2">
-                                    <table class="table datatable-button-html5-basic table-hover table-bordered  ">
-                                        <thead>
-                                            <tr style="border-bottom: 4px solid #ddd;background: #eee">
-                                                <th>History ID</th>
-                                                <th>Date</th>
-                                                <th>History Type</th>
-                                                <th>Details</th>
-                                            </tr>
-                                        </thead>
-                                        <tr>
-                                            <?php
-                                            $query = "SELECT * FROM tbl_history ORDER BY history_id DESC LIMIT 10";
-                                            $result = $db->query($query);
-
-                                            while ($row = $result->fetch_assoc()) {
-                                                $details = json_decode($row['details']);
-
-                                                // Safe access: user_id may not exist
-                                                $user_id = isset($details->user_id) ? $details->user_id : 0;
-
-                                                // Fetch user info safely
-                                                $query_user = "SELECT * FROM tbl_users WHERE user_id='$user_id' LIMIT 1";
-                                                $result_user = $db->query($query_user);
-                                                $data_user = $result_user ? $result_user->fetch_assoc() : null;
-                                                $user_fullname = $data_user['fullname'] ?? "Unknown";
-
-                                                // Default values
-                                                $history_type = $row['history_type'];
-                                                $details_data = "Not Set";
-
-                                                // Map history types safely
-                                                switch ($row['history_type']) {
-                                                    case 1:
-                                                        $history_type = "New Sales";
-                                                        $sales_no = $details->sales_no ?? "N/A";
-                                                        $details_data = '<i class="icon-barcode2 text-teal-400"></i> Bill No. #: 00000000' . $sales_no .
-                                                            ' <i class="icon-user text-teal-400"></i> Employee: ' . $user_fullname;
-                                                        break;
-                                                    case 2:
-                                                        $history_type = "Delete Sales";
-                                                        $sales_no = $details->sales_no ?? "N/A";
-                                                        $details_data = '<i class="icon-barcode2 text-teal-400"></i> Bill No. #: 00000000' . $sales_no .
-                                                            ' <i class="icon-user text-teal-400"></i> Employee: ' . $user_fullname;
-                                                        break;
-                                                    case 3:
-                                                        $history_type = "Set Active Sales";
-                                                        $sales_no = $details->sales_no ?? "N/A";
-                                                        $details_data = '<i class="icon-barcode2 text-teal-400"></i> Bill No. #: 00000000' . $sales_no .
-                                                            ' <i class="icon-user text-teal-400"></i> Employee: ' . $user_fullname;
-                                                        break;
-                                                    case 11:
-                                                        $history_type = "New Product";
-                                                        $product_id = $details->product_id ?? "N/A";
-                                                        $details_data = '<i class="icon-barcode2 text-teal-400"></i> Product ID: 21324' . $product_id .
-                                                            ' <i class="icon-user text-teal-400"></i> Employee: ' . $user_fullname;
-                                                        break;
-                                                    case 12:
-                                                        $history_type = "Update Product";
-                                                        $product_id = $details->product_id ?? "N/A";
-                                                        $details_data = '<i class="icon-barcode2 text-teal-400"></i> Product ID: 21324' . $product_id .
-                                                            ' <i class="icon-user text-teal-400"></i> Employee: ' . $user_fullname;
-                                                        break;
-                                                    case 15:
-                                                        $history_type = "New Member";
-                                                        $cust_id = $details->cust_id ?? "N/A";
-                                                        $details_data = '<i class="icon-barcode2 text-teal-400"></i> Member ID: 34236' . $cust_id .
-                                                            ' <i class="icon-user text-teal-400"></i> Employee: ' . $user_fullname;
-                                                        break;
-                                                    case 17:
-                                                        $history_type = "New Supplier";
-                                                        $supplier_id = $details->supplier_id ?? "N/A";
-                                                        $details_data = '<i class="icon-barcode2 text-teal-400"></i> Supplier ID: 762345' . $supplier_id .
-                                                            ' <i class="icon-user text-teal-400"></i> Employee: ' . $user_fullname;
-                                                        break;
-                                                    case 19:
-                                                        $history_type = "New Employee";
-                                                        $employee_id = $details->user_id ?? "N/A";
-                                                        $details_data = '<i class="icon-barcode2 text-teal-400"></i> Employee ID: 87989' . $employee_id .
-                                                            ' <i class="icon-user text-teal-400"></i> Employee: ' . $user_fullname;
-                                                        break;
-                                                    case 26:
-                                                        $history_type = "Login";
-                                                        $details_data = '<i class="icon-barcode2 text-teal-400"></i> Date: ' . $row['date_history'] .
-                                                            ' <i class="icon-user text-teal-400"></i> User: ' . $user_fullname;
-                                                        break;
-                                                    case 40:
-                                                        $history_type = "Loan Application";
-                                                        $cust_id = $details->cust_id ?? "N/A";
-                                                        $amount = $details->amount ?? "N/A";
-                                                        $term = $details->term ?? "N/A";
-                                                        $emp_id = $details->user_id ?? 0;
-                                                        $details_data = '<i class="icon-users text-teal-400"></i> Member: ' . getCustomerName($db, $cust_id) .
-                                                            ' <i class="icon-coin-dollar text-teal-400"></i> Amount: ' . $amount .
-                                                            ' <i class="icon-hour-glass2 text-teal-400"></i> Term: ' . $term . ' months' .
-                                                            ' <i class="icon-user text-teal-400"></i> Employee: ' . getUserFullname($db, $emp_id);
-                                                        break;
-                                                    default:
-                                                        $details_data = "Not Set";
-                                                        break;
-                                                }
-
-                                            ?>
-
-                                        <tr>
-                                            <td><?= $row['history_id'] ?></td>
-                                            <td><?= $row['date_history'] ?></td>
-                                            <td><?= $history_type ?></td>
-                                            <td><?= $details_data ?></td>
-                                        </tr>
-
-                                    <?php
-                                            }
-
-                                            // Helper functions for MySQLi
-                                            function getCustomerName($db, $cust_id)
-                                            {
-                                                $q = "SELECT name FROM tbl_customer WHERE cust_id='$cust_id' LIMIT 1";
-                                                $res = $db->query($q);
-                                                $data = $res->fetch_assoc();
-                                                return $data['name'] ?? 'Unknown';
-                                            }
-
-                                            function getUserFullname($db, $user_id)
-                                            {
-                                                $q = "SELECT fullname FROM tbl_users WHERE user_id='$user_id' LIMIT 1";
-                                                $res = $db->query($q);
-                                                $data = $res->fetch_assoc();
-                                                return $data['fullname'] ?? 'Unknown';
-                                            }
-                                    ?>
-
-                                    <?php if (empty($i)) { ?>
-                                        <tr>
-                                            <td colspan="10" align="center">
-                                                <h2>No data found!</h2>
-                                            </td>
-                                        </tr>
-                                    <?php } ?>
-                                    </table>
-                                    <br>
-                                    <div align="right"><a href="system-history.php">View All History <i class="icon-circle-right2"></i></a></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-lg-6">
-                            <div class="panel panel-white border-top-xlg border-top-teal-400">
-                                <form class="heading-form" id="form-seller" method="POST">
-                                    <input type="hidden" name="submit-seller">
-                                    <div class="panel-heading">
-                                        <h6 class="panel-title"><i class="icon-chart text-teal-400"></i> Top 5 Best Seller </h6>
-                                        <div style="position: absolute;right: 0px;margin-top: -27px;margin-right: 20px;display: flex;">
-                                            <input style="width: 180px" type="text" autocomplete="off" name="date" class="form-control daterange-buttons " value=" <?php if (isset($_SESSION['seller-report']) != "") { ?>   <?= $_SESSION['seller-report'] ?> <?php } else { ?> <?= date("m-d-Y") ?> - <?= date("m-d-Y") ?>  <?php } ?>">
-                                            <button style="margin-left: 3px" type="submit" class="btn bg-teal-400" data-toggle="tooltip" title="Search"><b><i class="icon-search4"></i></b></button>
-                                        </div>
-                                    </div>
-                                </form>
-                                <div class="panel-body product-div2">
-                                    <table class="table datatable-button-html5-basic table-hover table-bordered  ">
-                                        <thead>
-                                            <tr style="border-bottom: 4px solid #ddd;background: #eee">
-                                                <th>Product</th>
-                                                <th>Sold</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <?php
-                                            $best = 0;
-                                            $from = $_SESSION['seller-report-from'] ?? date("Y-m-d");
-                                            $to = $_SESSION['seller-report-to'] ?? date("Y-m-d");
-                                            $today = date("Y-m-d");
-                                            $start = strtotime('today GMT');
-                                            $date_add = date('Y-m-d', strtotime('+1 day', $start));
-
-                                            if (isset($_SESSION['seller-report'])) {
-                                                if ($today == $from || $today == $to) {
-                                                    $query = "SELECT tbl_sales.product_id, product_name, SUM(quantity_order) AS Totalqty
-                  FROM tbl_sales
-                  INNER JOIN tbl_products ON tbl_sales.product_id = tbl_products.product_id
-                  WHERE sales_date BETWEEN '$today' AND '$date_add'
-                  GROUP BY tbl_sales.product_id
-                  ORDER BY Totalqty DESC
-                  LIMIT 5";
-                                                } else {
-                                                    $query = "SELECT tbl_sales.product_id, product_name, SUM(quantity_order) AS Totalqty
-                  FROM tbl_sales
-                  INNER JOIN tbl_products ON tbl_sales.product_id = tbl_products.product_id
-                  WHERE sales_date BETWEEN '$from' AND '$to'
-                  GROUP BY tbl_sales.product_id
-                  ORDER BY Totalqty DESC
-                  LIMIT 5";
-                                                }
-                                            } else {
-                                                $query = "SELECT tbl_sales.product_id, product_name, SUM(quantity_order) AS Totalqty
-              FROM tbl_sales
-              INNER JOIN tbl_products ON tbl_sales.product_id = tbl_products.product_id
-              WHERE sales_date BETWEEN '$today' AND '$date_add'
-              GROUP BY tbl_sales.product_id
-              ORDER BY Totalqty DESC
-              LIMIT 5";
-                                            }
-
-                                            // Execute query with MySQLi
-                                            $result_top = $db->query($query);
-
-                                            if ($result_top && $result_top->num_rows > 0) {
-                                                while ($row_top = $result_top->fetch_assoc()) {
-                                                    $best++;
-                                            ?>
-                                                    <tr>
-                                                        <td><?= htmlspecialchars($row_top['product_name']) ?></td>
-                                                        <td class="text-center"><?= htmlspecialchars($row_top['Totalqty']) ?></td>
-                                                    </tr>
-                                                <?php
-                                                }
-                                            }
-
-                                            if ($best == 0) {
-                                                ?>
-
-                                                <tr>
-                                                    <td class="text-center" colspan="2">No products found!</td>
-                                                </tr>
-                                            <?php
-                                            }
-                                            ?>
-
-                                        <tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-lg-6">
-                            <div class="panel panel-white border-top-xlg border-top-teal-400">
-                                <div class="panel-heading">
-                                    <h6 class="panel-title"><i class="icon-chart text-teal-400"></i> Low Inventory</h6>
-                                </div>
-                                <div class="panel-body product-div2">
-                                    <table class="table datatable-button-html5-basic table-hover table-bordered  ">
-                                        <thead>
-                                            <tr style="border-bottom: 4px solid #ddd;background: #eee">
-                                                <th>Name</th>
-                                                <th>In Stock</th>
-                                            </tr>
-                                        </thead>
-                                        <tr>
-                                            <?php
-                                            $query = "SELECT * FROM tbl_products WHERE quantity <= critical_qty";
-                                            $result_top = $db->query($query);
-
-
-                                            if ($result_top && $result_top->num_rows > 0) {
-                                                while ($row_top = $result_top->fetch_assoc()) {
-                                            ?>
-                                        <tr>
-                                            <td><?= htmlspecialchars($row_top['product_name']) ?></td>
-                                            <td class="text-center"><?= htmlspecialchars($row_top['quantity']) ?> <?= htmlspecialchars($row_top['unit']) ?></td>
-                                        </tr>
-                                    <?php
-                                                }
-                                            } else {
-                                    ?>
-                                    <tr>
-                                        <td class="text-center" colspan="2">No products below critical quantity!</td>
-                                    </tr>
-                                <?php
-                                            }
-                                ?>
-
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- /content area -->
                 </div>
-                <!-- /main content -->
+
+                <!-- /content area -->
             </div>
-            <!-- /page content -->
+            <!-- /main content -->
         </div>
-        <!-- /page container -->
+        <!-- /page content -->
+    </div>
+    <!-- /page container -->
 </body>
+
+<div class="mobile-bottom-nav">
+    <a href="capital_share.php">
+        <i class="icon-cart"></i>
+        transaction
+    </a>
+
+    <a href="dashboard.php" class="active">
+        <i class="icon-home"></i>
+        Home
+    </a>
+    <a href="loan.php">
+        <i class="icon-coins"></i>
+        Loans
+    </a>
+    <a href="../admin/profile.php">
+        <i class="icon-user"></i>
+        Profile
+    </a>
+</div>
 <?php require('../admin/includes/footer.php'); ?>
+
+
 <script type="text/javascript" src="../assets/js/plugins/ui/moment/moment.min.js"></script>
 <script type="text/javascript" src="../assets/js/plugins/pickers/daterangepicker.js"></script>
 <script type="text/javascript" src="../assets/js/plugins/pickers/anytime.min.js"></script>
@@ -763,5 +539,3 @@ while ($row = $monthly_rep->fetch_assoc()) {
         return false;
     });
 </script>
-
-</html>

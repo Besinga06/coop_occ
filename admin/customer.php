@@ -111,12 +111,12 @@ $result = $db->query($query);
                                         <tr style="cursor:pointer;" onclick="view_details(this)" title="View Customer History">
 
                                             <td hidden>34236<?= $row['cust_id']; ?></td>
-                                            <td><?= $row['name']; ?></td>
+                                            <td> <i class="icon-user icon-2x text-indigo-400"></i><?= $row['name']; ?></td>
                                             <td><?= $row['address']; ?></td>
                                             <td><?= $row['contact']; ?></td>
 
 
-                                            <td>
+                                            <td align="center">
                                                 <span style="" class="label <?= $row['member_type'] === 'regular'
                                                                                 ? 'label-success'
                                                                                 : 'label-info'; ?>">
@@ -174,7 +174,7 @@ $result = $db->query($query);
                         <i class="icon-user-plus"></i> Register New Member
                     </h5>
                 </div>
-    
+
                 <div class="modal-body">
 
 

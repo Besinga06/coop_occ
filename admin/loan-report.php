@@ -195,7 +195,7 @@ $summary = $summary_query ? $summary_query->fetch_assoc() : [
                 <div class="panel panel-body ' . $colors[$i] . ' has-bg-image">
                     <div class="media no-margin">
                         <div class="media-left media-middle">
-                            <i class="icon-coin-dollar icon-3x opacity-75"></i>
+                            <i class=" icon-3x opacity-75">₱</i>
                         </div>
                         <div class="media-body text-right">
                             <h3>' . $values[$i] . '</h3>
@@ -271,23 +271,23 @@ $summary = $summary_query ? $summary_query->fetch_assoc() : [
                                 <tbody>
                                     <?php
                                     $loan_sql = "
-    SELECT 
-        l.loan_app_id,
-        c.name AS member_name,
-        l.requested_amount,
-        COALESCE(a.approved_amount, 0) AS approved_amount,
-        COALESCE(a.approved_term, 0) AS approved_term,
-        COALESCE(a.interest_rate, 0) AS interest_rate,
-        COALESCE(t.total_payable, 0) AS total_payable,
-        COALESCE(t.disbursed_amount, 0) AS disbursed_amount,
-        l.status
-    FROM tbl_loan_application l
-    LEFT JOIN tbl_customer c ON c.cust_id = l.customer_id
-    LEFT JOIN tbl_loan_approval a ON a.loan_app_id = l.loan_app_id
-    LEFT JOIN tbl_loan_transactions t ON t.loan_app_id = l.loan_app_id
-    WHERE 1=1 $member_filter $status_filter
-    ORDER BY l.application_date DESC
-";
+                                                  SELECT 
+                                                    l.loan_app_id,
+                                                    c.name AS member_name,
+                                                    l.requested_amount,
+                                                    COALESCE(a.approved_amount, 0) AS approved_amount,
+                                                    COALESCE(a.approved_term, 0) AS approved_term,
+                                                    COALESCE(a.interest_rate, 0) AS interest_rate,
+                                                    COALESCE(t.total_payable, 0) AS total_payable,
+                                                    COALESCE(t.disbursed_amount, 0) AS disbursed_amount,
+                                                    l.status
+                                                    FROM tbl_loan_application l
+                                                    LEFT JOIN tbl_customer c ON c.cust_id = l.customer_id
+                                                    LEFT JOIN tbl_loan_approval a ON a.loan_app_id = l.loan_app_id
+                                                    LEFT JOIN tbl_loan_transactions t ON t.loan_app_id = l.loan_app_id
+                                                    WHERE 1=1 $member_filter $status_filter
+                                                    ORDER BY l.application_date DESC
+                                                          ";
 
                                     $loan_query = $db->query($loan_sql);
 
@@ -307,13 +307,13 @@ $summary = $summary_query ? $summary_query->fetch_assoc() : [
                                         echo "<tr>";
                                         echo "<td>{$row['loan_app_id']}</td>";
                                         echo "<td>" . htmlspecialchars($row['member_name']) . "</td>";
-                                        echo "<td>" . number_format($row['requested_amount'], 2) . "</td>";
-                                        echo "<td>" . number_format($row['approved_amount'], 2) . "</td>";
-                                        echo "<td>" . number_format($row['disbursed_amount'], 2) . "</td>";
-                                        echo "<td>{$row['approved_term']}</td>";
-                                        echo "<td>{$row['interest_rate']}%</td>";
+                                        echo "<td align='right'>" . number_format($row['requested_amount'], 2) . "</td>";
+                                        echo "<td align='right'>" . number_format($row['approved_amount'], 2) . "</td>";
+                                        echo "<td align='right'>" . number_format($row['disbursed_amount'], 2) . "</td>";
+                                        echo "<td align='center'>{$row['approved_term']}</td>";
+                                        echo "<td align='center'>{$row['interest_rate']}%</td>";
                                         echo "<td>" . ucfirst($row['status']) . "</td>";
-                                        echo "<td>{$progress}%</td>";
+                                        echo "<td align='center'>{$progress}%</td>";
                                         echo "</tr>";
                                     }
                                     ?>
