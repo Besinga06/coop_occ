@@ -3,7 +3,7 @@ require('includes/header.php');
 
 
 
-require('db_connect.php');
+require('../db_connect.php');
 
 
 $pending_loans = $db->query("
@@ -267,14 +267,14 @@ $disbursed_loans = $db->query("
                     <button type="button" class="close" data-dismiss="modal">&times;</button>
                     <h5 class="modal-title">New Loan Application</h5>
                 </div>
-                <div class="modal-body">
+                <div class="modal-bodys">
                     <input type="hidden" name="save-loan-application" value="1">
                     <div id="display-msg"></div>
 
                     <div class="form-group">
                         <label class="col-sm-3 control-label">Member</label>
                         <div class="col-sm-9">
-                            <select class="form-control" name="customer_id" required>
+                            <select class="form-control select-member-search" name="customer_id" required>
                                 <option value="">-- Select Member --</option>
                                 <?php
                                 $cust = $db->query("SELECT cust_id, name FROM tbl_customer WHERE cust_id != 1");
@@ -389,11 +389,22 @@ $disbursed_loans = $db->query("
 
 <?php require('includes/footer.php'); ?>
 
+<script src="../js/select2.min.js"></script>
 
 <script type="text/javascript" src="../assets/js/plugins/tables/datatables/datatables.min.js"></script>
 <script src="../js/validator.min.js"></script>
 <script type="text/javascript" src="../assets/js/plugins/notifications/jgrowl.min.js"></script>
 <script type="text/javascript">
+    $('#modal-new').on('shown.bs.modal', function() {
+        $('.select-member-search').select2({
+            dropdownParent: $('#modal-new'),
+            placeholder: "Search Member",
+            allowClear: true,
+            width: '100%'
+        });
+    });
+
+
     $(function() {
         // Initialize DataTables
         $('.datatable-button-html5-basic').DataTable({

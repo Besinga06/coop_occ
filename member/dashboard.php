@@ -4,6 +4,7 @@ error_reporting(E_ALL);
 ini_set('display_errors', 1);
 date_default_timezone_set('Asia/Manila');
 date_default_timezone_get();
+$year = date('Y'); // current year
 $today = date("Y-m-d");
 $date_add = date('Y-m-d', strtotime('+1 day', strtotime($today)));
 
@@ -29,6 +30,32 @@ WHERE sales_date BETWEEN '$today' AND '$date_add'
 GROUP BY sales_no
 ";
 $result = $db->query($query);
+
+if (!isset($_SESSION['is_login_yes'], $_SESSION['user_id']) || $_SESSION['is_login_yes'] != 'yes') {
+    die("Unauthorized access. Please log in again.");
+}
+
+$user_id = (int) $_SESSION['user_id'];
+
+
+$member_result = $db->query("
+    SELECT member_id, cust_id 
+    FROM tbl_members 
+    WHERE user_id = $user_id
+    LIMIT 1
+");
+
+if (!$member_result || $member_result->num_rows == 0) {
+    die("Member is not linked to a customer record.");
+}
+
+$member_data = $member_result->fetch_assoc();
+$member_id = (int) $member_data['member_id'];
+$cust_id   = (int) $member_data['cust_id'];
+
+if ($cust_id <= 0) {
+    die("Invalid customer account.");
+}
 
 if ($result) {
     while ($row = $result->fetch_assoc()) {
@@ -99,6 +126,13 @@ while ($row = $monthly_rep->fetch_assoc()) {
     $values2[] = $row['total'];
 }
 
+
+$contributions = $db->query("
+    SELECT IFNULL(SUM(amount), 0) AS total_amount
+    FROM tbl_capital_share
+    WHERE cust_id = $cust_id
+      AND YEAR(contribution_date) = $year
+")->fetch_assoc()['total_amount'];
 ?>
 
 <style>
@@ -231,7 +265,7 @@ while ($row = $monthly_rep->fetch_assoc()) {
         }
 
         .mobile-help {
-            background: #1e88e5;
+            background: #26a69a;
             color: #fff;
             padding: 5px 12px;
             border-radius: 20px;
@@ -240,7 +274,8 @@ while ($row = $monthly_rep->fetch_assoc()) {
 
         /* Balance Card */
         .mobile-balance-card {
-            background: #1e88e5;
+            background: #26a69a;
+            ;
             color: #fff;
             margin: 15px;
             padding: 20px;
@@ -304,6 +339,24 @@ while ($row = $monthly_rep->fetch_assoc()) {
         background: #fff;
         color: #1e88e5;
     }
+
+    @media (max-width:768px) {
+
+        /* Hide top navbar on mobile */
+        .navbar.navbar-inverse {
+            display: none !important;
+        }
+    }
+
+    @media (max-width:768px) {
+
+        .panel,
+        .panel-white,
+        .content>.row,
+        .panel-heading {
+            display: none !important;
+        }
+    }
 </style>
 
 <body class="layout-boxed navbar-top">
@@ -324,162 +377,199 @@ while ($row = $monthly_rep->fetch_assoc()) {
     <div class="page-container">
 
         <div class="mobile-view">
-            <!-- Balance Card -->
+
+            <!-- HEADER -->
+            <div class="mobile-header">
+                Hello, <?= $_SESSION['fullname'] ?>
+                <span class="mobile-help">Help</span>
+            </div>
+
+            <!-- BALANCE CARD -->
             <div class="mobile-balance-card">
+                <small>Capital Share</small>
+                <h2>₱ <?= number_format($contributions, 2) ?></h2>
+                <button class="quick-save" onclick="location.href='capital_share.php'">+ Save</button>
+            </div>
 
-                <!-- Tabs -->
-                <div class="balance-tabs">
-                    <span class="tab active" onclick="switchBalance('savings')">Savings</span>
-                    <span class="tab" onclick="switchBalance('capital')">Capital Share</span>
+            <!-- QUICK STATS -->
+            <div style="padding:15px;">
+                <div style="display:flex; gap:10px;">
+                    <div style="flex:1; background:#fff; padding:12px; border-radius:12px;">
+                        <small>Sales</small>
+                        <h4><?= $total_sales ?></h4>
+                    </div>
+                    <div style="flex:1; background:#fff; padding:12px; border-radius:12px;">
+                        <small>Members</small>
+                        <h4><?= $customer_total ?></h4>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ACTION BUTTONS -->
+            <div class="mobile-actions">
+                <a href="capital_share.php"><i class="icon-plus-circle"></i>Deposit</a>
+                <a href="loan.php"><i class="icon-coins"></i>Loan</a>
+                <a href="#"><i class="icon-history"></i>History</a>
+                <a href="../admin/profile.php"><i class="icon-user"></i>Profile</a>
+            </div>
+
+            <!-- LOAN SUMMARY -->
+            <div style="margin:15px;">
+                <div style="background:#fff;padding:15px;border-radius:15px;">
+                    <b>Loan Overview</b><br><br>
+                    Disbursed: ₱ <?= number_format($total_disbursed, 2) ?><br>
+                    Repaid: ₱ <?= number_format($total_repaid, 2) ?><br>
+                    Outstanding: ₱ <?= number_format($outstanding, 2) ?>
                 </div>
 
-                <small id="balance-label">REGULAR SAVINGS BALANCE</small>
 
-                <h2 id="balance-amount">
-                    ₱ <?= number_format($deposit, 2) ?>
-                </h2>
+
+
 
             </div>
 
         </div>
 
-        <!-- Page content -->
-        <div class="page-content">
-            <!-- Main content -->
-            <div class="content-wrapper">
-                <!-- Page header -->
-                <div class="page-header page-header-default"></div>
-                <!-- /page header -->
+
+    </div>
+
+    <!-- Page content -->
+    <div class="page-content desktop-view">
+        <!-- Main content -->
+        <div class="content-wrapper">
+            <!-- Page header -->
+            <div class="page-header page-header-default"></div>
+            <!-- /page header -->
 
 
 
-                <?php require('../admin/includes/footer-text.php'); ?>
-                <!-- Content area -->
-                <div class="content">
-                    <div class="row">
-                        <div class="col-sm-6 col-md-3">
-                            <div class="panel panel-body">
-                                <div class="media no-margin">
-                                    <div class="media-left media-middle">
-                                        <i class="icon-cart icon-3x text-danger-400"></i>
-                                    </div>
-                                    <div class="media-body text-right">
-                                        <h3 class="no-margin text-semibold"><?= $total_sales ?></h3>
-                                        <span class="text-uppercase text-size-mini text-muted">today's Sale</span>
-                                    </div>
+            <?php require('../admin/includes/footer-text.php'); ?>
+            <!-- Content area -->
+            <div class="content">
+                <div class="row">
+                    <div class="col-sm-6 col-md-3">
+                        <div class="panel panel-body">
+                            <div class="media no-margin">
+                                <div class="media-left media-middle">
+                                    <i class="icon-cart icon-3x text-danger-400"></i>
                                 </div>
-                            </div>
-                        </div>
-                        <div class="col-sm-6 col-md-3">
-                            <div class="panel panel-body panel-body-accent">
-                                <div class="media no-margin">
-                                    <div class="media-left media-middle">
-                                        <i class="icon-users icon-3x text-success-400"></i>
-                                    </div>
-                                    <div class="media-body text-right">
-                                        <h3 class="no-margin text-semibold"><?= $user_total ?></h3>
-                                        <span class="text-uppercase text-size-mini text-muted">Employee</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-sm-6 col-md-3">
-                            <div class="panel panel-body">
-                                <div class="media no-margin">
-                                    <div class="media-left media-middle">
-                                        <i class="icon-users icon-3x text-indigo-400"></i>
-                                    </div>
-                                    <div class="media-body text-right">
-                                        <h3 class="no-margin text-semibold"><?= $customer_total ?></h3>
-                                        <span class="text-uppercase text-size-mini text-muted">Member</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-sm-6 col-md-3">
-                            <div class="panel panel-body">
-                                <div class="media no-margin">
-                                    <div class="media-left media-middle">
-                                        <i class="icon-users icon-3x text-blue-400"></i>
-                                    </div>
-                                    <div class="media-body text-right">
-                                        <h3 class="no-margin text-semibold"><?= $supplier_total ?></h3>
-                                        <span class="text-uppercase text-size-mini text-muted">Supplier</span>
-                                    </div>
+                                <div class="media-body text-right">
+                                    <h3 class="no-margin text-semibold"><?= $total_sales ?></h3>
+                                    <span class="text-uppercase text-size-mini text-muted">today's Sale</span>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="panel panel-white">
-                        <div class="panel-heading">
-                            <h6 class="panel-title"><i class="icon-chart text-teal-400"></i> Daily Sales</h6>
+                    <div class="col-sm-6 col-md-3">
+                        <div class="panel panel-body panel-body-accent">
+                            <div class="media no-margin">
+                                <div class="media-left media-middle">
+                                    <i class="icon-users icon-3x text-success-400"></i>
+                                </div>
+                                <div class="media-body text-right">
+                                    <h3 class="no-margin text-semibold"><?= $user_total ?></h3>
+                                    <span class="text-uppercase text-size-mini text-muted">Employee</span>
+                                </div>
+                            </div>
                         </div>
-                        <!-- <input type="text" id="myInputTextField"> -->
-                        <div class="panel-body">
-                            <div class="row">
-                                <div class="col-sm-6 col-md-3">
-                                    <div class="panel panel-body bg-success-400 has-bg-image">
-                                        <div class="media no-margin">
-                                            <div class="media-left media-middle">
-                                                <i class="icon-cart icon-3x opacity-75"></i>
-                                            </div>
-                                            <div class="media-body text-right">
-                                                <h3 class="no-margin" id="no-sales"><?= $total_sales ?></h3>
-                                                <span class="text-uppercase text-size-mini">No. of Sales</span>
-                                            </div>
-                                        </div>
-                                    </div>
+                    </div>
+                    <div class="col-sm-6 col-md-3">
+                        <div class="panel panel-body">
+                            <div class="media no-margin">
+                                <div class="media-left media-middle">
+                                    <i class="icon-users icon-3x text-indigo-400"></i>
                                 </div>
-                                <div class="col-sm-6 col-md-3">
-                                    <div class="panel panel-body bg-blue-400 has-bg-image">
-                                        <div class="media no-margin">
-                                            <div class="media-right media-middle">
-                                                <i class="icon-3x opacity-75">₱</i>
-                                            </div>
-                                            <div class="media-body text-right">
-                                                <h3 class="no-margin"><?= number_format($all_total, 2) ?></h3>
-                                                <span class="text-uppercase text-size-mini">Sub Total</span>
-                                            </div>
-                                        </div>
-                                    </div>
+                                <div class="media-body text-right">
+                                    <h3 class="no-margin text-semibold"><?= $customer_total ?></h3>
+                                    <span class="text-uppercase text-size-mini text-muted">Member</span>
                                 </div>
-                                <div class="col-sm-6 col-md-3">
-                                    <div class="panel panel-body bg-danger-400 has-bg-image">
-                                        <div class="media no-margin">
-                                            <div class="media-right media-middle">
-                                                <i class="icon-3x opacity-75">₱</i>
-                                            </div>
-                                            <div class="media-body text-right">
-                                                <h3 class="no-margin"><?= number_format($all_discount, 2) ?></h3>
-                                                <span class="text-uppercase text-size-mini">Discount</span>
-                                            </div>
-                                        </div>
-                                    </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-md-3">
+                        <div class="panel panel-body">
+                            <div class="media no-margin">
+                                <div class="media-left media-middle">
+                                    <i class="icon-users icon-3x text-blue-400"></i>
                                 </div>
-                                <div class="col-sm-6 col-md-3">
-                                    <div class="panel panel-body bg-indigo-400 has-bg-image">
-                                        <div class="media no-margin">
-                                            <div class="media-left media-middle">
-                                                <i class="icon-3x opacity-75">₱</i>
-                                            </div>
-                                            <div class="media-body text-right">
-                                                <h3 class="no-margin"><?= number_format($all_total, 2) ?></h3>
-                                                <span class="text-uppercase text-size-mini">Total Amount</span>
-                                            </div>
-                                        </div>
-                                    </div>
+                                <div class="media-body text-right">
+                                    <h3 class="no-margin text-semibold"><?= $supplier_total ?></h3>
+                                    <span class="text-uppercase text-size-mini text-muted">Supplier</span>
                                 </div>
-
                             </div>
                         </div>
                     </div>
                 </div>
+                <div class="panel panel-white">
+                    <div class="panel-heading">
+                        <h6 class="panel-title"><i class="icon-chart text-teal-400"></i> Daily Sales</h6>
+                    </div>
+                    <!-- <input type="text" id="myInputTextField"> -->
+                    <div class="panel-body">
+                        <div class="row">
+                            <div class="col-sm-6 col-md-3">
+                                <div class="panel panel-body bg-success-400 has-bg-image">
+                                    <div class="media no-margin">
+                                        <div class="media-left media-middle">
+                                            <i class="icon-cart icon-3x opacity-75"></i>
+                                        </div>
+                                        <div class="media-body text-right">
+                                            <h3 class="no-margin" id="no-sales"><?= $total_sales ?></h3>
+                                            <span class="text-uppercase text-size-mini">No. of Sales</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 col-md-3">
+                                <div class="panel panel-body bg-blue-400 has-bg-image">
+                                    <div class="media no-margin">
+                                        <div class="media-right media-middle">
+                                            <i class="icon-3x opacity-75">₱</i>
+                                        </div>
+                                        <div class="media-body text-right">
+                                            <h3 class="no-margin"><?= number_format($all_total, 2) ?></h3>
+                                            <span class="text-uppercase text-size-mini">Sub Total</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 col-md-3">
+                                <div class="panel panel-body bg-danger-400 has-bg-image">
+                                    <div class="media no-margin">
+                                        <div class="media-right media-middle">
+                                            <i class="icon-3x opacity-75">₱</i>
+                                        </div>
+                                        <div class="media-body text-right">
+                                            <h3 class="no-margin"><?= number_format($all_discount, 2) ?></h3>
+                                            <span class="text-uppercase text-size-mini">Discount</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 col-md-3">
+                                <div class="panel panel-body bg-indigo-400 has-bg-image">
+                                    <div class="media no-margin">
+                                        <div class="media-left media-middle">
+                                            <i class="icon-3x opacity-75">₱</i>
+                                        </div>
+                                        <div class="media-body text-right">
+                                            <h3 class="no-margin"><?= number_format($all_total, 2) ?></h3>
+                                            <span class="text-uppercase text-size-mini">Total Amount</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
 
-                <!-- /content area -->
+                        </div>
+                    </div>
+                </div>
             </div>
-            <!-- /main content -->
+
+            <!-- /content area -->
         </div>
-        <!-- /page content -->
+        <!-- /main content -->
+    </div>
+    <!-- /page content -->
     </div>
     <!-- /page container -->
 </body>
@@ -489,7 +579,10 @@ while ($row = $monthly_rep->fetch_assoc()) {
         <i class="icon-cart"></i>
         transaction
     </a>
-
+    <a href="dashboard.php">
+        <i class="icon-piggy-bank"></i>
+        Savings
+    </a>
     <a href="dashboard.php" class="active">
         <i class="icon-home"></i>
         Home

@@ -652,6 +652,7 @@ ORDER BY s.sales_no ASC
         </div>
     </div>
 </body>
+
 <div id="modal-all" class="modal fade" data-backdrop="static" data-keyboard="false">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">

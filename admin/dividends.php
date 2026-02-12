@@ -141,6 +141,9 @@ $members = $db->query("SELECT cust_id, name FROM tbl_customer WHERE cust_id != 1
     }
 </style>
 
+
+
+
 <body class="layout-boxed navbar-top">
     <!-- Main navbar -->
     <div class="navbar navbar-inverse bg-teal-400 navbar-fixed-top">
@@ -345,7 +348,8 @@ $members = $db->query("SELECT cust_id, name FROM tbl_customer WHERE cust_id != 1
                     <h5 class="modal-title">Add Capital Share</h5>
                 </div>
 
-                <div class="modal-body">
+                <div class="modal-bodys">
+
                     <form action="#" id="form-share" class="form-horizontal" data-toggle="validator" role="form">
                         <input type="hidden" name="save-capital-share">
 
@@ -356,18 +360,24 @@ $members = $db->query("SELECT cust_id, name FROM tbl_customer WHERE cust_id != 1
                             <div class="form-group">
                                 <label class="col-sm-3 control-label">Member</label>
                                 <div class="col-sm-9">
-                                    <div class="input-group input-group-xlg">
-                                        <span class="input-group-addon"><i class="icon-user text-size-base"></i></span>
-                                        <select class="form-control" name="cust_id" required>
+                                    <div class="input-group">
+                                        <span class="input-group-addon">
+                                            <i class="icon-user"></i>
+                                        </span>
+                                        <select class="form-control select-member" name="cust_id" required>
                                             <option value="">-- Select Member --</option>
                                             <?php while ($m = $members->fetch_assoc()) { ?>
-                                                <option value="<?= $m['cust_id']; ?>"><?= htmlspecialchars($m['name']); ?></option>
+                                                <option value="<?= $m['cust_id']; ?>">
+                                                    <?= htmlspecialchars($m['name']); ?>
+                                                </option>
                                             <?php } ?>
                                         </select>
+
                                     </div>
-                                    <div class="help-block with-errors"></div>
+
                                 </div>
                             </div>
+
 
                             <!-- Amount -->
                             <div class="form-group">
@@ -381,36 +391,35 @@ $members = $db->query("SELECT cust_id, name FROM tbl_customer WHERE cust_id != 1
                                 </div>
                             </div>
 
-                            <!-- Contribution Date -->
-                            <div class="form-group">
-                                <label class="col-sm-3 control-label">Date</label>
-                                <div class="col-sm-9">
-                                    <div class="input-group input-group-xlg">
-                                        <span class="input-group-addon"><i class="icon-calendar text-size-base"></i></span>
-                                        <input class="form-control" name="contribution_date" type="date" value="<?= date('Y-m-d'); ?>" data-error="Please select a date." required>
-                                    </div>
-                                    <div class="help-block with-errors"></div>
-                                </div>
+                            <div class="modal-footer">
+                                <button id="btn-submit" type="submit" class="btn bg-teal-400 btn-labeled">
+                                    <b><i class="icon-add"></i></b> Save Contribution
+                                </button>
                             </div>
-                        </div>
-
-                        <div class="modal-footer">
-                            <button id="btn-submit" type="submit" class="btn bg-teal-400 btn-labeled">
-                                <b><i class="icon-add"></i></b> Save Contribution
-                            </button>
-                        </div>
                     </form>
                 </div>
             </div>
         </div>
     </div>
 
+    <script src="../js/select2.min.js"></script>
 
     <script type="text/javascript" src="../assets/js/plugins/tables/datatables/datatables.min.js"></script>
     <script type="text/javascript" src="../assets/js/plugins/notifications/jgrowl.min.js"></script>
     <script src="../js/validator.min.js"></script>
 
     <script>
+        $(document).ready(function() {
+
+            $('.select-member').select2({
+                dropdownParent: $('#modal_share'), // VERY IMPORTANT for modal
+                placeholder: "Search Member",
+                allowClear: true,
+                width: '100%'
+            });
+
+        });
+
         $(function() {
             $('.datatable-button-html5-basic').DataTable({
                 "order": [

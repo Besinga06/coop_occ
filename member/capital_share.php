@@ -24,7 +24,7 @@ $member_data = $member_result->fetch_assoc();
 $member_id = (int) $member_data['member_id'];
 $cust_id   = (int) $member_data['cust_id'];
 
-if ($cust_id <= 0) {
+if ($cust_id <= 0) {    
     die("Invalid customer account.");
 }
 
@@ -33,6 +33,7 @@ $year = isset($_GET['year']) ? (int) $_GET['year'] : date('Y');
 $customer_result = $db->query("SELECT * FROM tbl_customer WHERE cust_id = $cust_id");
 $customer = $customer_result->fetch_assoc();
 
+$customer_name_safe = preg_replace('/[^A-Za-z0-9_\- ]/', '', $customer['name']);
 
 $capital_result = $db->query("
     SELECT SUM(amount) AS total_capital
@@ -47,18 +48,24 @@ $contributions = $db->query("
     FROM tbl_capital_share
     WHERE cust_id = $cust_id
       AND YEAR(contribution_date) = $year
-    ORDER BY contribution_date  
+    ORDER BY contribution_date DESC
 ");
 
 
+// ---------- CASH SALES SUMMARY ---------- 
 $cash_sales = $db->query("
-    SELECT s.sales_no, s.sales_date, p.product_name, s.quantity_order AS total_quantity, s.total_amount
+    SELECT 
+        s.sales_no,
+        s.sales_date,
+        SUM(s.quantity_order) AS total_quantity,
+        MAX(s.total_amount) AS total_amount
     FROM tbl_sales s
-    INNER JOIN tbl_products p ON s.product_id = p.product_id
+    
     WHERE s.sales_type = 1
       AND s.cust_id = $cust_id
       AND YEAR(s.sales_date) = $year
-    ORDER BY s.sales_date, s.sales_no
+    GROUP BY s.sales_no, s.sales_date
+    ORDER BY s.sales_date DESC
 ");
 
 
@@ -66,25 +73,32 @@ $charge_sales = $db->query("
     SELECT 
         s.sales_no,
         s.sales_date,
-        p.product_name,
-        s.quantity_order AS total_quantity,
-        s.subtotal,
-        s.total_amount,
-        (COALESCE(pay.total_paid, 0) + COALESCE(s.amount_paid, 0)) AS payments_made,
-        s.total_amount - (COALESCE(pay.total_paid, 0) + COALESCE(s.amount_paid, 0)) AS balance
+
+        SUM(s.quantity_order) AS total_quantity,
+        MAX(s.total_amount) AS total_amount,
+
+        COALESCE(pay.total_paid, 0) AS payments_made,
+
+        MAX(s.total_amount) - COALESCE(pay.total_paid, 0) AS balance
+
     FROM tbl_sales s
-    INNER JOIN tbl_products p ON s.product_id = p.product_id
+
+    
     LEFT JOIN (
         SELECT sales_no, SUM(amount_paid) AS total_paid
         FROM tbl_payments
         GROUP BY sales_no
     ) pay ON pay.sales_no = s.sales_no
+
     WHERE s.sales_type = 0
       AND s.sales_status != 3
       AND s.cust_id = $cust_id
       AND YEAR(s.sales_date) = $year
-    ORDER BY s.sales_date, s.sales_no
+
+    GROUP BY s.sales_no, s.sales_date, pay.total_paid
+    ORDER BY s.sales_date DESC
 ");
+
 
 
 $disbursed = $db->query("
@@ -205,6 +219,90 @@ $payments = $db->query("
             color: #26a69a;
         }
     }
+
+    @media (max-width:768px) {
+
+        /* Hide top navbar on mobile */
+        .navbar.navbar-inverse {
+            display: none !important;
+        }
+    }
+
+    /* Hide desktop header on mobile */
+    @media (max-width:768px) {
+
+        .page-header,
+        .tabbable,
+        .panel {
+            display: none !important;
+        }
+    }
+
+    /* Mobile Blue Header */
+    .mobile-app-header {
+        display: none;
+    }
+
+    @media (max-width:768px) {
+        .mobile-app-header {
+            display: block;
+            background: #26a69a;
+            color: #fff;
+            padding: 20px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: 600;
+        }
+    }
+
+    /* Transaction Feed */
+    .mobile-transaction-feed {
+        display: none;
+    }
+
+    @media (max-width:768px) {
+
+        .mobile-transaction-feed {
+            display: block;
+            background: #f5f6fa;
+            padding-bottom: 90px;
+        }
+
+        .mobile-date-group {
+            padding: 15px;
+            font-weight: 600;
+            color: #444;
+            background: #eaecef;
+        }
+
+        .mobile-transaction-item {
+            background: #fff;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid #eee;
+        }
+
+        .mobile-left {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .mobile-time {
+            font-size: 12px;
+            color: #888;
+        }
+
+        .mobile-type {
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .mobile-amount {
+            font-size: 16px;
+            font-weight: 600;
+        }
+    }
 </style>
 
 <body class="layout-boxed navbar-top">
@@ -220,14 +318,119 @@ $payments = $db->query("
             <?php require('../admin/includes/sidebar.php'); ?>
         </div>
     </div>
+
     <div class="page-container">
-        <div class="page-content">
+        <!-- MOBILE APP HEADER -->
+        <div class="mobile-app-header">
+            <div class="mobile-title">Transaction History</div>
+        </div>
+        <!-- MOBILE TRANSACTION FEED -->
+        <div class="mobile-transaction-feed">
+
+            <?php
+            $history = [];
+
+            /* Capital Share */
+            $capital_feed = $db->query("
+    SELECT contribution_date AS datetime,
+           amount,
+           'Capital Share' AS type,
+           NULL AS ref_no
+    FROM tbl_capital_share
+    WHERE cust_id = $cust_id
+");
+
+            /* Payments */
+            $payment_feed = $db->query("
+    SELECT date_payment AS datetime,
+           amount_paid AS amount,
+           'Charge Payment' AS type,
+           sales_no AS ref_no
+    FROM tbl_payments
+    WHERE sales_no IN (
+        SELECT sales_no FROM tbl_sales WHERE cust_id = $cust_id
+    )
+");
+
+            /* Disbursed */
+            $benefit_feed = $db->query("
+    SELECT disbursed_at AS datetime,
+           amount_disbursed AS amount,
+           'Benefit' AS type,
+           reference_no AS ref_no
+    FROM distribution_disbursements
+    WHERE cust_id = $cust_id
+");
+
+            /* Sales */
+            $sales_feed = $db->query("
+    SELECT s.sales_date AS datetime,
+           MAX(s.total_amount) AS amount,
+           CASE 
+               WHEN s.sales_type = 1 THEN 'Cash Sale'
+               ELSE 'Charge Sale'
+           END AS type,
+           s.sales_no AS ref_no
+    FROM tbl_sales s
+    WHERE s.cust_id = $cust_id
+      AND YEAR(s.sales_date) = $year
+    GROUP BY s.sales_no, s.sales_date, s.sales_type
+");
+
+            /* Merge all feeds */
+            while ($r = $capital_feed->fetch_assoc()) $history[] = $r;
+            while ($r = $sales_feed->fetch_assoc()) $history[] = $r;
+            while ($r = $payment_feed->fetch_assoc()) $history[] = $r;
+            while ($r = $benefit_feed->fetch_assoc()) $history[] = $r;
+
+            /* Sort by datetime descending (latest first) */
+            usort($history, function ($a, $b) {
+                return strtotime($b['datetime']) <=> strtotime($a['datetime']);
+            });
+
+            foreach ($history as $h) {
+
+                $date_label = date('M d, Y', strtotime($h['datetime']));
+                $time = date('h:i A', strtotime($h['datetime']));
+                $amount = number_format($h['amount'], 2);
+
+                $sign = '+';
+                $color = '#1565c0';
+
+                if (in_array($h['type'], ['Charge Payment', 'Cash Sale', 'Charge Sale'])) {
+                    $sign = '-';
+                    $color = '#222';
+                }
+
+
+            ?>
+
+                <div class="mobile-transaction-item"
+                    onclick="openTransaction('<?= $h['type'] ?>','<?= $h['ref_no'] ?? '' ?>')"
+                    style="cursor:pointer;">
+                    <div class="mobile-left">
+                        <div class="mobile-time"><?= $time ?></div>
+                        <div class="mobile-type"><?= $h['type'] ?></div>
+                    </div>
+                    <div class="mobile-amount" style="color:<?= $color ?>">
+                        <?= $sign ?>₱<?= $amount ?>
+                    </div>
+                </div>
+
+            <?php } ?>
+
+        </div>
+
+        <div class="page-content desktop-view">
             <div class="content-wrapper">
+
+
+
 
                 <div class="page-header page-header-default">
                     <div class="page-header-content">
                         <div class="page-title">
-                            <h4><i class="icon-user position-left"></i> Member History - <?= htmlspecialchars($customer['name']); ?> (<?= $year; ?>)</h4>
+                            <h4><i class="icon-user position-left"></i> Transaction History - <?= htmlspecialchars($customer['name']); ?> (<?= $year; ?>)</h4>
                         </div>
                     </div>
                     <div class="breadcrumb-line">
@@ -242,13 +445,14 @@ $payments = $db->query("
                 </div>
 
                 <div class="content" id="history-content">
+
                     <div class="panel panel-flat">
                         <div class="panel-body">
                             <div class="tabbable">
                                 <ul class="nav nav-tabs bg-slate nav-justified">
                                     <li class="active"><a href="#info" data-toggle="tab">Information</a></li>
                                     <li><a href="#capital" data-toggle="tab">Capital Share</a></li>
-                                    <li><a href="#cash" data-toggle="tab">Cash Sales</a></li>
+                                    <li><a href="#cash" data-toggle="tab">Cash Purchases</a></li>
                                     <li><a href="#charge" data-toggle="tab">Charge Sales</a></li>
                                     <li><a href="#benefits" data-toggle="tab">Disbursed Benefits</a></li>
                                 </ul>
@@ -265,43 +469,51 @@ $payments = $db->query("
                                                 <?php
 
                                                 $total_cash_result = $db->query("
-                                                SELECT COALESCE(SUM(total_amount), 0) AS total_cash
-                                              FROM tbl_sales
-                                              WHERE cust_id = $cust_id
-                                              AND sales_type = 1
-                                              AND YEAR(sales_date) = $year
-                                                                        ");
+                                                SELECT 
+                                               s.sales_no,
+                                               s.sales_date,
+                                               SUM(s.quantity_order) AS total_quantity,
+                                               MAX(s.total_amount) AS total_amount
+                                               FROM tbl_sales s
+                                               WHERE s.sales_type = 1
+                                               AND s.cust_id = $cust_id
+                                               AND YEAR(s.sales_date) = $year
+                                               GROUP BY s.sales_no, s.sales_date
+                                               ORDER BY s.sales_date ASC
+                                               ");
                                                 $total_cash_row = $total_cash_result->fetch_assoc();
-                                                $total_cash = $total_cash_row['total_cash'];
+                                                $total_cash = $total_cash_row['total_amount'];
+
+
 
 
                                                 $total_charge_paid_result = $db->query("
                                                SELECT 
-                                               COALESCE(SUM(per_sale.payments_made), 0) AS total_charge_paid
-                                               FROM (
-                                               SELECT 
-                                               s.sales_no,
+                                              s.sales_no,
+                                              s.sales_date,
 
-                                              
-                                               (COALESCE(p.total_paid, 0) + COALESCE(s.amount_paid, 0)) AS payments_made
+                                             SUM(s.quantity_order) AS total_quantity,
+                                             MAX(s.total_amount) AS total_amount,
+                                             COALESCE(pay.total_paid, 0) AS payments_made,
+                                             MAX(s.total_amount) - COALESCE(pay.total_paid, 0) AS balance
+                                             FROM tbl_sales s
+                                             LEFT JOIN (
+                                             SELECT sales_no, SUM(amount_paid) AS total_paid
+                                             FROM tbl_payments
+                                             GROUP BY sales_no
+                                              ) pay ON pay.sales_no = s.sales_no
 
-                                               FROM tbl_sales s
-
-                                               LEFT JOIN (
-                                              SELECT sales_no, SUM(amount_paid) AS total_paid
-                                              FROM tbl_payments
-                                              GROUP BY sales_no
-                                              ) p ON s.sales_no = p.sales_no
-
-                                              WHERE s.cust_id = $cust_id
-                                              AND s.sales_type = 0
+                                             WHERE s.sales_type = 0
                                               AND s.sales_status != 3
-                                              AND YEAR(s.sales_date) = $year
-                                                               ) per_sale
-                                                ");
+                                             AND s.cust_id = $cust_id
+                                             AND YEAR(s.sales_date) = $year
+                                             GROUP BY s.sales_no, s.sales_date, pay.total_paid
+                                             ORDER BY s.sales_date ASC
+                                             ");
+
 
                                                 $total_charge_paid_row = $total_charge_paid_result->fetch_assoc();
-                                                $total_charge_paid = $total_charge_paid_row['total_charge_paid'];
+                                                $total_charge_paid = $total_charge_paid_row['payments_made'];
                                                 ?>
 
                                                 <table class="table table-bordered">
@@ -322,7 +534,7 @@ $payments = $db->query("
                                                         <td>₱<?= number_format($capital['total_capital'] ?? 0, 2); ?></td>
                                                     </tr>
                                                     <tr>
-                                                        <td>Total Cash Sales (<?= $year; ?>)</td>
+                                                        <td>Total Cash Purchases (<?= $year; ?>)</td>
                                                         <td>₱<?= number_format($total_cash, 2); ?></td>
                                                     </tr>
                                                     <tr>
@@ -356,7 +568,7 @@ $payments = $db->query("
                                                             $hasContrib = true;
                                                             echo "<tr>
                                                              <td>" . date('M d, Y', strtotime($c['contribution_date'])) . "</td>
-                                                             <td>₱" . number_format($c['amount'], 2) . "</td>
+                                                             <td class='text-center' >₱" . number_format($c['amount'], 2) . "</td>
                                                              </tr>";
                                                         }
 
@@ -381,7 +593,7 @@ $payments = $db->query("
                                                 <table class="table table-bordered table-hover">
                                                     <thead>
                                                         <tr style="background:#eee">
-                                                            <th>Product</th>
+                                                            <th>Sales No</th>
                                                             <th class="text-center">Total Quantity</th>
                                                             <th class="text-right">Total Amount</th>
                                                         </tr>
@@ -400,7 +612,14 @@ $payments = $db->query("
                                                             $total_cash_sum += $amount;
                                                         ?>
                                                             <tr>
-                                                                <td><?= htmlspecialchars($row['product_name']); ?></td>
+                                                                <td>
+                                                                    <a href="javascript:;"
+                                                                        onclick="view_details(this)"
+                                                                        sales-id="<?= $row['sales_no']; ?>"
+                                                                        sales-no="<?= $row['sales_no']; ?>">
+                                                                        <?= htmlspecialchars($row['sales_no']); ?>
+                                                                    </a>
+                                                                </td>
                                                                 <td class="text-center"><?= $qty; ?></td>
                                                                 <td class="text-right">₱<?= number_format($amount, 2); ?></td>
                                                             </tr>
@@ -432,13 +651,13 @@ $payments = $db->query("
                                     <div class="tab-pane" id="charge">
                                         <div class="panel panel-white border-top-xlg border-top-teal-400">
                                             <div class="panel-heading">
-                                                <h6 class="panel-title"><i class="icon-credit-card position-left text-teal-400"></i> Charge / Unpaid Sales Summary (<?= $year; ?>)</h6>
+                                                <h6 class="panel-title"><i class="icon-credit-card position-left text-teal-400"></i> Charge (<?= $year; ?>)</h6>
                                             </div>
                                             <div class="panel-body">
                                                 <table class="table table-bordered table-hover">
                                                     <thead>
                                                         <tr style="background:#eee">
-                                                            <th>Product</th>
+                                                            <th>Sales No</th>
                                                             <th class="text-center">Total Quantity</th>
                                                             <th class="text-right">Total Amount</th>
                                                             <th class="text-right">Paid</th>
@@ -459,16 +678,21 @@ $payments = $db->query("
                                                             $bal_amt += $row['balance'];
 
                                                             echo "<tr>
-                                                            <td>" . htmlspecialchars($row['product_name']) . "</td>
+                                                               <td>
+                                                               <a href='javascript:;'
+                                                                onclick='view_details(this)'
+                                                                sales-id='" . htmlspecialchars($row['sales_no']) . "'
+                                                                 sales-no='" . htmlspecialchars($row['sales_no']) . "'>
+                                                              " . htmlspecialchars($row['sales_no']) . "
+                                                                 </a>
+                                                                </td>
 
-                                                            <!-- FIXED QUANTITY -->
-                                                            <td class='text-center'>" . (int)$row['total_quantity'] . "</td>
+                                                                 <td class='text-center'>" . (int)$row['total_quantity'] . "</td>
 
-                                                           <!-- RIGHT ALIGNED MONEY -->
-                                                           <td class='text-right'>₱" . number_format($row['total_amount'], 2) . "</td>
-                                                           <td class='text-right'>₱" . number_format($paid, 2) . "</td>
-                                                           <td class='text-right'>₱" . number_format($row['balance'], 2) . "</td>
-                                                           </tr>";
+                                                                 <td class='text-right'>₱" . number_format($row['total_amount'], 2) . "</td>
+                                                                  <td class='text-right'>₱" . number_format($paid, 2) . "</td>
+                                                                  <td class='text-right'>₱" . number_format($row['balance'], 2) . "</td>
+                                                                  </tr>";
                                                         }
 
                                                         if (!$hasCharge) {
@@ -476,17 +700,16 @@ $payments = $db->query("
                                                         }
                                                         ?>
 
-                                                    </tbody>
-                                                    <?php if ($hasCharge) { ?>
-                                                        <tfoot>
-                                                            <tr style="font-weight:bold;">
-                                                                <th colspan="2" class="text-right">Totals:</th>
-                                                                <th class="text-right">₱<?= number_format($total_amt, 2); ?></th>
-                                                                <th class="text-right">₱<?= number_format($paid_amt, 2); ?></th>
-                                                                <th class="text-right">₱<?= number_format($bal_amt, 2); ?></th>
-                                                            </tr>
-                                                        </tfoot>
-                                                    <?php } ?>
+                                                        <?php if ($hasCharge) { ?>
+                                                    <tfoot>
+                                                        <tr style="font-weight:bold;">
+                                                            <th colspan="2" class="text-right">Totals:</th>
+                                                            <th class="text-right">₱<?= number_format($total_amt, 2); ?></th>
+                                                            <th class="text-right">₱<?= number_format($paid_amt, 2); ?></th>
+                                                            <th class="text-right">₱<?= number_format($bal_amt, 2); ?></th>
+                                                        </tr>
+                                                    </tfoot>
+                                                <?php } ?>
                                                 </table>
 
                                             </div>
@@ -564,59 +787,194 @@ $payments = $db->query("
                     </a>
                 </div>
 
+
+
                 <?php require('../admin/includes/footer-text.php'); ?>
             </div>
         </div>
     </div>
 
+    <div id="modal-all" class="modal fade" data-backdrop="static" data-keyboard="false">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="title-all"></h5>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div id="show-data-all"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+    </div>
+
     <?php require('../admin/includes/footer.php'); ?>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="../js/html2canvas.min.js"></script>
+    <script src="../js/jspdf.umd.min.js"></script>
 
     <script>
         document.getElementById('btn-download-pdf').addEventListener('click', async function() {
+
             const {
                 jsPDF
             } = window.jspdf;
             const pdf = new jsPDF('p', 'mm', 'a4');
             const element = document.getElementById('history-content');
 
-            const activeTab = document.querySelector('.nav-tabs li.active a');
+
             const tabs = document.querySelectorAll('.tab-pane');
-            tabs.forEach(tab => tab.classList.add('active', 'show'));
-            await new Promise(resolve => setTimeout(resolve, 400));
+
+
+            tabs.forEach(tab => {
+                tab.style.display = "block";
+                tab.style.opacity = "1";
+                tab.style.visibility = "visible";
+                tab.classList.add('active');
+            });
+
+            await new Promise(resolve => setTimeout(resolve, 800));
 
             const canvas = await html2canvas(element, {
                 scale: 2,
                 useCORS: true,
                 scrollY: -window.scrollY
             });
+
             const imgData = canvas.toDataURL('image/png');
             const imgProps = pdf.getImageProperties(imgData);
             const pdfWidth = pdf.internal.pageSize.getWidth();
             const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+            const pageHeight = pdf.internal.pageSize.getHeight();
+
+            let heightLeft = pdfHeight;
             let position = 0;
 
-            if (pdfHeight < pdf.internal.pageSize.getHeight()) {
-                pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-            } else {
-                let heightLeft = pdfHeight;
-                while (heightLeft > 0) {
-                    pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
-                    heightLeft -= pdf.internal.pageSize.getHeight();
-                    if (heightLeft > 0) {
-                        pdf.addPage();
-                        position = -heightLeft;
-                    }
-                }
+            pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+            heightLeft -= pageHeight;
+
+            while (heightLeft > 0) {
+                position = heightLeft - pdfHeight;
+                pdf.addPage();
+                pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+                heightLeft -= pageHeight;
             }
 
-            pdf.save("Member_History_<?= $year; ?>.pdf");
-            tabs.forEach(tab => tab.classList.remove('active', 'show'));
-            if (activeTab) $(activeTab).tab('show');
+            pdf.save("<?= $customer_name_safe; ?>_History_<?= $year; ?>.pdf");
+
+
+            tabs.forEach(tab => {
+                tab.style.display = "";
+                tab.style.opacity = "";
+                tab.style.visibility = "";
+                tab.classList.remove('active');
+            });
+
+            location.reload();
+
         });
+
+        function view_details(el) {
+            var sales_no = $(el).attr('sales-no');
+            var sales_id = $(el).attr('sales-id');
+            $("#show-data-all").html('<div style="width:100%;height:100%;position:absolute;left:50%;right:50%;top:40%;"><img src="../images/LoaderIcon.gif"  ></div>');
+            $.ajax({
+                type: 'POST',
+                url: '../transaction.php',
+                data: {
+                    sales_report_details: "",
+                    sales_no: sales_no
+                },
+                success: function(msg) {
+                    $("#modal-all").modal('show');
+                    $("#show-button").html('');
+                    $("#title-all").html('Bill No. : <b class="text-danger">' + sales_id + '</b>');
+                    $("#show-data-all").html(msg);
+                },
+                error: function(msg) {
+                    alert('Something went wrong!');
+                }
+            });
+            return false;
+        }
+
+        function changePage(el) {
+            $(".icon-circles").removeClass('text-primary');
+            $("#length_change").val($(el).attr('val'));
+            $("#length_change").trigger('change');
+            $(el).find('.icon-circles').addClass('text-primary');
+        }
+
+        function print_receipt() {
+            var contents = $("#print-receipt").html();
+            var frame1 = $('<iframe />');
+            frame1[0].name = "frame1";
+            frame1.css({
+                "position": "absolute",
+                "top": "-1000000px"
+            });
+            $("body").append(frame1);
+            var frameDoc = frame1[0].contentWindow ? frame1[0].contentWindow : frame1[0].contentDocument.document ? frame1[0].contentDocument.document : frame1[0].contentDocument;
+            frameDoc.document.open();
+            frameDoc.document.write('<html><head><title></title>');
+            frameDoc.document.write('</head><body>');
+            frameDoc.document.write(contents);
+            frameDoc.document.write('</body></html>');
+            frameDoc.document.close();
+            setTimeout(function() {
+                window.frames["frame1"].focus();
+                window.frames["frame1"].print();
+                frame1.remove();
+            }, 500);
+        }
+
+        function openTransaction(type, ref) {
+
+            if (!ref) return;
+
+            $("#show-data-all").html('<div style="text-align:center;padding:40px"><img src="../images/LoaderIcon.gif"></div>');
+
+            let postData = {};
+
+            if (type.includes('Sale')) {
+                postData = {
+                    sales_report_details: "",
+                    sales_no: ref
+                };
+                $("#title-all").html('Sale No: <b class="text-danger">' + ref + '</b>');
+            } else if (type === 'Charge Payment') {
+                postData = {
+                    payment_details: "",
+                    sales_no: ref
+                };
+                $("#title-all").html('Payment for Sale No: <b class="text-success">' + ref + '</b>');
+            } else if (type === 'Benefit') {
+                postData = {
+                    benefit_details: "",
+                    ref_no: ref
+                };
+                $("#title-all").html('Benefit Ref: <b class="text-primary">' + ref + '</b>');
+            } else {
+                alert("Details not available for this item.");
+                return;
+            }
+
+            $.ajax({
+                type: 'POST',
+                url: '../transaction.php',
+                data: postData,
+                success: function(msg) {
+                    $("#modal-all").modal('show');
+                    $("#show-data-all").html(msg);
+                },
+                error: function() {
+                    alert('Something went wrong!');
+                }
+            });
+        }
     </script>
+
 </body>
 
 </html>

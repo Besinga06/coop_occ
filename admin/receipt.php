@@ -1,5 +1,6 @@
 <?php
 error_reporting(0);
+
 require('db_connect.php');
 if (isset($_GET['sales_no'])) {
     $sales_no = $_GET['sales_no'];
@@ -39,8 +40,15 @@ while ($row = $result->fetch_assoc()) {
 
 </head>
 
+
 <body>
+
+
+
+
     <div class="receipt-div" id="print-receipt">
+
+
         <style type="text/css">
             @page {
                 margin: 10;

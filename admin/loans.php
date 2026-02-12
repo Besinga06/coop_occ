@@ -17,7 +17,7 @@ $approved_loans = $db->query("SELECT l.*, c.name as member_name, a.approved_amou
 $declined_loans = $db->query("SELECT l.*, c.name as member_name 
     FROM tbl_loan_application l
     JOIN tbl_customer c ON l.customer_id = c.cust_id
-    WHERE l.status='declined'
+    WHERE l.status='rejected'
     ORDER BY l.loan_app_id DESC");
 
 $funds = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
@@ -112,10 +112,10 @@ $funds = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
                                         <tr>
                                             <td hidden><?= $row['loan_app_id'] ?></td>
                                             <td><?= htmlspecialchars($row['member_name']) ?></td>
-                                            <td><?= number_format($row['requested_amount'], 2) ?></td>
-                                            <td><?= $row['term_months'] ?> months</td>
+                                            <td align="right"><?= number_format($row['requested_amount'], 2) ?></td>
+                                            <td align="center"><?= $row['term_months'] ?> months</td>
                                             <td><?= $row['application_date'] ?></td>
-                                            <td>
+                                            <td align="center">
                                                 <button class="btn btn-success btn-approve" data-id="<?= $row['loan_app_id'] ?>">Approve</button>
                                                 <button class="btn btn-danger btn-decline" data-id="<?= $row['loan_app_id'] ?>">Decline</button>
                                             </td>
@@ -154,7 +154,7 @@ $funds = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
                                             <td><?= $row['approved_term'] ?> months</td>
                                             <td><?= $row['interest_rate'] ?>%</td>
                                             <td><?= $row['application_date'] ?></td>
-                                            <td>
+                                            <td align="center">
                                                 <button class="btn btn-info view-receipt" data-id="<?= $row['loan_app_id'] ?>">
                                                     <i class="icon-file-eye"></i> Print
                                                 </button>
@@ -214,7 +214,7 @@ $funds = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
                     <h5 class="modal-title">Manage Loan Funds</h5>
                     <button type="button" class="close" data-dismiss="modal">&times;</button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-bodys">
                     <div id="display-fund-msg"></div>
                     <div class="form-group">
                         <label>Fund Name</label>
@@ -234,6 +234,7 @@ $funds = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
                                 <th>Starting Balance</th>
                                 <th>Current Balance</th>
                                 <th>Created At</th>
+                                <th>Action</th> <!-- new -->
                             </tr>
                         </thead>
                         <tbody>
@@ -241,12 +242,17 @@ $funds = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
                             $funds_list = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
                             while ($f = $funds_list->fetch_assoc()) {
                                 echo "<tr>
-        <td>{$f['fund_id']}</td>
-        <td>" . htmlspecialchars($f['fund_name']) . "</td>
-        <td style='text-align:right'>" . number_format($f['starting_balance'], 2) . "</td>
-        <td style='text-align:right'>" . number_format($f['current_balance'], 2) . "</td>
-        <td>{$f['created_at']}</td>
-    </tr>";
+                <td>{$f['fund_id']}</td>
+                <td class='fund-name'>" . htmlspecialchars($f['fund_name']) . "</td>
+                <td class='fund-starting' style='text-align:right'>" . number_format($f['starting_balance'], 2) . "</td>
+                <td class='fund-current' style='text-align:right'>" . number_format($f['current_balance'], 2) . "</td>
+                <td>{$f['created_at']}</td>
+                <td align='center'>
+                    <button class='btn btn-sm btn-warning btn-edit-fund' data-id='{$f['fund_id']}'>
+                        <i class='icon-pencil'></i> update
+                    </button>
+                </td>
+            </tr>";
                             }
                             ?>
 
@@ -256,9 +262,10 @@ $funds = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
                 <div class="modal-footer">
                     <button type="button" id="btn-save-fund" class="btn bg-teal-400">Save Fund</button>
                 </div>
-            </form>
         </div>
+        </form>
     </div>
+</div>
 </div>
 
 <!-- Approve Modal -->
@@ -272,7 +279,7 @@ $funds = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
                     <h5 class="modal-title">Approve Loan</h5>
                     <button type="button" class="close" data-dismiss="modal">&times;</button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-bodys">
                     <div class="form-group">
                         <label>Choose Fund</label>
                         <select name="fund_id" id="fund-select" class="form-control" required>
@@ -310,6 +317,7 @@ $funds = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
         </div>
     </div>
 </div>
+
 <!-- Decline Modal -->
 <div id="modal-decline" class="modal fade" data-backdrop="static" data-keyboard="false">
     <div class="modal-dialog modal-sm"> <!-- small dialog box -->
@@ -452,23 +460,50 @@ $funds = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
             });
         });
 
-        // Save Fund button
+        $(document).on('click', '.btn-edit-fund', function(e) {
+            e.preventDefault(); // <-- prevent form submission
+
+            let row = $(this).closest('tr');
+            let fundId = $(this).data('id');
+            let fundName = row.find('.fund-name').text().trim();
+            let startingBalance = row.find('.fund-starting').text().replace(/,/g, '').trim();
+
+            // Fill form fields with existing values
+            $('#form-funds input[name="fund_name"]').val(fundName);
+            $('#form-funds input[name="starting_balance"]').val(startingBalance);
+
+            // Change button behavior to Update
+            $('#btn-save-fund').text('Update Fund').data('update-id', fundId);
+
+            // Scroll modal to top and show
+            $('#modal-funds').modal('show');
+        });
+
         $('#btn-save-fund').click(function() {
             let form = $('#form-funds');
-            $.post('../transaction.php', form.serialize(), function(resp) {
+            let updateId = $(this).data('update-id') || '';
+
+            let postData = form.serialize();
+            if (updateId) {
+                postData += '&update_id=' + updateId;
+            }
+
+            $.post('../transaction.php', postData, function(resp) {
                 resp = resp.trim();
                 if (resp === '1') {
-                    $.jGrowl('Loan fund saved.', {
+                    $.jGrowl(updateId ? 'Loan fund updated.' : 'Loan fund saved.', {
                         header: 'Success',
                         theme: 'bg-success'
                     });
                     $('#modal-funds').modal('hide');
-                    setTimeout(() => window.location.reload(), 1500);
+                    $('#btn-save-fund').text('Save Fund').removeData('update-id');
+                    setTimeout(() => window.location.reload(), 1200);
                 } else {
                     $('#display-fund-msg').html(`<div class="alert alert-danger">${resp}</div>`);
                 }
             });
         });
+
     });
 
     // Print button

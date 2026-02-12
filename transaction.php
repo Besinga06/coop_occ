@@ -2590,16 +2590,26 @@ if (isset($_POST['submit-seller'])) {
     $_SESSION['seller-report-to'] = $myDateTO;
 }
 
-// Add Fund
+/// Add or Update Fund
 if (isset($_POST['save-loan-fund'])) {
     require('db_connect.php');
 
     $fund_name = $db->real_escape_string(trim($_POST['fund_name']));
     $starting = floatval($_POST['starting_balance']);
-    $current = $starting;
 
-    $query = "INSERT INTO tbl_loan_fund (fund_name, starting_balance, current_balance) 
-              VALUES ('$fund_name', $starting, $current)";
+    if (!empty($_POST['update_id'])) {
+        $id = intval($_POST['update_id']);
+
+        $query = "UPDATE tbl_loan_fund 
+                  SET fund_name='$fund_name', 
+                      starting_balance=$starting, 
+                      current_balance=$starting 
+                  WHERE fund_id=$id";
+    } else {
+        $current = $starting;
+        $query = "INSERT INTO tbl_loan_fund (fund_name, starting_balance, current_balance) 
+                  VALUES ('$fund_name', $starting, $current)";
+    }
 
     if ($db->query($query)) {
         echo "1";
@@ -2608,6 +2618,7 @@ if (isset($_POST['save-loan-fund'])) {
     }
     exit;
 }
+
 
 
 
@@ -2731,7 +2742,7 @@ if (isset($_POST['decline_loan'])) {
         exit;
     }
 
-    $status = 'declined';
+    $status = 'rejected';
     $query_update = "UPDATE tbl_loan_application SET status='$status' WHERE loan_app_id=$loan_app_id";
 
     if ($db->query($query_update)) {
@@ -2753,8 +2764,22 @@ if (isset($_POST['disburse_loan'])) {
     $loan_id = (int)$_POST['loan_id'];
     $amount_released = (float)$_POST['amount_released'];
     $mode = $_POST['mode'];
+    $fund_id = isset($_POST['fund_id']) ? (int)$_POST['fund_id'] : 1; // Ensure fund ID is passed
 
+    // 1️⃣ Check fund balance first
+    $fund_result = $db->query("SELECT current_balance FROM tbl_loan_fund WHERE fund_id=$fund_id");
+    if (!$fund_result || $fund_result->num_rows == 0) {
+        echo "Error: Fund not found.";
+        exit;
+    }
 
+    $fund = $fund_result->fetch_assoc();
+    if ($fund['current_balance'] < $amount_released) {
+        echo "Error: Insufficient fund balance!";
+        exit;
+    }
+
+    // 2️⃣ Insert loan disbursement
     $stmt = $db->prepare("
         INSERT INTO tbl_loan_disbursement 
         (loan_app_id, amount_released, mode, release_date) 
@@ -2764,10 +2789,15 @@ if (isset($_POST['disburse_loan'])) {
     $stmt->execute();
     $stmt->close();
 
+    // 3️⃣ Deduct the amount from fund's current balance
+    $db->query("UPDATE tbl_loan_fund 
+                SET current_balance = current_balance - $amount_released 
+                WHERE fund_id = $fund_id");
 
+    // 4️⃣ Update loan status to disbursed
     $db->query("UPDATE tbl_loan_application SET status='disbursed' WHERE loan_app_id=$loan_id");
 
-
+    // 5️⃣ Get approved loan details
     $result = $db->query("
         SELECT approved_amount, approved_term, interest_rate 
         FROM tbl_loan_approval 
@@ -2785,7 +2815,7 @@ if (isset($_POST['disburse_loan'])) {
     $term = (int)$loan['approved_term'];
     $interest_rate = (float)$loan['interest_rate'];
 
-
+    // 6️⃣ Calculate interest and schedule
     $total_interest = ($principal * ($interest_rate / 100)) * $term;
     $total_payable = $principal + $total_interest;
     $monthly_payment = round($total_payable / $term, 2);
@@ -2796,7 +2826,7 @@ if (isset($_POST['disburse_loan'])) {
 
     $release_date = date('Y-m-d');
 
-
+    // 7️⃣ Insert loan schedule
     $stmt_sched = $db->prepare("
         INSERT INTO tbl_loan_schedule 
         (loan_app_id, due_date, principal_due, interest_due, total_due, penalty_due, status)
@@ -2819,8 +2849,9 @@ if (isset($_POST['disburse_loan'])) {
         (loan_app_id, fund_id, disbursed_amount, interest_rate, total_payable, due_date, status)
         VALUES (?, ?, ?, ?, ?, ?, 'active')
     ");
-    $fund_id = 1;
+
     $stmt_txn->bind_param("iiddds", $loan_id, $fund_id, $principal, $interest_rate, $total_payable, $due_date);
+
     $stmt_txn->execute();
     $stmt_txn->close();
 
@@ -2966,7 +2997,7 @@ if (isset($_POST['save-capital-share'])) {
 
     $cust_id = intval($_POST['cust_id']);
     $amount = floatval($_POST['amount']);
-    $date   = !empty($_POST['contribution_date']) ? $_POST['contribution_date'] : date('Y-m-d');
+    $date   = date('Y-m-d H:i:s'); // current date and time
 
     if ($cust_id > 0 && $amount > 0) {
         $stmt = $db->prepare("
@@ -2985,6 +3016,7 @@ if (isset($_POST['save-capital-share'])) {
     }
     exit;
 }
+
 
 // ----------------------------
 // Save Distribution Cycle
