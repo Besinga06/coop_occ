@@ -24,7 +24,7 @@ $member_data = $member_result->fetch_assoc();
 $member_id = (int) $member_data['member_id'];
 $cust_id   = (int) $member_data['cust_id'];
 
-if ($cust_id <= 0) {    
+if ($cust_id <= 0) {
     die("Invalid customer account.");
 }
 
@@ -468,54 +468,40 @@ $payments = $db->query("
                                             <div class="panel-body">
                                                 <?php
 
+
+                                                $total_cash = 0;
                                                 $total_cash_result = $db->query("
-                                                SELECT 
-                                               s.sales_no,
-                                               s.sales_date,
-                                               SUM(s.quantity_order) AS total_quantity,
-                                               MAX(s.total_amount) AS total_amount
-                                               FROM tbl_sales s
-                                               WHERE s.sales_type = 1
-                                               AND s.cust_id = $cust_id
-                                               AND YEAR(s.sales_date) = $year
-                                               GROUP BY s.sales_no, s.sales_date
-                                               ORDER BY s.sales_date ASC
-                                               ");
-                                                $total_cash_row = $total_cash_result->fetch_assoc();
-                                                $total_cash = $total_cash_row['total_amount'];
+                                                SELECT MAX(s.total_amount) AS total_amount
+                                                FROM tbl_sales s
+                                                WHERE s.sales_type = 1
+                                                AND s.cust_id = $cust_id
+                                                AND YEAR(s.sales_date) = $year
+                                                GROUP BY s.sales_no
+                                                ");
+                                                while ($row = $total_cash_result->fetch_assoc()) {
+                                                    $total_cash += $row['total_amount'];
+                                                }
 
-
-
-
+                                                $total_charge_paid = 0;
                                                 $total_charge_paid_result = $db->query("
-                                               SELECT 
-                                              s.sales_no,
-                                              s.sales_date,
-
-                                             SUM(s.quantity_order) AS total_quantity,
-                                             MAX(s.total_amount) AS total_amount,
-                                             COALESCE(pay.total_paid, 0) AS payments_made,
-                                             MAX(s.total_amount) - COALESCE(pay.total_paid, 0) AS balance
-                                             FROM tbl_sales s
-                                             LEFT JOIN (
-                                             SELECT sales_no, SUM(amount_paid) AS total_paid
-                                             FROM tbl_payments
-                                             GROUP BY sales_no
-                                              ) pay ON pay.sales_no = s.sales_no
-
-                                             WHERE s.sales_type = 0
-                                              AND s.sales_status != 3
-                                             AND s.cust_id = $cust_id
-                                             AND YEAR(s.sales_date) = $year
-                                             GROUP BY s.sales_no, s.sales_date, pay.total_paid
-                                             ORDER BY s.sales_date ASC
-                                             ");
-
-
-                                                $total_charge_paid_row = $total_charge_paid_result->fetch_assoc();
-                                                $total_charge_paid = $total_charge_paid_row['payments_made'];
+                                                SELECT MAX(s.total_amount) - COALESCE(pay.total_paid,0) AS balance,
+                                                COALESCE(pay.total_paid,0) AS payments_made
+                                                FROM tbl_sales s
+                                                LEFT JOIN (
+                                                SELECT sales_no, SUM(amount_paid) AS total_paid
+                                                FROM tbl_payments
+                                                GROUP BY sales_no
+                                                ) pay ON pay.sales_no = s.sales_no
+                                                WHERE s.sales_type = 0
+                                                AND s.sales_status != 3
+                                                AND s.cust_id = $cust_id
+                                                AND YEAR(s.sales_date) = $year
+                                                   GROUP BY s.sales_no, pay.total_paid
+                                                 ");
+                                                while ($row = $total_charge_paid_result->fetch_assoc()) {
+                                                    $total_charge_paid += $row['payments_made'];
+                                                }
                                                 ?>
-
                                                 <table class="table table-bordered">
                                                     <tr>
                                                         <td>Name</td>
@@ -768,8 +754,8 @@ $payments = $db->query("
 
 
                 <div class="mobile-bottom-nav">
-                    <a href="capital_share.php" class="active">
-                        <i class="icon-cart"></i>
+                    <a href="transaction_history.php" class="active">
+                        <i class="icon-history"></i>
                         transaction
                     </a>
 

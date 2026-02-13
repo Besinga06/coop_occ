@@ -1,25 +1,26 @@
-const CACHE_NAME = "members-dashboard-v1";
+const CACHE_NAME = "occ-coop-v1";
 
 const urlsToCache = [
   "/",
-  "/member/dashboard.php",
-  "/css/bootstrap.min.css",
-  "/js/jquery.min.js",
-  "/js/bootstrap.min.js",
-  "/assets/icons/your_logo.png",
-  "/assets/icons/your_logo.png"
+  "/index.php",
+  "/assets/css/style.css",
+  "/assets/js/script.js"
 ];
 
-self.addEventListener("install", event => {
+self.addEventListener("install", function(event) {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(urlsToCache))
+      .then(function(cache) {
+        return cache.addAll(urlsToCache);
+      })
   );
-});     
+});
 
-self.addEventListener("fetch", event => {
+self.addEventListener("fetch", function(event) {
   event.respondWith(
     caches.match(event.request)
-      .then(response => response || fetch(event.request))
+      .then(function(response) {
+        return response || fetch(event.request);
+      })
   );
 });

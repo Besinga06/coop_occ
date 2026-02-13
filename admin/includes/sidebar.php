@@ -121,7 +121,7 @@
             </a>
             <ul class="dropdown-menu dropdown-menu-right">
                 <li><a href="..member/savings.php"><i class="icon-dots"></i>Savings</a></li>
-                <li><a href="../member/capital_share.php"><i class="icon-dots"></i>Capital Share</a></li>
+                <li><a href="../member/transaction_history.php"><i class="icon-dots"></i>Transaction History</a></li>
                 <li><a href="loan.php"><i class="icon-dots"></i> Loan</a></li>
                 <!-- <li><a href="soa.php"><i class="icon-dots"></i>SOA</a></li> -->
             </ul>

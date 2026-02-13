@@ -380,8 +380,8 @@ $contributions = $db->query("
 
             <!-- HEADER -->
             <div class="mobile-header">
-                Hello, <?= $_SESSION['fullname'] ?>
-                <span class="mobile-help">Help</span>
+                Wellcome back, <?= $_SESSION['fullname'] ?>
+
             </div>
 
             <!-- BALANCE CARD -->
@@ -432,7 +432,7 @@ $contributions = $db->query("
 
 
     </div>
-
+    <?php require('../admin/includes/footer-text.php'); ?>
     <!-- Page content -->
     <div class="page-content desktop-view">
         <!-- Main content -->
@@ -443,7 +443,7 @@ $contributions = $db->query("
 
 
 
-            <?php require('../admin/includes/footer-text.php'); ?>
+
             <!-- Content area -->
             <div class="content">
                 <div class="row">
@@ -575,8 +575,8 @@ $contributions = $db->query("
 </body>
 
 <div class="mobile-bottom-nav">
-    <a href="capital_share.php">
-        <i class="icon-cart"></i>
+    <a href="transaction_history.php">
+        <i class="icon-history"></i>
         transaction
     </a>
     <a href="dashboard.php">

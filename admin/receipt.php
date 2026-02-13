@@ -163,7 +163,7 @@ while ($row = $result->fetch_assoc()) {
                     <tr valign="top">
                         <th class="text-left" width="60%" style="line-height: 3px;">
                             <div>
-                                <p class="text-title">OCC<br><br>COOPERATIVE</p>
+                                <p class="text-title">OCC COOPERATIVE</p>
                                 <p class="text-title">POS</p>
                                 <p class="title-p2" style="font-size:11px">Opol Community College, Mis'Or</p>
                                 <!-- <p class="title-p2" style="font-size:11px">Non Vat Reg. TIN 704-089-270-001</p> -->
@@ -308,7 +308,7 @@ while ($row = $result->fetch_assoc()) {
                     <tr valign="top">
                         <th class="text-left" width="60%" style="line-height: 3px;">
                             <div>
-                                <p class="text-title">OCC<br><br>COOPERATIVE</p>
+                                <p class="text-title">OCC COOPERATIVE</p>
                                 <p class="text-title">POS</p>
 
                                 <p class="title-p2" style="font-size:11px">Opol Community College Mis'Or</p>

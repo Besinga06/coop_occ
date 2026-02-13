@@ -253,7 +253,7 @@ $result = $db->query($query);
 
 
 <div class="mobile-bottom-nav">
-	<a href="../member/capital_share.php">
+	<a href="../member/transaction_history.php">
 		<i class="icon-cart"></i>
 		Transaction
 	</a>

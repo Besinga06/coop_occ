@@ -28,7 +28,7 @@ nav.horizontal ul li{	display: inline-block;}/* horizontal menu */
 img{max-width:100%;}
 /*-- end reset --*/
 body {   
-	background: url(../images/coop2.jpg)repeat 0px 0px;
+	background: url(../images/your_logo.png)repeat 0px 0px;
     background-attachment: fixed;
     -webkit-background-size: cover;
     -moz-background-size: cover;

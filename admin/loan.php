@@ -151,7 +151,7 @@ $disbursed_loans = $db->query("
                                 </thead>
                                 <tbody>
                                     <?php while ($row = $pending_loans->fetch_assoc()) { ?>
-                                        <tr style="cursor:pointer" onclick="view_details(<?= (int)$row['loan_id']; ?>)">
+                                        <tr (<?= (int)$row['loan_id']; ?>)>
                                             <td hidden><?= (int)$row['loan_id']; ?></td>
                                             <td><b><?= htmlspecialchars($row['member_name']); ?></b></td>
                                             <td style="text-align:right"><?= number_format($row['loan_amount'], 2); ?></td>
