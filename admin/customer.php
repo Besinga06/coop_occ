@@ -221,7 +221,7 @@ $result = $db->query($query);
 
                         <div class="col-md-6">
                             <label>Password</label>
-                            <input type="password" class="form-control input-lg" name="password" required>
+                            <input type="password" class="form-control input-lg" name="password">
                         </div>
                     </div>
 

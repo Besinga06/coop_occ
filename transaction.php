@@ -4,6 +4,7 @@ session_start();
 date_default_timezone_set('Asia/Manila');
 date_default_timezone_get();
 //error_reporting(0);
+require 'password_email.php';
 require('action/home.php');
 require('action/admin.php');
 require('backup.php');
@@ -304,7 +305,10 @@ function save_member($data)
         $stmt->close();
 
 
-        $hashed_password = password_hash($data['password'], PASSWORD_DEFAULT);
+        $plain_password = substr(str_shuffle('ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'), 0, 8);
+
+        /* HASH PASSWORD */
+        $hashed_password = password_hash($plain_password, PASSWORD_DEFAULT);
         $usertype = 4;
 
         $stmt = $db->prepare(

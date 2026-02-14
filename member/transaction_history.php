@@ -27,8 +27,16 @@ $cust_id   = (int) $member_data['cust_id'];
 if ($cust_id <= 0) {
     die("Invalid customer account.");
 }
+/* ============================================
+DATE RANGE FILTER
+============================================ */
 
-$year = isset($_GET['year']) ? (int) $_GET['year'] : date('Y');
+$date_from = isset($_GET['date_from']) ? $_GET['date_from'] : date('Y-01-01');
+$date_to   = isset($_GET['date_to'])   ? $_GET['date_to']   : date('Y-12-31');
+
+/* For display */
+$year = date('Y', strtotime($date_from));
+
 
 $customer_result = $db->query("SELECT * FROM tbl_customer WHERE cust_id = $cust_id");
 $customer = $customer_result->fetch_assoc();
@@ -39,7 +47,8 @@ $capital_result = $db->query("
     SELECT SUM(amount) AS total_capital
     FROM tbl_capital_share
     WHERE cust_id = $cust_id
-      AND YEAR(contribution_date) = $year
+     AND DATE(contribution_date)
+BETWEEN '$date_from' AND '$date_to'
 ");
 $capital = $capital_result->fetch_assoc();
 
@@ -47,7 +56,8 @@ $contributions = $db->query("
     SELECT *
     FROM tbl_capital_share
     WHERE cust_id = $cust_id
-      AND YEAR(contribution_date) = $year
+      AND DATE(contribution_date)
+BETWEEN '$date_from' AND '$date_to'
     ORDER BY contribution_date DESC
 ");
 
@@ -63,7 +73,8 @@ $cash_sales = $db->query("
     
     WHERE s.sales_type = 1
       AND s.cust_id = $cust_id
-      AND YEAR(s.sales_date) = $year
+      AND DATE(s.sales_date)
+BETWEEN '$date_from' AND '$date_to'
     GROUP BY s.sales_no, s.sales_date
     ORDER BY s.sales_date DESC
 ");
@@ -93,7 +104,8 @@ $charge_sales = $db->query("
     WHERE s.sales_type = 0
       AND s.sales_status != 3
       AND s.cust_id = $cust_id
-      AND YEAR(s.sales_date) = $year
+          AND DATE(s.sales_date)
+BETWEEN '$date_from' AND '$date_to'
 
     GROUP BY s.sales_no, s.sales_date, pay.total_paid
     ORDER BY s.sales_date DESC
@@ -429,61 +441,132 @@ $payments = $db->query("
 
                 <div class="page-header page-header-default">
                     <div class="page-header-content">
+
+
                         <div class="page-title">
-                            <h4><i class="icon-user position-left"></i> Transaction History - <?= htmlspecialchars($customer['name']); ?> (<?= $year; ?>)</h4>
+                            <h4>
+                                <i class="icon-user position-left"></i>
+                                Transaction History - <?= htmlspecialchars($customer['name']); ?>
+                                (<?= $year; ?>)
+                            </h4>
                         </div>
+
                     </div>
+
                     <div class="breadcrumb-line">
+
                         <ul class="breadcrumb">
-                            <li><a href="customer.php"><i class="icon-users"></i> Members</a></li>
-                            <li class="active">History</li>
+                            <li>
+                                <a href="dashboard.php">
+                                    <i class="icon-home"></i>Dashboard
+                                </a>
+                            </li>
+
+                            <li class="active">Transaction History</li>
                         </ul>
+
+
+                        <!-- RIGHT SIDE ELEMENTS -->
                         <ul class="breadcrumb-elements">
-                            <li><a href="#" id="btn-download-pdf"><i class="icon-file-pdf text-teal-400"></i> Download PDF</a></li>
+
+                            <!-- DATE FILTER -->
+                            <li>
+
+                                <form method="GET" class="form-inline" style="display:flex; align-items:center; gap:5px;">
+
+                                    <label style="margin:0;">From:</label>
+
+                                    <input type="date"
+                                        name="date_from"
+                                        value="<?= $date_from ?>"
+                                        class="form-control">
+
+                                    <label style="margin:0;">To:</label>
+
+                                    <input type="date"
+                                        name="date_to"
+                                        value="<?= $date_to ?>"
+                                        class="form-control">
+
+                                    <button type="submit"
+                                        class="btn btn-primary">
+
+                                        Filter
+
+                                    </button>
+
+                                    <a href="transaction_history.php"
+                                        class="btn btn-default">
+
+                                        Reset
+
+                                    </a>
+
+                                </form>
+
+                            </li>
+
+
+                            <!-- DOWNLOAD PDF -->
+                            <li>
+
+                                <a href="#" id="btn-download-pdf">
+
+                                    <i class="icon-file-pdf text-teal-400"></i>
+
+                                    Download PDF
+
+                                </a>
+
+                            </li>
+
+
                         </ul>
+
                     </div>
-                </div>
-
-                <div class="content" id="history-content">
-
-                    <div class="panel panel-flat">
-                        <div class="panel-body">
-                            <div class="tabbable">
-                                <ul class="nav nav-tabs bg-slate nav-justified">
-                                    <li class="active"><a href="#info" data-toggle="tab">Information</a></li>
-                                    <li><a href="#capital" data-toggle="tab">Capital Share</a></li>
-                                    <li><a href="#cash" data-toggle="tab">Cash Purchases</a></li>
-                                    <li><a href="#charge" data-toggle="tab">Charge Sales</a></li>
-                                    <li><a href="#benefits" data-toggle="tab">Disbursed Benefits</a></li>
-                                </ul>
-
-                                <div class="tab-content">
 
 
-                                    <div class="tab-pane active" id="info">
-                                        <div class="panel panel-white border-top-xlg border-top-teal-400">
-                                            <div class="panel-heading">
-                                                <h6 class="panel-title"><i class="icon-list position-left text-teal-400"></i> Information</h6>
-                                            </div>
-                                            <div class="panel-body">
-                                                <?php
+                    <div class="content" id="history-content">
+
+                        <div class="panel panel-flat">
+                            <div class="panel-body">
+                                <div class="tabbable">
+                                    <ul class="nav nav-tabs bg-slate nav-justified">
+                                        <li class="active"><a href="#info" data-toggle="tab">Information</a></li>
+                                        <li><a href="#capital" data-toggle="tab">Capital Share</a></li>
+                                        <li><a href="#cash" data-toggle="tab">Cash Purchases</a></li>
+                                        <li><a href="#charge" data-toggle="tab">Charge Sales</a></li>
+                                        <li><a href="#benefits" data-toggle="tab">Disbursed Benefits</a></li>
+                                    </ul>
+
+                                    <div class="tab-content">
 
 
-                                                $total_cash = 0;
-                                                $total_cash_result = $db->query("
+                                        <div class="tab-pane active" id="info">
+                                            <div class="panel panel-white border-top-xlg border-top-teal-400">
+                                                <div class="panel-heading">
+                                                    <h6 class="panel-title"><i class="icon-list position-left text-teal-400"></i> Information</h6>
+                                                </div>
+                                                <div class="panel-body">
+                                                    <?php
+
+
+                                                    $total_cash = 0;
+                                                    $total_cash_result = $db->query("
                                                 SELECT MAX(s.total_amount) AS total_amount
                                                 FROM tbl_sales s
                                                 WHERE s.sales_type = 1
                                                 AND s.cust_id = $cust_id
-                                                AND YEAR(s.sales_date) = $year
+                                                AND DATE(s.sales_date)
+                                                BETWEEN '$date_from' AND '$date_to'
                                                 GROUP BY s.sales_no
                                                 ");
-                                                while ($row = $total_cash_result->fetch_assoc()) {
-                                                    $total_cash += $row['total_amount'];
-                                                }
+                                                    while ($row = $total_cash_result->fetch_assoc()) {
+                                                        $total_cash += $row['total_amount'];
+                                                    }
 
-                                                $total_charge_paid = 0;
-                                                $total_charge_paid_result = $db->query("
+                                                    $total_charge_paid = 0;
+                                                    $total_charge_paid_result = $db->query("
                                                 SELECT MAX(s.total_amount) - COALESCE(pay.total_paid,0) AS balance,
                                                 COALESCE(pay.total_paid,0) AS payments_made
                                                 FROM tbl_sales s
@@ -495,175 +578,176 @@ $payments = $db->query("
                                                 WHERE s.sales_type = 0
                                                 AND s.sales_status != 3
                                                 AND s.cust_id = $cust_id
-                                                AND YEAR(s.sales_date) = $year
+                                                AND DATE(s.sales_date)
+                                                BETWEEN '$date_from' AND '$date_to' 
                                                    GROUP BY s.sales_no, pay.total_paid
                                                  ");
-                                                while ($row = $total_charge_paid_result->fetch_assoc()) {
-                                                    $total_charge_paid += $row['payments_made'];
-                                                }
-                                                ?>
-                                                <table class="table table-bordered">
-                                                    <tr>
-                                                        <td>Name</td>
-                                                        <td><?= htmlspecialchars($customer['name']); ?></td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td>Address</td>
-                                                        <td><?= htmlspecialchars($customer['address']); ?></td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td>Contact</td>
-                                                        <td><?= htmlspecialchars($customer['contact']); ?></td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td>Total Capital Share (<?= $year; ?>)</td>
-                                                        <td>₱<?= number_format($capital['total_capital'] ?? 0, 2); ?></td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td>Total Cash Purchases (<?= $year; ?>)</td>
-                                                        <td>₱<?= number_format($total_cash, 2); ?></td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td>Total Paid (Charge Sales <?= $year; ?>)</td>
-                                                        <td>₱<?= number_format($total_charge_paid, 2); ?></td>
-                                                    </tr>
-                                                </table>
+                                                    while ($row = $total_charge_paid_result->fetch_assoc()) {
+                                                        $total_charge_paid += $row['payments_made'];
+                                                    }
+                                                    ?>
+                                                    <table class="table table-bordered">
+                                                        <tr>
+                                                            <td>Name</td>
+                                                            <td><?= htmlspecialchars($customer['name']); ?></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td>Address</td>
+                                                            <td><?= htmlspecialchars($customer['address']); ?></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td>Contact</td>
+                                                            <td><?= htmlspecialchars($customer['contact']); ?></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td>Total Capital Share (<?= $year; ?>)</td>
+                                                            <td>₱<?= number_format($capital['total_capital'] ?? 0, 2); ?></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td>Total Cash Purchases (<?= $year; ?>)</td>
+                                                            <td>₱<?= number_format($total_cash, 2); ?></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td>Total Paid (Charge Sales <?= $year; ?>)</td>
+                                                            <td>₱<?= number_format($total_charge_paid, 2); ?></td>
+                                                        </tr>
+                                                    </table>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
 
 
-                                    <div class="tab-pane" id="capital">
-                                        <div class="panel panel-white border-top-xlg border-top-teal-400">
-                                            <div class="panel-heading">
-                                                <h6 class="panel-title"><i class="icon-piggy-bank position-left text-teal-400"></i> Capital Share Contributions (<?= $year; ?>)</h6>
-                                            </div>
-                                            <div class="panel-body">
-                                                <table class="table table-bordered table-hover">
-                                                    <thead>
-                                                        <tr style="background:#eee">
-                                                            <th>Date</th>
-                                                            <th>Amount</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        <?php
-                                                        $hasContrib = false;
+                                        <div class="tab-pane" id="capital">
+                                            <div class="panel panel-white border-top-xlg border-top-teal-400">
+                                                <div class="panel-heading">
+                                                    <h6 class="panel-title"><i class="icon-piggy-bank position-left text-teal-400"></i> Capital Share Contributions (<?= $year; ?>)</h6>
+                                                </div>
+                                                <div class="panel-body">
+                                                    <table class="table table-bordered table-hover">
+                                                        <thead>
+                                                            <tr style="background:#eee">
+                                                                <th>Date</th>
+                                                                <th>Amount</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <?php
+                                                            $hasContrib = false;
 
-                                                        while ($c = $contributions->fetch_assoc()) {
-                                                            $hasContrib = true;
-                                                            echo "<tr>
+                                                            while ($c = $contributions->fetch_assoc()) {
+                                                                $hasContrib = true;
+                                                                echo "<tr>
                                                              <td>" . date('M d, Y', strtotime($c['contribution_date'])) . "</td>
                                                              <td class='text-center' >₱" . number_format($c['amount'], 2) . "</td>
                                                              </tr>";
-                                                        }
+                                                            }
 
-                                                        if (!$hasContrib) {
-                                                            echo "<tr><td colspan='2'>No contributions found for $year.</td></tr>";
-                                                        }
-                                                        ?>
+                                                            if (!$hasContrib) {
+                                                                echo "<tr><td colspan='2'>No contributions found for $year.</td></tr>";
+                                                            }
+                                                            ?>
 
-                                                    </tbody>
-                                                </table>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
 
 
-                                    <div class="tab-pane" id="cash">
-                                        <div class="panel panel-white border-top-xlg border-top-teal-400">
-                                            <div class="panel-heading">
-                                                <h6 class="panel-title"><i class="icon-cart position-left text-teal-400"></i> Cash Sales Summary (<?= $year; ?>)</h6>
-                                            </div>
-                                            <div class="panel-body">
-                                                <table class="table table-bordered table-hover">
-                                                    <thead>
-                                                        <tr style="background:#eee">
-                                                            <th>Sales No</th>
-                                                            <th class="text-center">Total Quantity</th>
-                                                            <th class="text-right">Total Amount</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        <?php
-                                                        $hasCash = false;
-                                                        $total_cash_sum = 0;
-
-                                                        while ($row = $cash_sales->fetch_assoc()) {
-                                                            $hasCash = true;
-
-                                                            $qty = isset($row['total_quantity']) ? (int)$row['total_quantity'] : 0;
-                                                            $amount = isset($row['total_amount']) ? $row['total_amount'] : 0;
-
-                                                            $total_cash_sum += $amount;
-                                                        ?>
-                                                            <tr>
-                                                                <td>
-                                                                    <a href="javascript:;"
-                                                                        onclick="view_details(this)"
-                                                                        sales-id="<?= $row['sales_no']; ?>"
-                                                                        sales-no="<?= $row['sales_no']; ?>">
-                                                                        <?= htmlspecialchars($row['sales_no']); ?>
-                                                                    </a>
-                                                                </td>
-                                                                <td class="text-center"><?= $qty; ?></td>
-                                                                <td class="text-right">₱<?= number_format($amount, 2); ?></td>
+                                        <div class="tab-pane" id="cash">
+                                            <div class="panel panel-white border-top-xlg border-top-teal-400">
+                                                <div class="panel-heading">
+                                                    <h6 class="panel-title"><i class="icon-cart position-left text-teal-400"></i> Cash Sales Summary (<?= $year; ?>)</h6>
+                                                </div>
+                                                <div class="panel-body">
+                                                    <table class="table table-bordered table-hover">
+                                                        <thead>
+                                                            <tr style="background:#eee">
+                                                                <th>Sales No</th>
+                                                                <th class="text-center">Total Quantity</th>
+                                                                <th class="text-right">Total Amount</th>
                                                             </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <?php
+                                                            $hasCash = false;
+                                                            $total_cash_sum = 0;
+
+                                                            while ($row = $cash_sales->fetch_assoc()) {
+                                                                $hasCash = true;
+
+                                                                $qty = isset($row['total_quantity']) ? (int)$row['total_quantity'] : 0;
+                                                                $amount = isset($row['total_amount']) ? $row['total_amount'] : 0;
+
+                                                                $total_cash_sum += $amount;
+                                                            ?>
+                                                                <tr>
+                                                                    <td>
+                                                                        <a href="javascript:;"
+                                                                            onclick="view_details(this)"
+                                                                            sales-id="<?= $row['sales_no']; ?>"
+                                                                            sales-no="<?= $row['sales_no']; ?>">
+                                                                            <?= htmlspecialchars($row['sales_no']); ?>
+                                                                        </a>
+                                                                    </td>
+                                                                    <td class="text-center"><?= $qty; ?></td>
+                                                                    <td class="text-right">₱<?= number_format($amount, 2); ?></td>
+                                                                </tr>
+                                                            <?php } ?>
+
+                                                            <?php if (!$hasCash) { ?>
+                                                                <tr>
+                                                                    <td colspan="3">No cash sales found for <?= $year; ?>.</td>
+                                                                </tr>
+                                                            <?php } ?>
+                                                        </tbody>
+
+                                                        <?php if ($hasCash) { ?>
+
+                                                            <tfoot>
+                                                                <tr>
+                                                                    <th colspan="2" class="text-right">Total:</th>
+                                                                    <th class="text-right">₱<?= number_format($total_cash_sum, 2); ?></th>
+                                                                </tr>
+                                                            </tfoot>
                                                         <?php } ?>
+                                                    </table>
 
-                                                        <?php if (!$hasCash) { ?>
-                                                            <tr>
-                                                                <td colspan="3">No cash sales found for <?= $year; ?>.</td>
-                                                            </tr>
-                                                        <?php } ?>
-                                                    </tbody>
-
-                                                    <?php if ($hasCash) { ?>
-
-                                                        <tfoot>
-                                                            <tr>
-                                                                <th colspan="2" class="text-right">Total:</th>
-                                                                <th class="text-right">₱<?= number_format($total_cash_sum, 2); ?></th>
-                                                            </tr>
-                                                        </tfoot>
-                                                    <?php } ?>
-                                                </table>
-
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
 
 
-                                    <div class="tab-pane" id="charge">
-                                        <div class="panel panel-white border-top-xlg border-top-teal-400">
-                                            <div class="panel-heading">
-                                                <h6 class="panel-title"><i class="icon-credit-card position-left text-teal-400"></i> Charge (<?= $year; ?>)</h6>
-                                            </div>
-                                            <div class="panel-body">
-                                                <table class="table table-bordered table-hover">
-                                                    <thead>
-                                                        <tr style="background:#eee">
-                                                            <th>Sales No</th>
-                                                            <th class="text-center">Total Quantity</th>
-                                                            <th class="text-right">Total Amount</th>
-                                                            <th class="text-right">Paid</th>
-                                                            <th class="text-right">Balance</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        <?php
-                                                        $hasCharge = false;
-                                                        $total_amt = $paid_amt = $bal_amt = 0;
+                                        <div class="tab-pane" id="charge">
+                                            <div class="panel panel-white border-top-xlg border-top-teal-400">
+                                                <div class="panel-heading">
+                                                    <h6 class="panel-title"><i class="icon-credit-card position-left text-teal-400"></i> Charge (<?= $year; ?>)</h6>
+                                                </div>
+                                                <div class="panel-body">
+                                                    <table class="table table-bordered table-hover">
+                                                        <thead>
+                                                            <tr style="background:#eee">
+                                                                <th>Sales No</th>
+                                                                <th class="text-center">Total Quantity</th>
+                                                                <th class="text-right">Total Amount</th>
+                                                                <th class="text-right">Paid</th>
+                                                                <th class="text-right">Balance</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <?php
+                                                            $hasCharge = false;
+                                                            $total_amt = $paid_amt = $bal_amt = 0;
 
-                                                        while ($row = $charge_sales->fetch_assoc()) {
-                                                            $hasCharge = true;
+                                                            while ($row = $charge_sales->fetch_assoc()) {
+                                                                $hasCharge = true;
 
-                                                            $paid = $row['total_amount'] - $row['balance'];
-                                                            $total_amt += $row['total_amount'];
-                                                            $paid_amt += $paid;
-                                                            $bal_amt += $row['balance'];
+                                                                $paid = $row['total_amount'] - $row['balance'];
+                                                                $total_amt += $row['total_amount'];
+                                                                $paid_amt += $paid;
+                                                                $bal_amt += $row['balance'];
 
-                                                            echo "<tr>
+                                                                echo "<tr>
                                                                <td>
                                                                <a href='javascript:;'
                                                                 onclick='view_details(this)'
@@ -679,120 +763,120 @@ $payments = $db->query("
                                                                   <td class='text-right'>₱" . number_format($paid, 2) . "</td>
                                                                   <td class='text-right'>₱" . number_format($row['balance'], 2) . "</td>
                                                                   </tr>";
-                                                        }
+                                                            }
 
-                                                        if (!$hasCharge) {
-                                                            echo "<tr><td colspan='5'>No charge sales found for $year.</td></tr>";
-                                                        }
-                                                        ?>
+                                                            if (!$hasCharge) {
+                                                                echo "<tr><td colspan='5'>No charge sales found for $year.</td></tr>";
+                                                            }
+                                                            ?>
 
-                                                        <?php if ($hasCharge) { ?>
-                                                    <tfoot>
-                                                        <tr style="font-weight:bold;">
-                                                            <th colspan="2" class="text-right">Totals:</th>
-                                                            <th class="text-right">₱<?= number_format($total_amt, 2); ?></th>
-                                                            <th class="text-right">₱<?= number_format($paid_amt, 2); ?></th>
-                                                            <th class="text-right">₱<?= number_format($bal_amt, 2); ?></th>
-                                                        </tr>
-                                                    </tfoot>
-                                                <?php } ?>
-                                                </table>
+                                                            <?php if ($hasCharge) { ?>
+                                                        <tfoot>
+                                                            <tr style="font-weight:bold;">
+                                                                <th colspan="2" class="text-right">Totals:</th>
+                                                                <th class="text-right">₱<?= number_format($total_amt, 2); ?></th>
+                                                                <th class="text-right">₱<?= number_format($paid_amt, 2); ?></th>
+                                                                <th class="text-right">₱<?= number_format($bal_amt, 2); ?></th>
+                                                            </tr>
+                                                        </tfoot>
+                                                    <?php } ?>
+                                                    </table>
 
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
 
 
-                                    <div class="tab-pane" id="benefits">
-                                        <div class="panel panel-white border-top-xlg border-top-teal-400">
-                                            <div class="panel-heading">
-                                                <h6 class="panel-title"><i class="icon-gift position-left text-teal-400"></i> Distribution / Disbursed Benefits (<?= $year; ?>)</h6>
-                                            </div>
-                                            <div class="panel-body">
-                                                <table class="table table-bordered table-hover">
-                                                    <thead>
-                                                        <tr style="background:#eee">
-                                                            <th>Date</th>
-                                                            <th>Cycle</th>
-                                                            <th>Amount</th>
-                                                            <th>Payment Method</th>
-                                                            <th>Reference No</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        <?php
-                                                        $hasDisb = false;
+                                        <div class="tab-pane" id="benefits">
+                                            <div class="panel panel-white border-top-xlg border-top-teal-400">
+                                                <div class="panel-heading">
+                                                    <h6 class="panel-title"><i class="icon-gift position-left text-teal-400"></i> Distribution / Disbursed Benefits (<?= $year; ?>)</h6>
+                                                </div>
+                                                <div class="panel-body">
+                                                    <table class="table table-bordered table-hover">
+                                                        <thead>
+                                                            <tr style="background:#eee">
+                                                                <th>Date</th>
+                                                                <th>Cycle</th>
+                                                                <th>Amount</th>
+                                                                <th>Payment Method</th>
+                                                                <th>Reference No</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <?php
+                                                            $hasDisb = false;
 
-                                                        while ($d = $disbursed->fetch_assoc()) {
-                                                            $hasDisb = true;
+                                                            while ($d = $disbursed->fetch_assoc()) {
+                                                                $hasDisb = true;
 
-                                                            echo "<tr>
+                                                                echo "<tr>
                                                                  <td>" . date('M d, Y h:i A', strtotime($d['disbursed_at'])) . "</td>
                                                                 <td>Cycle #" . htmlspecialchars($d['cycle_id']) . "</td>
                                                                 <td>₱" . number_format($d['amount_disbursed'], 2) . "</td>
                                                                 <td>" . htmlspecialchars(ucfirst($d['payment_method'])) . "</td>
                                                                 <td>" . htmlspecialchars($d['reference_no']) . "</td>
                                                                 </tr>";
-                                                        }
+                                                            }
 
-                                                        if (!$hasDisb) {
-                                                            echo "<tr><td colspan='5'>No disbursed benefits found for $year.</td></tr>";
-                                                        }
-                                                        ?>
+                                                            if (!$hasDisb) {
+                                                                echo "<tr><td colspan='5'>No disbursed benefits found for $year.</td></tr>";
+                                                            }
+                                                            ?>
 
-                                                    </tbody>
-                                                </table>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
 
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
 
-                <div class="mobile-bottom-nav">
-                    <a href="transaction_history.php" class="active">
-                        <i class="icon-history"></i>
-                        transaction
-                    </a>
+                    <div class="mobile-bottom-nav">
+                        <a href="transaction_history.php" class="active">
+                            <i class="icon-history"></i>
+                            transaction
+                        </a>
 
-                    <a href="dashboard.php">
-                        <i class="icon-home"></i>
-                        Home
-                    </a>
-                    <a href="loan.php">
-                        <i class="icon-coins"></i>
-                        Loans
-                    </a>
-                    <a href="../admin/profile.php">
-                        <i class="icon-user"></i>
-                        Profile
-                    </a>
-                </div>
+                        <a href="dashboard.php">
+                            <i class="icon-home"></i>
+                            Home
+                        </a>
+                        <a href="loan.php">
+                            <i class="icon-coins"></i>
+                            Loans
+                        </a>
+                        <a href="../admin/profile.php">
+                            <i class="icon-user"></i>
+                            Profile
+                        </a>
+                    </div>
 
 
 
-                <?php require('../admin/includes/footer-text.php'); ?>
-            </div>
-        </div>
-    </div>
-
-    <div id="modal-all" class="modal fade" data-backdrop="static" data-keyboard="false">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="title-all"></h5>
-                    <button type="button" class="close" data-dismiss="modal">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <div id="show-data-all"></div>
+                    <?php require('../admin/includes/footer-text.php'); ?>
                 </div>
             </div>
         </div>
-    </div>
+
+        <div id="modal-all" class="modal fade" data-backdrop="static" data-keyboard="false">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="title-all"></h5>
+                        <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="show-data-all"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
     </div>
 

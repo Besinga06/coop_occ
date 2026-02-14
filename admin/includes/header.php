@@ -40,7 +40,7 @@ if (!isset($_SESSION['is_login_yes']) || $_SESSION['is_login_yes'] != 'yes') {
 	<meta name="theme-color" content="#004aad">
 	<link rel="apple-touch-icon" href="/assets/icons/your_logo.png">
 
-	<title>OCC COOPERATIVE</title>
+	<title>OCC Cooperative</title>
 
 	<!-- Global stylesheets -->
 	<!-- <link href="https://fonts.googleapis.com/css?family=Roboto:400,300,100,500,700,900" rel="stylesheet" type="text/css"> -->

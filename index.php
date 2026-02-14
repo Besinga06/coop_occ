@@ -1,3 +1,20 @@
+<?php
+session_start();
+
+if (isset($_SESSION['is_login_yes']) && $_SESSION['is_login_yes'] == 'yes') {
+
+    if ($_SESSION['session_type'] == 'admin') {
+        header("Location: admin/index.php");
+    } elseif ($_SESSION['session_type'] == 'cashier') {
+        header("Location: admin/pos.php");
+    } elseif ($_SESSION['session_type'] == 'member') {
+        header("Location: member/dashboard.php");
+    } else {
+        header("Location: admin/index.php");
+    }
+    exit();
+}
+?>
 <!DOCTYPE html>
 <html>
 
