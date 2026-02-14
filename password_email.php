@@ -20,7 +20,7 @@ function sendMemberEmail($email, $fullname, $plain_password)
         $mail->SMTPAuth   = true;
 
         $mail->Username   = 'coop.cooperative.06@gmail.com';
-        $mail->Password   = 'ntdf xias qnkv xswr';
+        $mail->Password   = '';
 
         $mail->SMTPSecure = 'tls';
         $mail->Port       = 587;
