@@ -2,29 +2,29 @@
 require('includes/header.php');
 
 
-$loanQuery = "
-    SELECT 
-        l.loan_app_id,
-        c.name AS member_name,
-        la.approved_amount,
-        la.approved_term,
-        la.interest_rate,
-        d.amount_released,
-        d.release_date,
-        d.mode AS release_mode,
-        t.total_payable,
-        t.disbursement_date,
-        t.status AS loan_status
-    FROM tbl_loan_application l
-    JOIN tbl_customer c ON l.customer_id = c.cust_id
-    JOIN tbl_loan_approval la ON la.loan_app_id = l.loan_app_id
-    JOIN tbl_loan_disbursement d ON d.loan_app_id = l.loan_app_id
-    JOIN tbl_loan_transactions t ON l.loan_app_id = t.loan_app_id
-    ORDER BY t.disbursement_date DESC
-";
+// $loanQuery = "
+//     SELECT 
+//         l.loan_app_id,
+//         c.name AS member_name,
+//         la.approved_amount,
+//         la.approved_term,
+//         la.interest_rate,
+//         d.amount_released,
+//         d.release_date,
+//         d.mode AS release_mode,
+//         t.total_payable,
+//         t.disbursement_date,
+//         t.status AS loan_status
+//     FROM tbl_loan_application l
+//     JOIN tbl_customer c ON l.customer_id = c.cust_id
+//     JOIN tbl_loan_approval la ON la.loan_app_id = l.loan_app_id
+//     JOIN tbl_loan_disbursement d ON d.loan_app_id = l.loan_app_id
+//     JOIN tbl_loan_transactions t ON l.loan_app_id = t.loan_app_id
+//     ORDER BY t.disbursement_date DESC
+// ";
 
-$loans_active = $db->query($loanQuery);
-$loans_paid   = $db->query($loanQuery);
+// $loans_active = $db->query($loanQuery);
+// $loans_paid   = $db->query($loanQuery);
 
 ?>
 <style>
@@ -109,31 +109,31 @@ $loans_paid   = $db->query($loanQuery);
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php while ($loan = $loans_active->fetch_assoc()): ?>
+                                    <!-- <?php while ($loan = $loans_active->fetch_assoc()): ?>
                                         <?php
-                                        $loanId = (int)$loan['loan_app_id'];
+                                                $loanId = (int)$loan['loan_app_id'];
 
 
-                                        $stmt_paid = $db->prepare("SELECT SUM(amount_paid) AS total_paid FROM tbl_loan_repayment WHERE loan_app_id = ?");
-                                        $stmt_paid->bind_param("i", $loanId);
-                                        $stmt_paid->execute();
-                                        $paid = $stmt_paid->get_result()->fetch_assoc()['total_paid'] ?? 0;
+                                                $stmt_paid = $db->prepare("SELECT SUM(amount_paid) AS total_paid FROM tbl_loan_repayment WHERE loan_app_id = ?");
+                                                $stmt_paid->bind_param("i", $loanId);
+                                                $stmt_paid->execute();
+                                                $paid = $stmt_paid->get_result()->fetch_assoc()['total_paid'] ?? 0;
 
-                                        $balance = $loan['total_payable'] - $paid;
-                                        if ($balance <= 0) continue;
-                                        $stmt_schedule = $db->prepare("
+                                                $balance = $loan['total_payable'] - $paid;
+                                                if ($balance <= 0) continue;
+                                                $stmt_schedule = $db->prepare("
                                         SELECT schedule_id, due_date, principal_due, interest_due, penalty_due, total_due
                                         FROM tbl_loan_schedule
                                         WHERE loan_app_id = ? AND status = 'unpaid'
                                         ORDER BY due_date ASC
                                         LIMIT 1
                                           ");
-                                        $stmt_schedule->bind_param("i", $loanId);
-                                        $stmt_schedule->execute();
-                                        $nextSchedule = $stmt_schedule->get_result()->fetch_assoc();
+                                                $stmt_schedule->bind_param("i", $loanId);
+                                                $stmt_schedule->execute();
+                                                $nextSchedule = $stmt_schedule->get_result()->fetch_assoc();
 
-                                        $monthly_due = $nextSchedule['total_due'] ?? 0;
-                                        $schedule_id = $nextSchedule['schedule_id'] ?? null;
+                                                $monthly_due = $nextSchedule['total_due'] ?? 0;
+                                                $schedule_id = $nextSchedule['schedule_id'] ?? null;
 
                                         ?>
                                         <tr>
@@ -160,7 +160,7 @@ $loans_paid   = $db->query($loanQuery);
                                                     data-member="<?= htmlspecialchars($loan['member_name']) ?>">Pay</button>
                                             </td>
                                         </tr>
-                                    <?php endwhile; ?>
+                                    <?php endwhile; ?> -->
 
                                 </tbody>
 
@@ -190,18 +190,18 @@ $loans_paid   = $db->query($loanQuery);
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php while ($loan = $loans_paid->fetch_assoc()): ?>
+                                    <!-- <?php while ($loan = $loans_paid->fetch_assoc()): ?>
                                         <?php
-                                        $loanId = (int)$loan['loan_app_id'];
+                                                $loanId = (int)$loan['loan_app_id'];
 
 
-                                        $stmt_paid = $db->prepare("SELECT SUM(amount_paid) AS total_paid FROM tbl_loan_repayment WHERE loan_app_id = ?");
-                                        $stmt_paid->bind_param("i", $loanId);
-                                        $stmt_paid->execute();
-                                        $paid = $stmt_paid->get_result()->fetch_assoc()['total_paid'] ?? 0;
+                                                $stmt_paid = $db->prepare("SELECT SUM(amount_paid) AS total_paid FROM tbl_loan_repayment WHERE loan_app_id = ?");
+                                                $stmt_paid->bind_param("i", $loanId);
+                                                $stmt_paid->execute();
+                                                $paid = $stmt_paid->get_result()->fetch_assoc()['total_paid'] ?? 0;
 
-                                        $balance = $loan['total_payable'] - $paid;
-                                        if ($balance > 0) continue;
+                                                $balance = $loan['total_payable'] - $paid;
+                                                if ($balance > 0) continue;
                                         ?>
                                         <tr>
                                             <td><b><?= htmlspecialchars($loan['member_name']) ?></b></td>
@@ -216,7 +216,7 @@ $loans_paid   = $db->query($loanQuery);
                                             </td>
                                         </tr>
 
-                                    <?php endwhile; ?>
+                                    <?php endwhile; ?> -->
 
                                 </tbody>
 
@@ -241,7 +241,7 @@ $loans_paid   = $db->query($loanQuery);
                         <div class="modal-header bg-teal-400">
                             <h5 class="modal-title">Add Repayment</h5>
                         </div>
-                        <div class="modal-body">
+                        <div class="modal-bodys">
                             <input type="hidden" id="loan_app_id" name="loan_app_id">
                             <input type="hidden" id="schedule_id" name="schedule_id">
                             <input type="hidden" id="full_balance" name="full_balance">

@@ -1,26 +1,27 @@
 <?php
 require('includes/header.php');
 
-$pending_loans = $db->query("SELECT l.*, c.name as member_name 
-    FROM tbl_loan_application l
-    JOIN tbl_customer c ON l.customer_id = c.cust_id
-    WHERE l.status='pending'
-    ORDER BY l.loan_app_id DESC");
+// $pending_loans = $db->query("SELECT l.*, c.name as member_name 
+//     FROM tbl_loan_application l
+//     JOIN tbl_customer c ON l.customer_id = c.cust_id
+//     WHERE l.status='pending'
+//     ORDER BY l.loan_app_id DESC");
 
-$approved_loans = $db->query("SELECT l.*, c.name as member_name, a.approved_amount, a.approved_term, a.interest_rate 
-    FROM tbl_loan_application l
-    JOIN tbl_customer c ON l.customer_id = c.cust_id
-    JOIN tbl_loan_approval a ON a.loan_app_id=l.loan_app_id
-    WHERE l.status='approved'
-    ORDER BY l.loan_app_id DESC");
+// $approved_loans = $db->query("SELECT l.*, c.name as member_name, a.approved_amount, a.approved_term, a.interest_rate 
+//     FROM tbl_loan_application l
+//     JOIN tbl_customer c ON l.customer_id = c.cust_id
+//     JOIN tbl_loan_approval a ON a.loan_app_id=l.loan_app_id
+//     WHERE l.status='approved'
+//     ORDER BY l.loan_app_id DESC");
 
-$declined_loans = $db->query("SELECT l.*, c.name as member_name 
-    FROM tbl_loan_application l
-    JOIN tbl_customer c ON l.customer_id = c.cust_id
-    WHERE l.status='rejected'
-    ORDER BY l.loan_app_id DESC");
+// $declined_loans = $db->query("SELECT l.*, c.name as member_name 
+//     FROM tbl_loan_application l
+//     JOIN tbl_customer c ON l.customer_id = c.cust_id
+//     WHERE l.status='rejected'
+//     ORDER BY l.loan_app_id DESC");
 
-$funds = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
+// $funds = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
+// 
 ?>
 <style>
     .navbar-brand {
@@ -108,7 +109,7 @@ $funds = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php while ($row = $pending_loans->fetch_assoc()) { ?>
+                                    <!-- <?php while ($row = $pending_loans->fetch_assoc()) { ?>
                                         <tr>
                                             <td hidden><?= $row['loan_app_id'] ?></td>
                                             <td><?= htmlspecialchars($row['member_name']) ?></td>
@@ -120,7 +121,7 @@ $funds = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
                                                 <button class="btn btn-danger btn-decline" data-id="<?= $row['loan_app_id'] ?>">Decline</button>
                                             </td>
                                         </tr>
-                                    <?php } ?>
+                                    <?php } ?> -->
 
                                 </tbody>
                             </table>
@@ -146,7 +147,7 @@ $funds = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php while ($row = $approved_loans->fetch_assoc()) { ?>
+                                    <!-- <?php while ($row = $approved_loans->fetch_assoc()) { ?>
                                         <tr>
                                             <td hidden><?= $row['loan_app_id'] ?></td>
                                             <td><?= htmlspecialchars($row['member_name']) ?></td>
@@ -160,7 +161,7 @@ $funds = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
                                                 </button>
                                             </td>
                                         </tr>
-                                    <?php } ?>
+                                    <?php } ?> -->
 
                                 </tbody>
                             </table>
@@ -183,14 +184,14 @@ $funds = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php while ($row = $declined_loans->fetch_assoc()) { ?>
+                                    <!-- <?php while ($row = $declined_loans->fetch_assoc()) { ?>
                                         <tr>
                                             <td hidden><?= $row['loan_app_id'] ?></td>
                                             <td><?= htmlspecialchars($row['member_name']) ?></td>
                                             <td><?= number_format($row['requested_amount'], 2) ?></td>
                                             <td><?= $row['application_date'] ?></td>
                                         </tr>
-                                    <?php } ?>
+                                    <?php } ?> -->
 
                                 </tbody>
                             </table>
@@ -239,9 +240,9 @@ $funds = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
                         </thead>
                         <tbody>
                             <?php
-                            $funds_list = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
-                            while ($f = $funds_list->fetch_assoc()) {
-                                echo "<tr>
+                                    $funds_list = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
+                                    while ($f = $funds_list->fetch_assoc()) {
+                                        echo "<tr>
                 <td>{$f['fund_id']}</td>
                 <td class='fund-name'>" . htmlspecialchars($f['fund_name']) . "</td>
                 <td class='fund-starting' style='text-align:right'>" . number_format($f['starting_balance'], 2) . "</td>
@@ -253,8 +254,8 @@ $funds = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
                     </button>
                 </td>
             </tr>";
-                            }
-                            ?>
+                                    }
+                                    ?>
 
                         </tbody>
                     </table>

@@ -39,23 +39,26 @@ $user_id = (int) $_SESSION['user_id'];
 
 
 $member_result = $db->query("
-    SELECT member_id, cust_id 
+    SELECT member_id, cust_id, type 
     FROM tbl_members 
     WHERE user_id = $user_id
     LIMIT 1
 ");
 
-if (!$member_result || $member_result->num_rows == 0) {
-    die("Member is not linked to a customer record.");
-}
+
 
 $member_data = $member_result->fetch_assoc();
-$member_id = (int) $member_data['member_id'];
-$cust_id   = (int) $member_data['cust_id'];
+
+$member_id = (int)$member_data['member_id'];
+$cust_id   = (int)$member_data['cust_id'];
+$member_type = $member_data['type'];
+
+$_SESSION['member_type'] = $member_type;
 
 if ($cust_id <= 0) {
     die("Invalid customer account.");
 }
+
 
 if ($result) {
     while ($row = $result->fetch_assoc()) {
@@ -87,277 +90,29 @@ $supplier_result = $db->query($supplier_select);
 $supplier_row = $supplier_result->fetch_assoc();
 $supplier_total = $supplier_row['total_supplier'];
 
+// Get total capital share for this member
+$capital_share = $db->query("
+    SELECT IFNULL(SUM(t.amount),0) AS total
+    FROM transactions t
+    INNER JOIN accounts a ON a.account_id = t.account_id
+    INNER JOIN account_types at ON at.account_type_id = a.account_type_id
+    WHERE a.member_id = $member_id
+      AND at.type_name = 'capital_share'
+")->fetch_assoc()['total'] ?? 0;
 
-// Loan Stats Queries
-$loan_apps = $db->query("SELECT COUNT(*) AS total FROM tbl_loan_application")->fetch_assoc()['total'];
-$loan_pending = $db->query("SELECT COUNT(*) AS total FROM tbl_loan_application WHERE status='pending'")->fetch_assoc()['total'];
-$loan_approved = $db->query("SELECT COUNT(*) AS total FROM tbl_loan_approval")->fetch_assoc()['total'];
-$loan_disbursed = $db->query("SELECT COUNT(*) AS total FROM tbl_loan_disbursement")->fetch_assoc()['total'];
-$total_disbursed = $db->query("SELECT IFNULL(SUM(amount_released),0) AS total FROM tbl_loan_disbursement")->fetch_assoc()['total'];
-$total_repaid = $db->query("SELECT IFNULL(SUM(amount_paid),0) AS total FROM tbl_loan_repayment")->fetch_assoc()['total'];
+// Get total savings for this member
+$savings_total = $db->query("
+    SELECT IFNULL(SUM(t.amount),0) AS total
+    FROM transactions t
+    INNER JOIN accounts a ON a.account_id = t.account_id
+    INNER JOIN account_types at ON at.account_type_id = a.account_type_id
+    WHERE a.member_id = $member_id
+      AND at.type_name = 'savings'
+")->fetch_assoc()['total'] ?? 0;
 
-$outstanding = $db->query("
-    SELECT 
-    (SELECT IFNULL(SUM(total_payable),0) FROM tbl_loan_transactions) - 
-    (SELECT IFNULL(SUM(amount_paid),0) FROM tbl_loan_repayment) AS outstanding
-")->fetch_assoc()['outstanding'];
-
-$fund_balance = $db->query("SELECT IFNULL(SUM(current_balance),0) AS total FROM tbl_loan_fund")->fetch_assoc()['total'];
-
-// Monthly disbursement for line chart
-$monthly_disb = $db->query("SELECT DATE_FORMAT(release_date, '%Y-%m') AS month, SUM(amount_released) AS total 
-                            FROM tbl_loan_disbursement 
-                            GROUP BY month ORDER BY month ASC");
-$months = [];
-$values = [];
-while ($row = $monthly_disb->fetch_assoc()) {
-    $months[] = $row['month'];
-    $values[] = $row['total'];
-}
-
-// Monthly repayment
-$monthly_rep = $db->query("SELECT DATE_FORMAT(payment_date, '%Y-%m') AS month, SUM(amount_paid) AS total 
-                            FROM tbl_loan_repayment 
-                            GROUP BY month ORDER BY month ASC");
-$months2 = [];
-$values2 = [];
-while ($row = $monthly_rep->fetch_assoc()) {
-    $months2[] = $row['month'];
-    $values2[] = $row['total'];
-}
-
-
-$contributions = $db->query("
-    SELECT IFNULL(SUM(amount), 0) AS total_amount
-    FROM tbl_capital_share
-    WHERE cust_id = $cust_id
-      AND YEAR(contribution_date) = $year
-")->fetch_assoc()['total_amount'];
 ?>
 
-<style>
-    .navbar-brand {
-        display: flex;
-        align-items: center;
-        /* vertically center image + text */
-        gap: 0px;
-        /* space between logo and text */
-        font-weight: 800;
-        color: white;
-        /* adjust to your navbar color */
-        text-decoration: none;
-        font-size: 50px;
-    }
-
-    .navbar-brand img {
-        height: 40px;
-        /* adjust logo height */
-        width: auto;
-        object-fit: contain;
-    }
-
-    .navbar-brand span {
-        white-space: nowrap;
-        /* prevent text from wrapping to next line */
-    }
-
-    /* Mobile App Style */
-    @media (max-width:768px) {
-        .content-wrapper {
-            padding: 10px;
-        }
-
-        .panel {
-            border-radius: 14px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, .06);
-        }
-
-        .col-sm-6.col-md-3 {
-            margin-bottom: 10px;
-        }
-
-        .panel .icon-3x {
-            font-size: 28px !important;
-        }
-
-        .table {
-            display: block;
-            overflow-x: auto;
-            white-space: nowrap;
-        }
-
-        .navbar-nav {
-            display: none;
-        }
-
-        body {
-            padding-bottom: 75px;
-        }
-    }
-
-    .mobile-bottom-nav {
-        display: none;
-    }
-
-    @media (max-width:768px) {
-        .mobile-bottom-nav {
-            display: flex;
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: #fff;
-            border-top: 1px solid #ddd;
-            justify-content: space-around;
-            padding: 8px 0;
-            z-index: 9999;
-        }
-
-        .mobile-bottom-nav a {
-            text-align: center;
-            font-size: 11px;
-            color: #444;
-        }
-
-        .mobile-bottom-nav i {
-            display: block;
-            font-size: 20px;
-            margin-bottom: 2px;
-        }
-
-        .mobile-bottom-nav a.active {
-            color: #26a69a;
-        }
-    }
-
-    /* DEFAULT */
-    .mobile-view {
-        display: none;
-    }
-
-    .desktop-view {
-        display: block;
-    }
-
-    /* MOBILE MODE */
-    @media (max-width: 768px) {
-
-        .desktop-view {
-            display: none;
-        }
-
-        .mobile-view {
-            display: block;
-        }
-
-        body {
-            background: #f4f6f9;
-            padding-bottom: 80px;
-        }
-
-        /* Header */
-        .mobile-header {
-            display: flex;
-            justify-content: space-between;
-            padding: 15px;
-            font-weight: 700;
-            font-size: 20px;
-        }
-
-        .mobile-help {
-            background: #26a69a;
-            color: #fff;
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-        }
-
-        /* Balance Card */
-        .mobile-balance-card {
-            background: #26a69a;
-            ;
-            color: #fff;
-            margin: 15px;
-            padding: 20px;
-            border-radius: 18px;
-            position: relative;
-        }
-
-        .mobile-balance-card h2 {
-            margin: 10px 0;
-            font-size: 28px;
-        }
-
-        .quick-save {
-            position: absolute;
-            right: 15px;
-            bottom: 15px;
-            background: #fff;
-            color: #1e88e5;
-            border: none;
-            padding: 8px 14px;
-            border-radius: 20px;
-            font-weight: 600;
-        }
-
-        /* Actions */
-        .mobile-actions {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 12px;
-            padding: 15px;
-            text-align: center;
-        }
-
-        .mobile-actions a {
-            background: #fff;
-            padding: 15px 5px;
-            border-radius: 12px;
-            font-size: 12px;
-            color: #333;
-            box-shadow: 0 3px 6px rgba(0, 0, 0, .08);
-            text-decoration: none;
-        }
-    }
-
-    .balance-tabs {
-        display: flex;
-        gap: 10px;
-        margin-bottom: 8px;
-    }
-
-    .balance-tabs .tab {
-        font-size: 13px;
-        padding: 4px 12px;
-        border-radius: 20px;
-        background: rgba(255, 255, 255, .25);
-        cursor: pointer;
-        font-weight: 600;
-    }
-
-    .balance-tabs .tab.active {
-        background: #fff;
-        color: #1e88e5;
-    }
-
-    @media (max-width:768px) {
-
-        /* Hide top navbar on mobile */
-        .navbar.navbar-inverse {
-            display: none !important;
-        }
-    }
-
-    @media (max-width:768px) {
-
-        .panel,
-        .panel-white,
-        .content>.row,
-        .panel-heading {
-            display: none !important;
-        }
-    }
-</style>
+<link rel="stylesheet" href="../css/mobile-dashboard.css">
 
 <body class="layout-boxed navbar-top">
     <!-- Main navbar -->
@@ -378,61 +133,128 @@ $contributions = $db->query("
 
         <div class="mobile-view">
 
-            <!-- HEADER -->
+
             <div class="mobile-header">
-                Wellcome back, <?= $_SESSION['fullname'] ?>
-
+                Hello, <?= $_SESSION['fullname'] ?>
+                <button id="toggle-balance" title="Show/Hide Balance" style="background:none; border:none; color:#fff; font-size:18px;">
+                    <i class="icon-eye"></i>
+                </button>
             </div>
 
-            <!-- BALANCE CARD -->
+
             <div class="mobile-balance-card">
-                <small>Capital Share</small>
-                <h2>₱ <?= number_format($contributions, 2) ?></h2>
-                <button class="quick-save" onclick="location.href='capital_share.php'">+ Save</button>
-            </div>
 
-            <!-- QUICK STATS -->
-            <div style="padding:15px;">
-                <div style="display:flex; gap:10px;">
-                    <div style="flex:1; background:#fff; padding:12px; border-radius:12px;">
-                        <small>Sales</small>
-                        <h4><?= $total_sales ?></h4>
+                <div class="balance-tabs">
+                    <?php if ($_SESSION['member_type'] !== 'associate'): ?>
+                        <div class="tab active" data-target="#capital">Capital Share</div>
+                    <?php endif; ?>
+                    <div class="tab " data-target="#savings">Savings</div>
+                </div>
+
+                <div class="tab-content">
+
+                    <div id="capital" class="tab-pane active">
+                        <?php if ($_SESSION['member_type'] !== 'associate'): ?>
+                            <h2 class="balance-amount">₱ <?= number_format($capital_share, 2) ?></h2>
+                        <?php endif; ?>
                     </div>
-                    <div style="flex:1; background:#fff; padding:12px; border-radius:12px;">
-                        <small>Members</small>
-                        <h4><?= $customer_total ?></h4>
+
+                    <div id="savings" class="tab-pane">
+                        <h2 class="balance-amount">₱ <?= number_format($savings_total, 2) ?></h2>
                     </div>
+
                 </div>
             </div>
 
-            <!-- ACTION BUTTONS -->
+
+            <!-- <div class="mobile-stats">
+                <div class="stat-card">
+                    <small>Sales</small>
+                    <h3><?= $total_sales ?></h3>
+                </div>
+                <div class="stat-card">
+                    <small>Members</small>
+                    <h3><?= $customer_total ?></h3>
+                </div>
+                <div class="stat-card">
+                    <small>Suppliers</small>
+                    <h3><?= $supplier_total ?></h3>
+                </div>
+            </div> -->
+
+            <!-- 
             <div class="mobile-actions">
                 <a href="capital_share.php"><i class="icon-plus-circle"></i>Deposit</a>
-                <a href="loan.php"><i class="icon-coins"></i>Loan</a>
-                <a href="#"><i class="icon-history"></i>History</a>
+                <a href="loan.php"> <i class="icon-coins"></i>Loan</a>
+                <a href="transaction_history.php"><i class="icon-history"></i>History</a>
                 <a href="../admin/profile.php"><i class="icon-user"></i>Profile</a>
+            </div> -->
+
+
+            <div class="mobile-loan-summary">
+                <b>Loan Overview</b>
+                <div class="loan-card">
+                    <div>
+                        <small>Disbursed</small>
+                        <h4>₱ 0.00</h4>
+                    </div>
+                    <div>
+                        <small>Repaid</small>
+                        <h4>₱ 0.00</h4>
+                    </div>
+                    <div>
+                        <small>Outstanding</small>
+                        <h4>₱ 0.00</h4>
+                    </div>
+                </div>
             </div>
 
-            <!-- LOAN SUMMARY -->
-            <div style="margin:15px;">
-                <div style="background:#fff;padding:15px;border-radius:15px;">
-                    <b>Loan Overview</b><br><br>
-                    Disbursed: ₱ <?= number_format($total_disbursed, 2) ?><br>
-                    Repaid: ₱ <?= number_format($total_repaid, 2) ?><br>
-                    Outstanding: ₱ <?= number_format($outstanding, 2) ?>
+
+            <div class="mobile-commercial">
+
+                <div class="commercial-header">
+                    Promotions
                 </div>
 
+                <div class="commercial-slider" id="commercialSlider">
 
+                    <div class="commercial-item">
+                        <img src="../images/no-image.png">
+                        <div class="commercial-info">
+                            <h4>Low Interest Loan</h4>
+                            <p>now with only 1% interest.</p>
+                        </div>
+                    </div>
 
+                    <div class="commercial-item">
+                        <img src="../images/no-image.png">
+                        <div class="commercial-info">
+                            <h4>Savings Bonus</h4>
+                            <p> save more.</p>
+                        </div>
+                    </div>
 
+                    <div class="commercial-item">
+                        <img src="../images/no-image.png">
+                        <div class="commercial-info">
+                            <h4>Member Benefits</h4>
+                            <p>Exclusive offers for members.</p>
+                        </div>
+                    </div>
+
+                </div>
 
             </div>
+
 
         </div>
 
 
     </div>
+
     <?php require('../admin/includes/footer-text.php'); ?>
+    </div>
+
     <!-- Page content -->
     <div class="page-content desktop-view">
         <!-- Main content -->
@@ -451,11 +273,11 @@ $contributions = $db->query("
                         <div class="panel panel-body">
                             <div class="media no-margin">
                                 <div class="media-left media-middle">
-                                    <i class="icon-cart icon-3x text-danger-400"></i>
+                                    <i class="icon-credit-card  icon-3x text-danger-400"></i>
                                 </div>
                                 <div class="media-body text-right">
-                                    <h3 class="no-margin text-semibold"><?= $total_sales ?></h3>
-                                    <span class="text-uppercase text-size-mini text-muted">today's Sale</span>
+                                    <h3 class="no-margin text-semibold"><?= $capital_share ?></h3>
+                                    <span class="text-uppercase text-size-mini text-muted">Capital Share</span>
                                 </div>
                             </div>
                         </div>
@@ -464,11 +286,11 @@ $contributions = $db->query("
                         <div class="panel panel-body panel-body-accent">
                             <div class="media no-margin">
                                 <div class="media-left media-middle">
-                                    <i class="icon-users icon-3x text-success-400"></i>
+                                    <i class="icon-piggy-bank icon-3x text-success-400"></i>
                                 </div>
                                 <div class="media-body text-right">
-                                    <h3 class="no-margin text-semibold"><?= $user_total ?></h3>
-                                    <span class="text-uppercase text-size-mini text-muted">Employee</span>
+                                    <h3 class="no-margin text-semibold"><?= $savings_total ?></h3>
+                                    <span class="text-uppercase text-size-mini text-muted">Savings</span>
                                 </div>
                             </div>
                         </div>
@@ -477,11 +299,11 @@ $contributions = $db->query("
                         <div class="panel panel-body">
                             <div class="media no-margin">
                                 <div class="media-left media-middle">
-                                    <i class="icon-users icon-3x text-indigo-400"></i>
+                                    <i class="icon-file-text icon-3x text-indigo-400"></i>
                                 </div>
                                 <div class="media-body text-right">
                                     <h3 class="no-margin text-semibold"><?= $customer_total ?></h3>
-                                    <span class="text-uppercase text-size-mini text-muted">Member</span>
+                                    <span class="text-uppercase text-size-mini text-muted">Loans</span>
                                 </div>
                             </div>
                         </div>
@@ -490,11 +312,11 @@ $contributions = $db->query("
                         <div class="panel panel-body">
                             <div class="media no-margin">
                                 <div class="media-left media-middle">
-                                    <i class="icon-users icon-3x text-blue-400"></i>
+                                    <i class="icon-history icon-3x text-blue-400"></i>
                                 </div>
                                 <div class="media-body text-right">
                                     <h3 class="no-margin text-semibold"><?= $supplier_total ?></h3>
-                                    <span class="text-uppercase text-size-mini text-muted">Supplier</span>
+                                    <span class="text-uppercase text-size-mini text-muted">Transactions</span>
                                 </div>
                             </div>
                         </div>
@@ -502,59 +324,66 @@ $contributions = $db->query("
                 </div>
                 <div class="panel panel-white">
                     <div class="panel-heading">
-                        <h6 class="panel-title"><i class="icon-chart text-teal-400"></i> Daily Sales</h6>
+                        <h6 class="panel-title">
+                            <i class="icon-stats-bars text-teal-400"></i> Overview
+                        </h6>
                     </div>
-                    <!-- <input type="text" id="myInputTextField"> -->
+
                     <div class="panel-body">
                         <div class="row">
-                            <div class="col-sm-6 col-md-3">
+
+                            <!-- Capital Share -->
+                            <div class="col-sm-6 col-md-4">
                                 <div class="panel panel-body bg-success-400 has-bg-image">
                                     <div class="media no-margin">
                                         <div class="media-left media-middle">
-                                            <i class="icon-cart icon-3x opacity-75"></i>
+                                            <i class="icon-coins icon-3x opacity-75"></i>
                                         </div>
                                         <div class="media-body text-right">
-                                            <h3 class="no-margin" id="no-sales"><?= $total_sales ?></h3>
-                                            <span class="text-uppercase text-size-mini">No. of Sales</span>
+                                            <h3 class="no-margin">
+                                                <!-- ₱ <?= number_format($contributions, 2) ?> -->
+                                            </h3>
+                                            <span class="text-uppercase text-size-mini">
+                                                Capital Share
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-sm-6 col-md-3">
+
+                            <!-- Savings -->
+                            <div class="col-sm-6 col-md-4">
                                 <div class="panel panel-body bg-blue-400 has-bg-image">
                                     <div class="media no-margin">
-                                        <div class="media-right media-middle">
-                                            <i class="icon-3x opacity-75">₱</i>
+                                        <div class="media-left media-middle">
+                                            <i class="icon-wallet icon-3x opacity-75"></i>
                                         </div>
                                         <div class="media-body text-right">
-                                            <h3 class="no-margin"><?= number_format($all_total, 2) ?></h3>
-                                            <span class="text-uppercase text-size-mini">Sub Total</span>
+                                            <h3 class="no-margin">
+                                                <!-- ₱ <?= number_format($savings, 2) ?> -->
+                                            </h3>
+                                            <span class="text-uppercase text-size-mini">
+                                                Savings
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-sm-6 col-md-3">
-                                <div class="panel panel-body bg-danger-400 has-bg-image">
-                                    <div class="media no-margin">
-                                        <div class="media-right media-middle">
-                                            <i class="icon-3x opacity-75">₱</i>
-                                        </div>
-                                        <div class="media-body text-right">
-                                            <h3 class="no-margin"><?= number_format($all_discount, 2) ?></h3>
-                                            <span class="text-uppercase text-size-mini">Discount</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-sm-6 col-md-3">
-                                <div class="panel panel-body bg-indigo-400 has-bg-image">
+
+                            <!-- Loans -->
+                            <div class="col-sm-6 col-md-4">
+                                <div class="panel panel-body bg-warning-400 has-bg-image">
                                     <div class="media no-margin">
                                         <div class="media-left media-middle">
-                                            <i class="icon-3x opacity-75">₱</i>
+                                            <i class="icon-credit-card icon-3x opacity-75"></i>
                                         </div>
                                         <div class="media-body text-right">
-                                            <h3 class="no-margin"><?= number_format($all_total, 2) ?></h3>
-                                            <span class="text-uppercase text-size-mini">Total Amount</span>
+                                            <h3 class="no-margin">
+                                                <!-- ₱ <?= number_format($loans, 2) ?> -->
+                                            </h3>
+                                            <span class="text-uppercase text-size-mini">
+                                                Loans Balance
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
@@ -563,11 +392,13 @@ $contributions = $db->query("
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- /content area -->
+            </div>
         </div>
-        <!-- /main content -->
+
+        <!-- /content area -->
+    </div>
+    <!-- /main content -->
     </div>
     <!-- /page content -->
     </div>
@@ -579,10 +410,7 @@ $contributions = $db->query("
         <i class="icon-history"></i>
         transaction
     </a>
-    <a href="dashboard.php">
-        <i class="icon-piggy-bank"></i>
-        Savings
-    </a>
+
     <a href="dashboard.php" class="active">
         <i class="icon-home"></i>
         Home
@@ -610,6 +438,25 @@ $contributions = $db->query("
 
 
 <script type="text/javascript">
+    const tabs = document.querySelectorAll('.balance-tabs .tab');
+    const panes = document.querySelectorAll('.tab-content .tab-pane');
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            tabs.forEach(t => t.classList.remove('active'));
+            panes.forEach(p => p.classList.remove('active'));
+            tab.classList.add('active');
+            document.querySelector(tab.dataset.target).classList.add('active');
+        });
+    });
+
+    // Toggle show/hide balance
+    document.getElementById('toggle-balance').addEventListener('click', function() {
+        const amounts = document.querySelectorAll('.balance-amount');
+        amounts.forEach(a => a.classList.toggle('hide'));
+        this.querySelector('i').classList.toggle('icon-eye-blocked');
+    });
+
     $(function() {
         $('[data-toggle="tooltip"]').tooltip();
 
@@ -631,4 +478,27 @@ $contributions = $db->query("
         });
         return false;
     });
+
+    const slider = document.getElementById('commercialSlider');
+
+    let scrollAmount = 0;
+
+    function autoScrollSlider() {
+
+        const itemWidth = slider.querySelector('.commercial-item').offsetWidth + 16;
+
+        scrollAmount += itemWidth;
+
+        if (scrollAmount >= slider.scrollWidth - slider.clientWidth) {
+            scrollAmount = 0;
+        }
+
+        slider.scrollTo({
+            left: scrollAmount,
+            behavior: 'smooth'
+        });
+
+    }
+
+    setInterval(autoScrollSlider, 5000);
 </script>

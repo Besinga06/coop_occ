@@ -1,45 +1,22 @@
 <?php require('includes/header.php'); ?>
 
 <?php
-/*
-|--------------------------------------------------------------------------
-| DETERMINE CUSTOMER ID BASED ON ROLE
-|--------------------------------------------------------------------------
-*/
 
-// if (isset($_SESSION['session_type']) && $_SESSION['session_type'] === '4') {
-
-//     // Logged in member → use their own ID from session
-//     if (!isset($_SESSION['cust_id'])) {
-//         die("Session error: Member ID not found.");
-//     }
-
-//     $cust_id = (int) $_SESSION['cust_id'];
-// } else {
-
-//     // Admin / staff → must pass cust_id in URL
-//     if (!isset($_GET['cust_id'])) {
-//         die("Invalid request: Missing customer ID.");
-//     }
-
-//     $cust_id = (int) $_GET['cust_id'];
-// }
 
 $cust_id = (int)$_GET['cust_id'];
 
-
-/* ============================================
+/* 
 DATE RANGE FILTER
-============================================ */
+ */
 
 $date_from = isset($_GET['date_from']) ? $_GET['date_from'] : date('Y-01-01');
 $date_to   = isset($_GET['date_to'])   ? $_GET['date_to']   : date('Y-12-31');
 
-/* For display */
+
 $year = date('Y', strtotime($date_from));
 
 
-//--------- CUSTOMER INFO ---------- 
+
 $customer_result = $db->query("
     SELECT * 
     FROM tbl_customer 
@@ -49,27 +26,71 @@ $customer = $customer_result->fetch_assoc();
 
 $customer_name_safe = preg_replace('/[^A-Za-z0-9_\- ]/', '', $customer['name']);
 
-// ---------- CAPITAL SHARE TOTAL (YEAR) ---------- 
-$capital_result = $db->query("
-    SELECT SUM(amount) AS total_capital
-    FROM tbl_capital_share
+/* 
+GET MEMBER ID FROM CUSTOMER ID
+*/
+
+$member_result = $db->query("
+    SELECT member_id
+    FROM tbl_members
     WHERE cust_id = $cust_id
-       AND DATE(contribution_date)
-BETWEEN '$date_from' AND '$date_to'
+    LIMIT 1
 ");
+
+if (!$member_result) {
+
+    die("Member query error: " . $db->error);
+}
+
+if ($member_result->num_rows == 0) {
+
+    die("No member found for this customer.");
+}
+
+$member_data = $member_result->fetch_assoc();
+
+$member_id = (int)$member_data['member_id'];
+
+$member_type_result = $db->query("
+    SELECT type 
+    FROM tbl_members 
+    WHERE member_id = $member_id
+    LIMIT 1
+");
+
+$member_type_data = $member_type_result->fetch_assoc();
+$member_type = $member_type_data['type'] ?? 'associate';
+
+$capital_result = $db->query("
+    SELECT SUM(t.amount) AS total_capital
+    FROM transactions t
+    INNER JOIN accounts a ON a.account_id = t.account_id
+    INNER JOIN account_types at ON at.account_type_id = a.account_type_id
+    WHERE a.member_id = $member_id
+    AND at.type_name = 'capital_share'
+    AND DATE(t.transaction_date)
+    BETWEEN '$date_from' AND '$date_to'
+");
+
 $capital = $capital_result->fetch_assoc();
 
-//---------- CAPITAL SHARE CONTRIBUTIONS ---------- 
+
 $contributions = $db->query("
-    SELECT *
-    FROM tbl_capital_share
-    WHERE cust_id = $cust_id
-        AND DATE(contribution_date)
-BETWEEN '$date_from' AND '$date_to'
-    ORDER BY contribution_date DESC
+    SELECT 
+        t.transaction_date AS contribution_date,
+        t.amount,
+        t.reference_no
+    FROM transactions t
+    INNER JOIN accounts a ON a.account_id = t.account_id
+    INNER JOIN account_types at ON at.account_type_id = a.account_type_id
+    WHERE a.member_id = $member_id
+    AND at.type_name = 'capital_share'
+    AND DATE(t.transaction_date)
+    BETWEEN '$date_from' AND '$date_to'
+    ORDER BY t.transaction_date DESC
 ");
 
-// ---------- CASH SALES SUMMARY ---------- 
+
 $cash_sales = $db->query("
     SELECT 
         s.sales_no,
@@ -118,7 +139,7 @@ BETWEEN '$date_from' AND '$date_to'
 ");
 
 
-// ---------- DISBURSED BENEFITS ---------- 
+
 $disbursed = $db->query("
     SELECT
         dd.reference_no,
@@ -133,7 +154,7 @@ $disbursed = $db->query("
     ORDER BY dd.disbursed_at DESC
 ");
 
-// ---------- PAYMENTS ---------- 
+
 $payments = $db->query("
     SELECT *
     FROM tbl_payments
@@ -281,7 +302,7 @@ $payments = $db->query("
                         <ul class="breadcrumb">
                             <li>
                                 <a href="customer.php">
-                                    <i class="icon-home"></i>Dashboard
+                                    <i class="icon-users"></i>Member
                                 </a>
                             </li>
 
@@ -334,11 +355,20 @@ $payments = $db->query("
                             <div class="panel-body">
                                 <div class="tabbable">
                                     <ul class="nav nav-tabs bg-slate nav-justified">
-                                        <li class="active"><a href="#info" data-toggle="tab">Information</a></li>
-                                        <li><a href="#capital" data-toggle="tab">Capital Share</a></li>
-                                        <li><a href="#cash" data-toggle="tab">Cash Sales</a></li>
-                                        <li><a href="#charge" data-toggle="tab">Charge Sales</a></li>
-                                        <li><a href="#benefits" data-toggle="tab">Disbursed Benefits</a></li>
+
+                                        <?php if ($member_type !== 'associate'): ?>
+                                            <li class="active"><a href="#info" data-toggle="tab">Information</a></li>
+                                            <li><a href="#capital" data-toggle="tab">Capital Share</a></li>
+                                            <li><a href="#savings" data-toggle="tab">Savings</a></li>
+                                            <li><a href="#loan" data-toggle="tab">Loans</a></li>
+                                            <li><a href="#cash" data-toggle="tab">Cash Purchases</a></li>
+                                            <li><a href="#charge" data-toggle="tab">Charge Sales</a></li>
+                                            <li><a href="#benefits" data-toggle="tab">Disbursed Benefits</a></li>
+                                        <?php endif; ?>
+                                        <?php if ($member_type == 'associate'): ?>
+                                            <li class="active"><a href="#info" data-toggle="tab">Information</a></li>
+                                            <li><a href="#savings" data-toggle="tab">Savings</a></li>
+                                        <?php endif; ?>
                                     </ul>
 
                                     <div class="tab-content">
@@ -386,33 +416,77 @@ $payments = $db->query("
                                                     while ($row = $total_charge_paid_result->fetch_assoc()) {
                                                         $total_charge_paid += $row['payments_made'];
                                                     }
+
+                                                    $savings_result = $db->query("
+                                                        SELECT SUM(t.amount) AS total
+                                                        FROM transactions t
+                                                        INNER JOIN accounts a ON a.account_id = t.account_id
+                                                        INNER JOIN account_types at ON at.account_type_id = a.account_type_id
+                                                        WHERE a.member_id = $member_id
+                                                        AND at.type_name = 'savings'
+                                                        AND DATE(t.transaction_date)
+                                                        BETWEEN '$date_from' AND '$date_to'
+                                                    ");
+
+                                                    if ($savings_result && $savings_result->num_rows > 0) {
+                                                        $row = $savings_result->fetch_assoc();
+                                                        $total_savings = $row['total'] ?? 0;
+                                                    }
                                                     ?>
 
                                                     <table class="table table-bordered">
-                                                        <tr>
-                                                            <td>Name</td>
-                                                            <td><?= htmlspecialchars($customer['name']); ?></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td>Address</td>
-                                                            <td><?= htmlspecialchars($customer['address']); ?></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td>Contact</td>
-                                                            <td><?= htmlspecialchars($customer['contact']); ?></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td>Total Capital Share (<?= $year; ?>)</td>
-                                                            <td>₱<?= number_format($capital['total_capital'] ?? 0, 2); ?></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td>Total Cash Sales (<?= $year; ?>)</td>
-                                                            <td>₱<?= number_format($total_cash, 2); ?></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td>Total Paid (Charge Sales <?= $year; ?>)</td>
-                                                            <td>₱<?= number_format($total_charge_paid ?? 0, 2); ?></td>
-                                                        </tr>
+                                                        <?php if ($member_type !== 'associate'): ?>
+                                                            <tr>
+                                                                <td>Name</td>
+                                                                <td><?= htmlspecialchars($customer['name']); ?></td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>Address</td>
+                                                                <td><?= htmlspecialchars($customer['address']); ?></td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>Contact</td>
+                                                                <td><?= htmlspecialchars($customer['contact']); ?></td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>Total Capital Share (<?= $year; ?>)</td>
+                                                                <td>₱<?= number_format($capital['total_capital'] ?? 0, 2); ?></td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>Total Savings Balance (<?= $year; ?>)</td>
+                                                                <td>
+                                                                    ₱<?= number_format($total_savings ?? 0, 2); ?>
+                                                                </td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>Total Cash Purchases (<?= $year; ?>)</td>
+                                                                <td>₱<?= number_format($total_cash, 2); ?></td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>Total Paid (Charge Sales <?= $year; ?>)</td>
+                                                                <td>₱<?= number_format($total_charge_paid, 2); ?></td>
+                                                            </tr>
+                                                        <?php endif; ?>
+                                                        <?php if ($member_type == 'associate'): ?>
+                                                            <tr>
+                                                                <td>Name</td>
+                                                                <td><?= htmlspecialchars($customer['name']); ?></td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>Address</td>
+                                                                <td><?= htmlspecialchars($customer['address']); ?></td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>Contact</td>
+                                                                <td><?= htmlspecialchars($customer['contact']); ?></td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>Total Savings Balance (<?= $year; ?>)</td>
+                                                                <td>
+                                                                    ₱<?= number_format($total_savings ?? 0, 2); ?>
+                                                                </td>
+                                                            </tr>
+                                                        <?php endif; ?>
                                                     </table>
                                                 </div>
                                             </div>
@@ -422,8 +496,8 @@ $payments = $db->query("
                                         <div class="tab-pane" id="capital">
                                             <div class="panel panel-white border-top-xlg border-top-teal-400">
                                                 <div class="panel-heading">
-                                                    <h6 class="panel-title">
 
+                                                    <h6 class="panel-title">
                                                         <i class="icon-piggy-bank position-left text-teal-400"></i>
 
                                                         Capital Share
@@ -431,22 +505,22 @@ $payments = $db->query("
                                                         <small style="margin-left:10px; color:#777;">
 
                                                             (<?= date('M d, Y', strtotime($date_from)) ?>
-
                                                             to
 
                                                             <?= date('M d, Y', strtotime($date_to)) ?>)
 
                                                         </small>
 
-                                                    </h6>
 
+                                                    </h6>
                                                 </div>
                                                 <div class="panel-body">
                                                     <table class="table table-bordered table-hover">
                                                         <thead>
                                                             <tr style="background:#eee">
+                                                                <th>Reference</th>
                                                                 <th>Date</th>
-                                                                <th>Amount</th>
+                                                                <th class="text-right">Amount</th>
                                                             </tr>
                                                         </thead>
                                                         <tbody>
@@ -455,17 +529,182 @@ $payments = $db->query("
 
                                                             while ($c = $contributions->fetch_assoc()) {
                                                                 $hasContrib = true;
-                                                                echo "<tr>
-                                                             <td>" . date('M d, Y', strtotime($c['contribution_date'])) . "</td>
-                                                             <td>₱" . number_format($c['amount'], 2) . "</td>
-                                                             </tr>";
+
+                                                                $reference_no = htmlspecialchars($c['reference_no']);
+                                                                $date = date('M d, Y', strtotime($c['contribution_date']));
+                                                                $amount = number_format($c['amount'], 2);
+                                                                echo "
+                                                            <tr>
+                                                                <td>
+                                                                    <a href='javascript:void(0);'
+                                                                       onclick='view_capital_receipt(this)'
+                                                                       data-reference='{$reference_no}'
+                                                                       style='font-weight:600; color:#26a69a;'>
+                                                                       {$reference_no}
+                                                                    </a>
+                                                                </td>
+                                                                <td>{$date}</td>
+                                                                <td class='text-right'>₱{$amount}</td>
+                                                            </tr>";
                                                             }
 
                                                             if (!$hasContrib) {
-                                                                echo "<tr><td colspan='2'>No contributions found for $year.</td></tr>";
+                                                                echo "
+                                                            <tr>
+                                                                <td colspan='3' class='text-center'>No contributions found for {$year}.</td>
+                                                            </tr>";
                                                             }
                                                             ?>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
 
+
+                                        <div class="tab-pane" id="savings">
+                                            <div class="panel panel-white border-top-xlg border-top-teal-400">
+                                                <div class="panel-heading">
+                                                    <h6 class="panel-title"><i class="icon-wallet position-left text-teal-400"></i> Savings (<?= $year; ?>)</h6>
+                                                </div>
+                                                <div class="panel-body">
+                                                    <table class="table table-bordered table-hover">
+                                                        <thead>
+                                                            <tr style="background:#eee">
+                                                                <th>Reference</th>
+                                                                <th>Date</th>
+                                                                <th class="text-right text-success">Credit</th>
+                                                                <th class="text-right text-danger">Debit</th>
+                                                                <th class="text-right">Balance</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <?php
+                                                            $balance = 0;
+
+                                                            $savings_result = $db->query("
+                                                                SELECT 
+                                                                    t.transaction_date,
+                                                                    t.amount,
+                                                                    t.reference_no,
+                                                                    tt.type_name
+                                                                FROM transactions t
+                                                                INNER JOIN accounts a 
+                                                                    ON a.account_id = t.account_id
+                                                                INNER JOIN account_types at 
+                                                                    ON at.account_type_id = a.account_type_id
+                                                                INNER JOIN transaction_types tt
+                                                                    ON tt.transaction_type_id = t.transaction_type_id
+                                                                WHERE a.member_id = $member_id
+                                                                AND at.type_name = 'savings'
+                                                                AND YEAR(t.transaction_date) = $year
+                                                                ORDER BY t.transaction_date ASC, t.transaction_id ASC
+                                                            ");
+
+                                                            if ($savings_result->num_rows > 0) {
+
+                                                                while ($s = $savings_result->fetch_assoc()) {
+
+                                                                    $reference = htmlspecialchars($s['reference_no']);
+                                                                    $date = date('M d, Y', strtotime($s['transaction_date']));
+                                                                    $amount = floatval($s['amount']);
+
+                                                                    $credit = '';
+                                                                    $debit = '';
+
+                                                                    if ($s['type_name'] == 'deposit') {
+
+                                                                        $credit = number_format($amount, 2);
+                                                                        $balance += $amount;
+                                                                    } elseif ($s['type_name'] == 'withdrawal') {
+
+                                                                        $debit = number_format($amount, 2);
+                                                                        $balance -= $amount;
+                                                                    }
+
+                                                                    echo "
+                                                                    <tr>
+
+                                                                        <td>
+                                                                            <a href='javascript:void(0);'
+                                                                               onclick='view_savings_receipt(this)'
+                                                                               data-reference='{$reference}'
+                                                                               style='font-weight:600; color:#26a69a;'>
+                                                                               {$reference}
+                                                                            </a>
+                                                                        </td>
+
+                                                                        <td>{$date}</td>
+
+                                                                        <td class='text-right text-success'>
+                                                                            " . ($credit ? "₱{$credit}" : "") . "
+                                                                        </td>
+
+                                                                        <td class='text-right text-danger'>
+                                                                            " . ($debit ? "₱{$debit}" : "") . "
+                                                                        </td>
+
+                                                                        <td class='text-right'>
+                                                                            ₱" . number_format($balance, 2) . "
+                                                                        </td>
+
+                                                                    </tr>
+                                                                    ";
+                                                                }
+                                                            } else {
+
+                                                                echo "
+                                                                <tr>
+                                                                    <td colspan='5' class='text-center'>
+                                                                        No savings found for {$year}.
+                                                                    </td>
+                                                                </tr>
+                                                                ";
+                                                            }
+                                                            ?>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="tab-pane" id="loan">
+                                            <div class="panel panel-white border-top-xlg border-top-teal-400">
+                                                <div class="panel-heading">
+                                                    <h6 class="panel-title"><i class="icon-coins position-left text-teal-400"></i> Loan History (<?= $year; ?>)</h6>
+                                                </div>
+                                                <div class="panel-body">
+                                                    <table class="table table-bordered table-hover">
+                                                        <thead>
+                                                            <tr style="background:#eee">
+                                                                <th>Loan No</th>
+                                                                <th>Date Applied</th>
+                                                                <th>Amount</th>
+                                                                <th>Status</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <?php
+                                                            //                                         $loan_result = $db->query("
+                                                            //     SELECT loan_id, date_applied, amount, status 
+                                                            //     FROM tbl_loan_application 
+                                                            //     WHERE member_id = $member_id 
+                                                            //     ORDER BY date_applied DESC
+                                                            // ");
+
+                                                            //                                         if ($loan_result->num_rows > 0) {
+                                                            //                                             while ($loan = $loan_result->fetch_assoc()) {
+                                                            //                                                 echo "<tr>
+                                                            //             <td>" . htmlspecialchars($loan['loan_id']) . "</td>
+                                                            //             <td>" . date('M d, Y', strtotime($loan['date_applied'])) . "</td>
+                                                            //             <td>₱" . number_format($loan['amount'], 2) . "</td>
+                                                            //             <td>" . htmlspecialchars(ucfirst($loan['status'])) . "</td>
+                                                            //         </tr>";
+                                                            //                                             }
+                                                            //                                         } else {
+                                                            //                                             echo "<tr><td colspan='4' class='text-center'>No loans found for $year.</td></tr>";
+                                                            //                                         }
+                                                            ?>
                                                         </tbody>
                                                     </table>
                                                 </div>
@@ -819,6 +1058,89 @@ $payments = $db->query("
                         window.frames["frame1"].print();
                         frame1.remove();
                     }, 500);
+                }
+
+
+                function view_capital_receipt(el) {
+                    var reference_no = $(el).attr('data-reference');
+
+                    if (!reference_no) {
+                        alert("Reference number not found.");
+                        return;
+                    }
+
+                    // show loader
+                    $("#show-data-all").html(
+                        '<div style="text-align:center;padding:40px;">' +
+                        '<img src="../images/LoaderIcon.gif">' +
+                        '</div>'
+                    );
+
+                    $.ajax({
+                        type: 'POST',
+                        url: '../transaction.php',
+                        data: {
+                            view_capital_receipt: true,
+                            reference_no: reference_no
+                        },
+
+                        success: function(msg) {
+                            $("#modal-all").modal('show');
+
+                            $("#title-all").html(
+                                'Capital Share Receipt : <b class="text-success">' +
+                                reference_no +
+                                '</b>'
+                            );
+
+                            $("#show-data-all").html(msg);
+                        },
+
+                        error: function() {
+                            alert("Something went wrong.");
+                        }
+                    });
+                }
+
+                function view_savings_receipt(el) {
+                    var reference_no = $(el).attr('data-reference');
+                    if (!reference_no) {
+                        alert("Reference number not found.");
+                        return;
+                    }
+                    // show loader
+                    $("#show-data-all").html(
+                        '<div style="text-align:center;padding:40px;">' +
+                        '<img src="../images/LoaderIcon.gif">' +
+                        '</div>'
+                    );
+                    $.ajax({
+                        type: 'POST',
+                        url: '../transaction.php',
+
+                        data: {
+                            view_savings_receipt: true,
+                            reference_no: reference_no
+                        },
+                        success: function(msg) {
+
+                            $("#modal-all").modal('show');
+
+                            $("#title-all").html(
+                                'Savings Receipt : <b class="text-success">' +
+                                reference_no +
+                                '</b>'
+                            );
+
+                            $("#show-data-all").html(msg);
+                        },
+
+                        error: function() {
+                            alert("Something went wrong.");
+                        }
+
+                    });
+
                 }
             </script>
 

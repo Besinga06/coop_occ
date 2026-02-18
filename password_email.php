@@ -40,7 +40,7 @@ function sendMemberEmail($email, $fullname, $plain_password)
 
             Your cooperative account has been successfully created.<br><br>
 
-            <b>Email:</b> $email<br>
+            <b>Username:</b> $email<br>
             <b>Password:</b> $plain_password<br><br>
 
             Please login and change your password immediately.<br><br>

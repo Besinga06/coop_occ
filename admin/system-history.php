@@ -320,7 +320,7 @@ if (isset($_SESSION['history-report'])) {
 												' <i class="icon-user text-teal-400"></i> Employee : ' . $employee_name;
 										} elseif ($row['history_type'] == 15) {
 											$history_type = "New Member";
-											$details_data = '<i class="icon-users text-teal-400"></i> Member ID: ' . ($details->cust_id ?? '-') .
+											$details_data = '<i class="icon-users text-teal-400"></i> Member Name: ' . ($customer_name ?? '-') .
 												' <i class="icon-user text-teal-400"></i> Employee : ' . $employee_name;
 										} elseif ($row['history_type'] == 26) {
 											$history_type = "Login";
@@ -331,6 +331,56 @@ if (isset($_SESSION['history-report'])) {
 											$details_data = '<i class="icon-users text-teal-400"></i> Member: ' . $customer_name .
 												' <i class="icon-coin-dollar text-teal-400"></i> Amount: ' . ($details->amount ?? '-') .
 												' <i class="icon-hour-glass2 text-teal-400"></i> Term: ' . ($details->term ?? '-') . ' months' .
+												' <i class="icon-user text-teal-400"></i> Employee: ' . $employee_name;
+										} elseif ($row['history_type'] == 51) {
+											$history_type = "Savings Deposit";
+											$member_name = 'Unknown Member';
+											if (!empty($details->member_id)) {
+												$mid = intval($details->member_id);
+												$result_member = $db->query("
+												    SELECT CONCAT(first_name,' ',last_name) AS name
+												    FROM tbl_members
+												    WHERE member_id = '$mid'
+												    LIMIT 1
+												");
+												if ($result_member && $result_member->num_rows > 0) {
+													$data_member = $result_member->fetch_assoc();
+													$member_name = $data_member['name'];
+												}
+											}
+											$amount = isset($details->amount)
+												? '₱' . number_format($details->amount, 2)
+												: '-';
+											$reference = $details->reference ?? '-';
+											$details_data =
+												'<i class="icon-users text-teal-400"></i> Member: ' . $member_name .
+												' <i class="icon-file-text text-teal-400"></i> Ref#: ' . $reference .
+												' <i class="icon-coin-dollar text-teal-400"></i> Amount: ' . $amount .
+												' <i class="icon-user text-teal-400"></i> Employee: ' . $employee_name;
+										} elseif ($row['history_type'] == 50) {
+											$history_type = "Capital Share Deposit";
+											$member_name = 'Unknown Member';
+											if (!empty($details->member_id)) {
+												$mid = intval($details->member_id);
+												$result_member = $db->query("
+												    SELECT CONCAT(first_name,' ',last_name) AS name
+												    FROM tbl_members
+												    WHERE member_id = '$mid'
+												    LIMIT 1
+												");
+												if ($result_member && $result_member->num_rows > 0) {
+													$data_member = $result_member->fetch_assoc();
+													$member_name = $data_member['name'];
+												}
+											}
+											$amount = isset($details->amount)
+												? '₱' . number_format($details->amount, 2)
+												: '-';
+											$reference = $details->reference ?? '-';
+											$details_data =
+												'<i class="icon-users text-teal-400"></i> Member: ' . $member_name .
+												' <i class="icon-file-text text-teal-400"></i> Ref#: ' . $reference .
+												' <i class="icon-coin-dollar text-teal-400"></i> Amount: ' . $amount .
 												' <i class="icon-user text-teal-400"></i> Employee: ' . $employee_name;
 										} else {
 											$history_type = $row['history_type'];

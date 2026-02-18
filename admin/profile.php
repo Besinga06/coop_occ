@@ -97,6 +97,30 @@ $result = $db->query($query);
 			color: #26a69a;
 		}
 	}
+
+	@media (max-width:768px) {
+
+		/* Hide desktop navbar */
+		.navbar.navbar-inverse {
+			display: none !important;
+		}
+
+		/* Hide desktop page header */
+		.page-header {
+			display: none !important;
+		}
+
+		/* Hide breadcrumb */
+		.breadcrumb-line {
+			display: none !important;
+		}
+
+		/* Optional: remove extra top spacing */
+		.content-wrapper {
+			padding-top: 10px !important;
+		}
+
+	}
 </style>
 
 <body class="layout-boxed navbar-top">
@@ -254,7 +278,7 @@ $result = $db->query($query);
 
 <div class="mobile-bottom-nav">
 	<a href="../member/transaction_history.php">
-		<i class="icon-cart"></i>
+		<i class="icon-history"></i>
 		Transaction
 	</a>
 

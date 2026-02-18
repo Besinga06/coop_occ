@@ -108,7 +108,9 @@ $result = $db->query($query);
                                 </thead>
                                 <tbody>
                                     <?php while ($row = $result->fetch_assoc()) { ?>
-                                        <tr style="cursor:pointer;" onclick="view_details(this)" title="View Customer History">
+                                        <tr style="cursor:pointer;"
+                                            onclick="view_details(this)"
+                                            title="View <?= htmlspecialchars($row['name']); ?>,Transaction History">
 
                                             <td hidden>34236<?= $row['cust_id']; ?></td>
                                             <td> <i class="icon-user icon-2x text-indigo-400"></i><?= $row['name']; ?></td>
@@ -165,109 +167,42 @@ $result = $db->query($query);
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
 
-            <form action="#" id="form-customer" class="form-horizontal" role="form">
-                <input type="hidden" name="save-customer">
-
-                <div class="modal-header bg-teal">
-                    <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
-                    <h5 class="modal-title">
-                        <i class="icon-user-plus"></i> Register New Member
-                    </h5>
-                </div>
-
-                <div class="modal-body">
-
-
+            <form action="#" id="form-customer" class="form-horizontal" role="form"> <input type="hidden" name="save-customer"> <!-- HEADER -->
+                <div class="modal-header bg-teal"> <button type="button" class="close text-white" data-dismiss="modal"> &times; </button>
+                    <h5 class="modal-title"> <i class="icon-user-plus"></i> Register New Member </h5>
+                </div> <!-- BODY -->
+                <div class="modal-body"> <!-- NAME -->
                     <div class="row">
-                        <div class="col-md-6">
-                            <label>First Name</label>
-                            <input class="form-control input-lg" name="first_name" required>
-                        </div>
-
-                        <div class="col-md-6">
-                            <label>Last Name</label>
-                            <input class="form-control input-lg" name="last_name" required>
-                        </div>
+                        <div class="col-md-6"> <label>First Name</label> <input class="form-control input-lg" name="first_name" required> </div>
+                        <div class="col-md-6"> <label>Last Name</label> <input class="form-control input-lg" name="last_name" required> </div>
                     </div>
-
-                    <hr>
-
-
+                    <hr> <!-- GENDER + CONTACT -->
                     <div class="row">
-                        <div class="col-md-6">
-                            <label>Gender</label>
-                            <select name="gender" class="form-control input-lg" required>
+                        <div class="col-md-6"> <label>Gender</label> <select name="gender" class="form-control input-lg" required>
                                 <option value="">-- Select --</option>
                                 <option>Male</option>
                                 <option>Female</option>
                                 <option>Other</option>
-                            </select>
-                        </div>
-
-                        <div class="col-md-6">
-                            <label>Contact Number</label>
-                            <input class="form-control input-lg" name="contact">
-                        </div>
+                            </select> </div>
+                        <div class="col-md-6"> <label>Contact Number</label> <input class="form-control input-lg" name="contact"> </div>
                     </div>
-
-                    <hr>
-
-
+                    <hr> <!-- EMAIL + MEMBER TYPE -->
                     <div class="row">
-                        <div class="col-md-6">
-                            <label>Email</label>
-                            <input type="email" class="form-control input-lg" name="email" required>
-                        </div>
-
-                        <div class="col-md-6">
-                            <label>Password</label>
-                            <input type="password" class="form-control input-lg" name="password">
-                        </div>
-                    </div>
-
-                    <hr>
-
-
-                    <div class="form-group">
-                        <label>Complete Address</label>
-                        <textarea name="address" rows="3" class="form-control"></textarea>
-                    </div>
-
-                    <hr>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <label>Member Type</label>
-                            <select name="member_type" id="member_type" class="form-control input-lg" required>
+                        <div class="col-md-6"> <label>Email</label> <input type="email" class="form-control input-lg" name="email" required> </div>
+                        <div class="col-md-6"> <label>Member Type</label> <select name="member_type" id="member_type" class="form-control input-lg" required>
                                 <option value="">-- Select Member Type --</option>
                                 <option value="regular">Regular</option>
                                 <option value="associate">Associate</option>
-                            </select>
-                        </div>
+                            </select> </div>
                     </div>
-
-                    <hr>
-                    <div class="form-group" id="capitalShareGroup">
-                        <label>Capital Share Contribution</label>
-                        <div class="input-group">
-                            <span class="input-group-addon">₱</span>
-                            <input type="number"
-                                name="capital_share"
-                                class="form-control input-lg"
-                                min="0"
-                                step="0.01"
-                                value="0">
-                        </div>
+                    <hr> <!-- ADDRESS -->
+                    <div class="form-group"> <label>Complete Address</label> <textarea name="address" rows="3" class="form-control"> </textarea> </div>
+                    <hr> <!-- CAPITAL SHARE -->
+                    <div class="form-group" id="capitalShareGroup"> <label> Capital Share Contribution </label>
+                        <div class="input-group"> <span class="input-group-addon"> ₱ </span> <input type="number" name="capital_share" class="form-control input-lg" min="0" step="0.01" value="0"> </div>
                     </div>
-
-                </div>
-
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn bg-teal-600 btn-lg">
-                        <i class="icon-check"></i> Save Member
-                    </button>
-                </div>
-
+                </div> <!-- FOOTER -->
+                <div class="modal-footer"> <button type="button" class="btn btn-default" data-dismiss="modal"> Cancel </button> <button type="submit" id="btnSaveMember" class="btn bg-teal-600 btn-lg"> <span id="btnText"> <i class="icon-check"></i> Save Member </span> <span id="btnLoader" style="display:none;"> <i class="icon-spinner spinner"></i> Saving... </span> </button> </div>
             </form>
         </div>
     </div>

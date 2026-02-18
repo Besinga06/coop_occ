@@ -61,43 +61,43 @@ $supplier_row = $supplier_result->fetch_assoc();
 $supplier_total = $supplier_row['total_supplier'];
 
 
-// Loan Stats Queries
-$loan_apps = $db->query("SELECT COUNT(*) AS total FROM tbl_loan_application")->fetch_assoc()['total'];
-$loan_pending = $db->query("SELECT COUNT(*) AS total FROM tbl_loan_application WHERE status='pending'")->fetch_assoc()['total'];
-$loan_approved = $db->query("SELECT COUNT(*) AS total FROM tbl_loan_approval")->fetch_assoc()['total'];
-$loan_disbursed = $db->query("SELECT COUNT(*) AS total FROM tbl_loan_disbursement")->fetch_assoc()['total'];
-$total_disbursed = $db->query("SELECT IFNULL(SUM(amount_released),0) AS total FROM tbl_loan_disbursement")->fetch_assoc()['total'];
-$total_repaid = $db->query("SELECT IFNULL(SUM(amount_paid),0) AS total FROM tbl_loan_repayment")->fetch_assoc()['total'];
+// // Loan Stats Queries
+// $loan_apps = $db->query("SELECT COUNT(*) AS total FROM tbl_loan_application")->fetch_assoc()['total'];
+// $loan_pending = $db->query("SELECT COUNT(*) AS total FROM tbl_loan_application WHERE status='pending'")->fetch_assoc()['total'];
+// $loan_approved = $db->query("SELECT COUNT(*) AS total FROM tbl_loan_approval")->fetch_assoc()['total'];
+// $loan_disbursed = $db->query("SELECT COUNT(*) AS total FROM tbl_loan_disbursement")->fetch_assoc()['total'];
+// $total_disbursed = $db->query("SELECT IFNULL(SUM(amount_released),0) AS total FROM tbl_loan_disbursement")->fetch_assoc()['total'];
+// $total_repaid = $db->query("SELECT IFNULL(SUM(amount_paid),0) AS total FROM tbl_loan_repayment")->fetch_assoc()['total'];
 
-$outstanding = $db->query("
-    SELECT 
-    (SELECT IFNULL(SUM(total_payable),0) FROM tbl_loan_transactions) - 
-    (SELECT IFNULL(SUM(amount_paid),0) FROM tbl_loan_repayment) AS outstanding
-")->fetch_assoc()['outstanding'];
+// $outstanding = $db->query("
+//     SELECT 
+//     (SELECT IFNULL(SUM(total_payable),0) FROM tbl_loan_transactions) - 
+//     (SELECT IFNULL(SUM(amount_paid),0) FROM tbl_loan_repayment) AS outstanding
+// ")->fetch_assoc()['outstanding'];
 
-$fund_balance = $db->query("SELECT IFNULL(SUM(current_balance),0) AS total FROM tbl_loan_fund")->fetch_assoc()['total'];
+// $fund_balance = $db->query("SELECT IFNULL(SUM(current_balance),0) AS total FROM tbl_loan_fund")->fetch_assoc()['total'];
 
-// Monthly disbursement for line chart
-$monthly_disb = $db->query("SELECT DATE_FORMAT(release_date, '%Y-%m') AS month, SUM(amount_released) AS total 
-                            FROM tbl_loan_disbursement 
-                            GROUP BY month ORDER BY month ASC");
-$months = [];
-$values = [];
-while ($row = $monthly_disb->fetch_assoc()) {
-    $months[] = $row['month'];
-    $values[] = $row['total'];
-}
+// // Monthly disbursement for line chart
+// $monthly_disb = $db->query("SELECT DATE_FORMAT(release_date, '%Y-%m') AS month, SUM(amount_released) AS total 
+//                             FROM tbl_loan_disbursement 
+//                             GROUP BY month ORDER BY month ASC");
+// $months = [];
+// $values = [];
+// while ($row = $monthly_disb->fetch_assoc()) {
+//     $months[] = $row['month'];
+//     $values[] = $row['total'];
+// }
 
-// Monthly repayment
-$monthly_rep = $db->query("SELECT DATE_FORMAT(payment_date, '%Y-%m') AS month, SUM(amount_paid) AS total 
-                            FROM tbl_loan_repayment 
-                            GROUP BY month ORDER BY month ASC");
-$months2 = [];
-$values2 = [];
-while ($row = $monthly_rep->fetch_assoc()) {
-    $months2[] = $row['month'];
-    $values2[] = $row['total'];
-}
+// // Monthly repayment
+// $monthly_rep = $db->query("SELECT DATE_FORMAT(payment_date, '%Y-%m') AS month, SUM(amount_paid) AS total 
+//                             FROM tbl_loan_repayment 
+//                             GROUP BY month ORDER BY month ASC");
+// $months2 = [];
+// $values2 = [];
+// while ($row = $monthly_rep->fetch_assoc()) {
+//     $months2[] = $row['month'];
+//     $values2[] = $row['total'];
+// }
 
 ?>
 

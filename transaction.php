@@ -264,7 +264,7 @@ if (isset($_POST['save-customer'])) {
         'last_name'  => trim($_POST['last_name']),
         'gender'     => $_POST['gender'],
         'email'      => trim($_POST['email']),
-        'password'   => $_POST['password'],
+
         'address'    => trim($_POST['address']),
         'contact'    => trim($_POST['contact']),
         'member_type' => $_POST['member_type'],
@@ -283,54 +283,37 @@ function save_member($data)
     $full_name = $data['first_name'] . ' ' . $data['last_name'];
 
 
-    $stmt = $db->prepare("SELECT user_id FROM tbl_users WHERE username = ?");
-    $stmt->bind_param("s", $data['email']);
-    $stmt->execute();
-    if ($stmt->get_result()->num_rows > 0) {
-        return "duplicate";
-    }
-    $stmt->close();
+
 
     $db->begin_transaction();
 
     try {
-
-
-        $stmt = $db->prepare(
-            "INSERT INTO tbl_customer (name, address, contact) VALUES (?, ?, ?)"
-        );
+        // Insert into tbl_customer
+        $stmt = $db->prepare("INSERT INTO tbl_customer (name, address, contact) VALUES (?, ?, ?)");
         $stmt->bind_param("sss", $full_name, $data['address'], $data['contact']);
-        $stmt->execute();
+        if (!$stmt->execute()) throw new Exception("Customer Insert Error: " . $stmt->error);
         $cust_id = $stmt->insert_id;
         $stmt->close();
 
+        // Insert into tbl_users
 
         $plain_password = substr(str_shuffle('ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'), 0, 8);
 
-        /* HASH PASSWORD */
+
         $hashed_password = password_hash($plain_password, PASSWORD_DEFAULT);
         $usertype = 4;
 
-        $stmt = $db->prepare(
-            "INSERT INTO tbl_users (username, password, usertype, fullname)
-             VALUES (?, ?, ?, ?)"
-        );
-        $stmt->bind_param(
-            "ssis",
-            $data['email'],
-            $hashed_password,
-            $usertype,
-            $full_name
-        );
-        $stmt->execute();
+        $stmt = $db->prepare("INSERT INTO tbl_users (username, password, usertype, fullname) VALUES (?, ?, ?, ?)");
+        $stmt->bind_param("ssis", $data['email'], $hashed_password, $usertype, $full_name);
+        if (!$stmt->execute()) throw new Exception("User Insert Error: " . $stmt->error);
         $user_id = $stmt->insert_id;
         $stmt->close();
 
-
+        // Insert into tbl_members
         $stmt = $db->prepare(
             "INSERT INTO tbl_members
-            (user_id, cust_id, first_name, last_name, gender, email, address, phone, type)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    (user_id, cust_id, first_name, last_name, gender, email, address, phone, type)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
         );
 
         $stmt->bind_param(
@@ -345,36 +328,76 @@ function save_member($data)
             $data['contact'],
             $data['member_type']
         );
-        $stmt->execute();
+        if (!$stmt->execute()) throw new Exception("Member Insert Error: " . $stmt->error);
+        $member_id = $stmt->insert_id;
         $stmt->close();
 
+        // Ensure account type exists
+        $stmt = $db->prepare("SELECT account_type_id FROM account_types WHERE type_name='capital_share' LIMIT 1");
+        $stmt->execute();
+        $stmt->store_result();
+        if ($stmt->num_rows === 0) throw new Exception("Account type 'Capital Share' missing");
+        $stmt->bind_result($account_type_id);
+        $stmt->fetch();
+        $stmt->close();
+
+        // Insert account
+        $stmt = $db->prepare("INSERT INTO accounts (member_id, account_type_id, account_number) VALUES (?, ?, ?)");
+        $account_number = 'CS-' . str_pad($member_id, 6, '0', STR_PAD_LEFT);
+        $stmt->bind_param("iis", $member_id, $account_type_id, $account_number);
+        if (!$stmt->execute()) throw new Exception("Account Insert Error: " . $stmt->error);
+        $account_id = $stmt->insert_id;
+        $stmt->close();
+
+        // Insert initial capital share transaction if regular member
         if ($data['member_type'] === 'regular' && $data['capital_share'] > 0) {
-            $stmt = $db->prepare(
-                "INSERT INTO tbl_capital_share (cust_id, amount)
-                 VALUES (?, ?)"
-            );
-            $stmt->bind_param("id", $cust_id, $data['capital_share']);
+            // Ensure transaction type exists
+            $stmt = $db->prepare("SELECT transaction_type_id FROM transaction_types WHERE type_name='capital_share' LIMIT 1");
             $stmt->execute();
+            $stmt->store_result();
+            if ($stmt->num_rows === 0) throw new Exception("Transaction type 'Capital Share' missing");
+            $stmt->bind_result($transaction_type_id);
+            $stmt->fetch();
+            $stmt->close();
+
+
+
+
+
+
+            $reference_no = 'CS-' . str_pad($account_id, 6, '0', STR_PAD_LEFT);
+
+            $stmt = $db->prepare(
+                "INSERT INTO transactions 
+    (account_id, transaction_type_id, amount, transaction_date, reference_no, remarks) 
+    VALUES (?, ?, ?, NOW(), ?, ?)"
+            );
+
+            $remarks = 'Initial Capital Share';
+
+            $stmt->bind_param(
+                "iidss",
+                $account_id,
+                $transaction_type_id,
+                $data['capital_share'],
+                $reference_no,
+                $remarks
+            );
+
+            if (!$stmt->execute()) {
+                throw new Exception("Capital Share Transaction Insert Error: " . $stmt->error);
+            }
+
             $stmt->close();
         }
 
-        $details = json_encode([
-            'cust_id' => $cust_id,
-            'user_id' => $_SESSION['user_id'] ?? 0
-        ]);
-
-
-        $today = date("Y-m-d H:i:s");
-        $stmt = $db->prepare(
-            "INSERT INTO tbl_history (date_history, details, history_type)
-             VALUES (?, ?, '15')"
-        );
-
-        $stmt->bind_param("ss", $today, $details);
-        $stmt->execute();
-        $stmt->close();
-
         $db->commit();
+
+        /* SEND EMAIL */
+        if (!sendMemberEmail($data['email'], $full_name, $plain_password)) {
+            error_log("Email sending failed for: " . $data['email']);
+        }
+
         return "1";
     } catch (Exception $e) {
         $db->rollback();
@@ -2993,33 +3016,305 @@ if (isset($_POST['save_payment'])) {
     exit;
 }
 
-// ----------------------------
-// Save Capital Share
-// ----------------------------
-if (isset($_POST['save-capital-share'])) {
+
+if (isset($_POST['view_capital_receipt'])) {
     require('db_connect.php');
 
-    $cust_id = intval($_POST['cust_id']);
-    $amount = floatval($_POST['amount']);
-    $date   = date('Y-m-d H:i:s'); // current date and time
+    $_GET['reference_no'] = $_POST['reference_no'];
 
-    if ($cust_id > 0 && $amount > 0) {
-        $stmt = $db->prepare("
-            INSERT INTO tbl_capital_share (cust_id, amount, contribution_date) 
-            VALUES (?, ?, ?)
+    require('admin/capital_share_details.php');
+
+    exit;
+}
+
+// ----------------------------
+// Save Capital Share (NEW STRUCTURE)
+// ----------------------------
+if (isset($_POST['save-capital-share'])) {
+
+    require('db_connect.php');
+    session_start();
+
+    $member_id = intval($_POST['member_id']);
+    $amount    = floatval($_POST['amount']);
+    $remarks   = 'Capital Share Contribution';
+
+    $user_id  = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : 0;
+    $fullname = isset($_SESSION['fullname'])
+        ? $db->real_escape_string($_SESSION['fullname'])
+        : "System";
+
+    if ($member_id <= 0 || $amount <= 0) {
+        echo "Invalid input";
+        exit;
+    }
+
+    $db->begin_transaction();
+
+    try {
+        $typeQuery = $db->query("
+            SELECT account_type_id 
+            FROM account_types 
+            WHERE type_name = 'capital_share'
+            LIMIT 1
         ");
-        $stmt->bind_param("ids", $cust_id, $amount, $date);
 
-        if ($stmt->execute()) {
-            echo "1";
-        } else {
-            echo "0";
+        if (!$typeQuery || $typeQuery->num_rows == 0) {
+            throw new Exception("Capital Share account type not found.");
         }
-    } else {
-        echo "0";
+
+        $type = $typeQuery->fetch_assoc();
+        $account_type_id = intval($type['account_type_id']);
+        $stmt = $db->prepare("
+            SELECT account_id 
+            FROM accounts 
+            WHERE member_id = ? 
+            AND account_type_id = ?
+            LIMIT 1
+        ");
+        $stmt->bind_param("ii", $member_id, $account_type_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        if ($result->num_rows > 0) {
+            $account = $result->fetch_assoc();
+            $account_id = intval($account['account_id']);
+        } else {
+            $account_number = 'CAP-' . $member_id . '-' . time();
+
+            $stmt = $db->prepare("
+                INSERT INTO accounts 
+                (member_id, account_type_id, account_number)
+                VALUES (?, ?, ?)
+            ");
+
+            $stmt->bind_param("iis", $member_id, $account_type_id, $account_number);
+            $stmt->execute();
+
+            $account_id = intval($stmt->insert_id);
+
+            if ($account_id <= 0) {
+                throw new Exception("Failed to create account.");
+            }
+        }
+
+
+
+        $reference = 'CS-' . str_pad($account_id, 6, '0', STR_PAD_LEFT) . '-' . date('ymd');
+
+
+
+        $typeQuery = $db->query("
+            SELECT transaction_type_id 
+            FROM transaction_types 
+            WHERE type_name = 'deposit'
+            LIMIT 1
+        ");
+
+        if (!$typeQuery || $typeQuery->num_rows == 0) {
+            throw new Exception("Deposit transaction type not found.");
+        }
+
+        $type = $typeQuery->fetch_assoc();
+        $transaction_type_id = intval($type['transaction_type_id']);
+
+        $stmt = $db->prepare("
+            INSERT INTO transactions
+            (account_id, transaction_type_id, amount, reference_no, remarks)
+            VALUES (?, ?, ?, ?, ?)
+        ");
+
+        $stmt->bind_param(
+            "iidss",
+            $account_id,
+            $transaction_type_id,
+            $amount,
+            $reference,
+            $remarks
+        );
+
+        if (!$stmt->execute()) {
+            throw new Exception("Failed to save transaction.");
+        }
+        $detailsArray = [
+
+            'member_id'  => $member_id,
+            'account_id' => $account_id,
+            'amount'     => $amount,
+            'reference'  => $reference,
+            'type'       => 'capital_share',
+            'user_id'    => $user_id,
+            'employee'   => $fullname,
+            'date'       => date("Y-m-d H:i:s")
+
+        ];
+        $detailsJson = $db->real_escape_string(json_encode($detailsArray));
+        $historyQuery = "
+            INSERT INTO tbl_history
+            (details, history_type, field_status)
+            VALUES
+            ('$detailsJson', 50, 0)
+        ";
+        if (!$db->query($historyQuery)) {
+            throw new Exception("Failed to save history.");
+        }
+        $db->commit();
+        echo "1";
+    } catch (Exception $e) {
+        $db->rollback();
+        echo "Error: " . $e->getMessage();
     }
     exit;
 }
+
+
+
+if (isset($_POST['view_savings_receipt'])) {
+    require('db_connect.php');
+    $_GET['reference_no'] = $_POST['reference_no'];
+    require('admin/savings_details.php');
+    exit;
+}
+
+// ----------------------------
+// Save Savings (NEW STRUCTURE)
+// ----------------------------
+if (isset($_POST['save-savings'])) {
+
+    require('db_connect.php');
+    session_start();
+
+    $member_id = intval($_POST['member_id']);
+    $amount    = floatval($_POST['amount']);
+    $remarks   = 'Savings Deposit';
+
+    $user_id  = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : 0;
+    $fullname = isset($_SESSION['fullname'])
+        ? $db->real_escape_string($_SESSION['fullname'])
+        : "System";
+
+    if ($member_id <= 0 || $amount <= 0) {
+        echo "Invalid input";
+        exit;
+    }
+
+    $db->begin_transaction();
+
+    try {
+
+        $typeQuery = $db->query("
+            SELECT account_type_id 
+            FROM account_types 
+            WHERE type_name = 'savings'
+            LIMIT 1
+        ");
+
+        if (!$typeQuery || $typeQuery->num_rows == 0) {
+            throw new Exception("Savings account type not found.");
+        }
+
+        $type = $typeQuery->fetch_assoc();
+        $account_type_id = intval($type['account_type_id']);
+
+       
+        $stmt = $db->prepare("
+            SELECT account_id 
+            FROM accounts 
+            WHERE member_id = ? 
+            AND account_type_id = ?
+            LIMIT 1
+        ");
+        $stmt->bind_param("ii", $member_id, $account_type_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        if ($result->num_rows > 0) {
+            $account = $result->fetch_assoc();
+            $account_id = intval($account['account_id']);
+        } else {
+            $account_number = 'SAV-' . $member_id . '-' . time();
+
+            $stmt = $db->prepare("
+                INSERT INTO accounts 
+                (member_id, account_type_id, account_number)
+                VALUES (?, ?, ?)
+            ");
+            $stmt->bind_param("iis", $member_id, $account_type_id, $account_number);
+            $stmt->execute();
+
+            $account_id = intval($stmt->insert_id);
+
+            if ($account_id <= 0) {
+                throw new Exception("Failed to create savings account.");
+            }
+        }
+
+        $reference = 'SAV-' . str_pad($account_id, 6, '0', STR_PAD_LEFT) . '-' . date('ymd');
+
+        
+        $typeQuery = $db->query("
+            SELECT transaction_type_id 
+            FROM transaction_types 
+            WHERE type_name = 'deposit'
+            LIMIT 1
+        ");
+
+        if (!$typeQuery || $typeQuery->num_rows == 0) {
+            throw new Exception("Deposit transaction type not found.");
+        }
+
+        $type = $typeQuery->fetch_assoc();
+        $transaction_type_id = intval($type['transaction_type_id']);
+
+        $stmt = $db->prepare("
+            INSERT INTO transactions
+            (account_id, transaction_type_id, amount, reference_no, remarks)
+            VALUES (?, ?, ?, ?, ?)
+        ");
+        $stmt->bind_param(
+            "iidss",
+            $account_id,
+            $transaction_type_id,
+            $amount,
+            $reference,
+            $remarks
+        );
+
+        if (!$stmt->execute()) {
+            throw new Exception("Failed to save savings transaction.");
+        }
+
+        $detailsArray = [
+            'member_id'  => $member_id,
+            'account_id' => $account_id,
+            'amount'     => $amount,
+            'reference'  => $reference,
+            'type'       => 'savings',
+            'user_id'    => $user_id,
+            'employee'   => $fullname,
+            'date'       => date("Y-m-d H:i:s")
+        ];
+        $detailsJson = $db->real_escape_string(json_encode($detailsArray));
+
+        $historyQuery = "
+            INSERT INTO tbl_history
+            (details, history_type, field_status)
+            VALUES
+            ('$detailsJson', 51, 0)
+        "; 
+
+        if (!$db->query($historyQuery)) {
+            throw new Exception("Failed to save history.");
+        }
+
+        $db->commit();
+        echo "1";
+    } catch (Exception $e) {
+        $db->rollback();
+        echo "Error: " . $e->getMessage();
+    }
+    exit;
+}
+
 
 
 // ----------------------------

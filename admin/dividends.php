@@ -16,53 +16,142 @@ function money($value)
 $currentYear = date('Y');
 
 // -------------------------
-// Capital Share Breakdown per Member (Current Year Only)
+// Capital Share Breakdown per Member (Current Year Only) - NEW STRUCTURE
 // -------------------------
 $shares = $db->query("
     SELECT 
-        c.cust_id,
-        c.name,
-        SUM(CASE WHEN DATE_FORMAT(cs.contribution_date, '%m') = '01' THEN cs.amount ELSE 0 END) AS Jan,
-        SUM(CASE WHEN DATE_FORMAT(cs.contribution_date, '%m') = '02' THEN cs.amount ELSE 0 END) AS Feb,
-        SUM(CASE WHEN DATE_FORMAT(cs.contribution_date, '%m') = '03' THEN cs.amount ELSE 0 END) AS Mar,
-        SUM(CASE WHEN DATE_FORMAT(cs.contribution_date, '%m') = '04' THEN cs.amount ELSE 0 END) AS Apr,
-        SUM(CASE WHEN DATE_FORMAT(cs.contribution_date, '%m') = '05' THEN cs.amount ELSE 0 END) AS May,
-        SUM(CASE WHEN DATE_FORMAT(cs.contribution_date, '%m') = '06' THEN cs.amount ELSE 0 END) AS Jun,
-        SUM(CASE WHEN DATE_FORMAT(cs.contribution_date, '%m') = '07' THEN cs.amount ELSE 0 END) AS Jul,
-        SUM(CASE WHEN DATE_FORMAT(cs.contribution_date, '%m') = '08' THEN cs.amount ELSE 0 END) AS Aug,
-        SUM(CASE WHEN DATE_FORMAT(cs.contribution_date, '%m') = '09' THEN cs.amount ELSE 0 END) AS Sep,
-        SUM(CASE WHEN DATE_FORMAT(cs.contribution_date, '%m') = '10' THEN cs.amount ELSE 0 END) AS Oct,
-        SUM(CASE WHEN DATE_FORMAT(cs.contribution_date, '%m') = '11' THEN cs.amount ELSE 0 END) AS Nov,
-        SUM(CASE WHEN DATE_FORMAT(cs.contribution_date, '%m') = '12' THEN cs.amount ELSE 0 END) AS `Dec`,
-        SUM(cs.amount) AS Total
-    FROM tbl_customer c
-    LEFT JOIN tbl_capital_share cs ON cs.cust_id = c.cust_id AND YEAR(cs.contribution_date) = '$currentYear'
-    WHERE c.cust_id != 1
-    GROUP BY c.cust_id
-    ORDER BY c.name ASC
+        m.member_id,
+        CONCAT(m.first_name,' ',m.last_name) AS name,
+
+        SUM(CASE WHEN MONTH(t.transaction_date) = 1 THEN t.amount ELSE 0 END) AS Jan,
+        SUM(CASE WHEN MONTH(t.transaction_date) = 2 THEN t.amount ELSE 0 END) AS Feb,
+        SUM(CASE WHEN MONTH(t.transaction_date) = 3 THEN t.amount ELSE 0 END) AS Mar,
+        SUM(CASE WHEN MONTH(t.transaction_date) = 4 THEN t.amount ELSE 0 END) AS Apr,
+        SUM(CASE WHEN MONTH(t.transaction_date) = 5 THEN t.amount ELSE 0 END) AS May,
+        SUM(CASE WHEN MONTH(t.transaction_date) = 6 THEN t.amount ELSE 0 END) AS Jun,
+        SUM(CASE WHEN MONTH(t.transaction_date) = 7 THEN t.amount ELSE 0 END) AS Jul,
+        SUM(CASE WHEN MONTH(t.transaction_date) = 8 THEN t.amount ELSE 0 END) AS Aug,
+        SUM(CASE WHEN MONTH(t.transaction_date) = 9 THEN t.amount ELSE 0 END) AS Sep,
+        SUM(CASE WHEN MONTH(t.transaction_date) = 10 THEN t.amount ELSE 0 END) AS Oct,
+        SUM(CASE WHEN MONTH(t.transaction_date) = 11 THEN t.amount ELSE 0 END) AS Nov,
+        SUM(CASE WHEN MONTH(t.transaction_date) = 12 THEN t.amount ELSE 0 END) AS `Dec`,
+
+        SUM(t.amount) AS Total
+
+    FROM tbl_members m
+
+    LEFT JOIN accounts a 
+        ON a.member_id = m.member_id
+
+    LEFT JOIN account_types at 
+        ON at.account_type_id = a.account_type_id
+
+    LEFT JOIN transactions t 
+        ON t.account_id = a.account_id
+        AND YEAR(t.transaction_date) = '$currentYear'
+
+    WHERE at.type_name = 'capital_share'
+
+    GROUP BY m.member_id
+
+    ORDER BY name ASC
 ");
 
-// -------------------------
-// Overall Totals (All Members) - Current Year
-// -------------------------
+
 $overall = $db->query("
     SELECT 
-        SUM(CASE WHEN DATE_FORMAT(cs.contribution_date, '%m') = '01' THEN cs.amount ELSE 0 END) AS Jan,
-        SUM(CASE WHEN DATE_FORMAT(cs.contribution_date, '%m') = '02' THEN cs.amount ELSE 0 END) AS Feb,
-        SUM(CASE WHEN DATE_FORMAT(cs.contribution_date, '%m') = '03' THEN cs.amount ELSE 0 END) AS Mar,
-        SUM(CASE WHEN DATE_FORMAT(cs.contribution_date, '%m') = '04' THEN cs.amount ELSE 0 END) AS Apr,
-        SUM(CASE WHEN DATE_FORMAT(cs.contribution_date, '%m') = '05' THEN cs.amount ELSE 0 END) AS May,
-        SUM(CASE WHEN DATE_FORMAT(cs.contribution_date, '%m') = '06' THEN cs.amount ELSE 0 END) AS Jun,
-        SUM(CASE WHEN DATE_FORMAT(cs.contribution_date, '%m') = '07' THEN cs.amount ELSE 0 END) AS Jul,
-        SUM(CASE WHEN DATE_FORMAT(cs.contribution_date, '%m') = '08' THEN cs.amount ELSE 0 END) AS Aug,
-        SUM(CASE WHEN DATE_FORMAT(cs.contribution_date, '%m') = '09' THEN cs.amount ELSE 0 END) AS Sep,
-        SUM(CASE WHEN DATE_FORMAT(cs.contribution_date, '%m') = '10' THEN cs.amount ELSE 0 END) AS Oct,
-        SUM(CASE WHEN DATE_FORMAT(cs.contribution_date, '%m') = '11' THEN cs.amount ELSE 0 END) AS Nov,
-        SUM(CASE WHEN DATE_FORMAT(cs.contribution_date, '%m') = '12' THEN cs.amount ELSE 0 END) AS `Dec`,
-        SUM(cs.amount) AS Total
-    FROM tbl_capital_share cs
-    WHERE cs.cust_id != 1
-      AND YEAR(cs.contribution_date) = '$currentYear'
+
+        SUM(CASE WHEN MONTH(t.transaction_date) = 1 THEN t.amount ELSE 0 END) AS Jan,
+        SUM(CASE WHEN MONTH(t.transaction_date) = 2 THEN t.amount ELSE 0 END) AS Feb,
+        SUM(CASE WHEN MONTH(t.transaction_date) = 3 THEN t.amount ELSE 0 END) AS Mar,
+        SUM(CASE WHEN MONTH(t.transaction_date) = 4 THEN t.amount ELSE 0 END) AS Apr,
+        SUM(CASE WHEN MONTH(t.transaction_date) = 5 THEN t.amount ELSE 0 END) AS May,
+        SUM(CASE WHEN MONTH(t.transaction_date) = 6 THEN t.amount ELSE 0 END) AS Jun,
+        SUM(CASE WHEN MONTH(t.transaction_date) = 7 THEN t.amount ELSE 0 END) AS Jul,
+        SUM(CASE WHEN MONTH(t.transaction_date) = 8 THEN t.amount ELSE 0 END) AS Aug,
+        SUM(CASE WHEN MONTH(t.transaction_date) = 9 THEN t.amount ELSE 0 END) AS Sep,
+        SUM(CASE WHEN MONTH(t.transaction_date) = 10 THEN t.amount ELSE 0 END) AS Oct,
+        SUM(CASE WHEN MONTH(t.transaction_date) = 11 THEN t.amount ELSE 0 END) AS Nov,
+        SUM(CASE WHEN MONTH(t.transaction_date) = 12 THEN t.amount ELSE 0 END) AS `Dec`,
+
+        SUM(t.amount) AS Total
+
+    FROM transactions t
+
+    INNER JOIN accounts a 
+        ON a.account_id = t.account_id
+
+    INNER JOIN account_types at 
+        ON at.account_type_id = a.account_type_id
+
+    WHERE at.type_name = 'capital_share'
+    AND YEAR(t.transaction_date) = '$currentYear'
+")->fetch_assoc();
+
+
+// -------------------------
+// Savings Breakdown per Member (Current Year Only)
+// -------------------------
+$savings = $db->query("
+    SELECT 
+        m.member_id,
+        CONCAT(m.first_name,' ',m.last_name) AS name,
+
+        SUM(CASE WHEN MONTH(t.transaction_date) = 1 THEN t.amount ELSE 0 END) AS Jan,
+        SUM(CASE WHEN MONTH(t.transaction_date) = 2 THEN t.amount ELSE 0 END) AS Feb,
+        SUM(CASE WHEN MONTH(t.transaction_date) = 3 THEN t.amount ELSE 0 END) AS Mar,
+        SUM(CASE WHEN MONTH(t.transaction_date) = 4 THEN t.amount ELSE 0 END) AS Apr,
+        SUM(CASE WHEN MONTH(t.transaction_date) = 5 THEN t.amount ELSE 0 END) AS May,
+        SUM(CASE WHEN MONTH(t.transaction_date) = 6 THEN t.amount ELSE 0 END) AS Jun,
+        SUM(CASE WHEN MONTH(t.transaction_date) = 7 THEN t.amount ELSE 0 END) AS Jul,
+        SUM(CASE WHEN MONTH(t.transaction_date) = 8 THEN t.amount ELSE 0 END) AS Aug,
+        SUM(CASE WHEN MONTH(t.transaction_date) = 9 THEN t.amount ELSE 0 END) AS Sep,
+        SUM(CASE WHEN MONTH(t.transaction_date) = 10 THEN t.amount ELSE 0 END) AS Oct,
+        SUM(CASE WHEN MONTH(t.transaction_date) = 11 THEN t.amount ELSE 0 END) AS Nov,
+        SUM(CASE WHEN MONTH(t.transaction_date) = 12 THEN t.amount ELSE 0 END) AS `Dec`,
+
+        SUM(t.amount) AS Total
+
+    FROM tbl_members m
+
+    LEFT JOIN accounts a 
+        ON a.member_id = m.member_id
+
+    LEFT JOIN account_types at 
+        ON at.account_type_id = a.account_type_id
+
+    LEFT JOIN transactions t 
+        ON t.account_id = a.account_id
+        AND YEAR(t.transaction_date) = '$currentYear'
+
+    WHERE at.type_name = 'savings'
+
+    GROUP BY m.member_id
+
+    ORDER BY name ASC
+");
+
+// Overall Totals
+$overall_savings = $db->query("
+    SELECT 
+        SUM(CASE WHEN MONTH(t.transaction_date) = 1 THEN t.amount ELSE 0 END) AS Jan,
+        SUM(CASE WHEN MONTH(t.transaction_date) = 2 THEN t.amount ELSE 0 END) AS Feb,
+        SUM(CASE WHEN MONTH(t.transaction_date) = 3 THEN t.amount ELSE 0 END) AS Mar,
+        SUM(CASE WHEN MONTH(t.transaction_date) = 4 THEN t.amount ELSE 0 END) AS Apr,
+        SUM(CASE WHEN MONTH(t.transaction_date) = 5 THEN t.amount ELSE 0 END) AS May,
+        SUM(CASE WHEN MONTH(t.transaction_date) = 6 THEN t.amount ELSE 0 END) AS Jun,
+        SUM(CASE WHEN MONTH(t.transaction_date) = 7 THEN t.amount ELSE 0 END) AS Jul,
+        SUM(CASE WHEN MONTH(t.transaction_date) = 8 THEN t.amount ELSE 0 END) AS Aug,
+        SUM(CASE WHEN MONTH(t.transaction_date) = 9 THEN t.amount ELSE 0 END) AS Sep,
+        SUM(CASE WHEN MONTH(t.transaction_date) = 10 THEN t.amount ELSE 0 END) AS Oct,
+        SUM(CASE WHEN MONTH(t.transaction_date) = 11 THEN t.amount ELSE 0 END) AS Nov,
+        SUM(CASE WHEN MONTH(t.transaction_date) = 12 THEN t.amount ELSE 0 END) AS `Dec`,
+        SUM(t.amount) AS Total
+    FROM transactions t
+    INNER JOIN accounts a ON a.account_id = t.account_id
+    INNER JOIN account_types at ON at.account_type_id = a.account_type_id
+    WHERE at.type_name = 'savings'
+    AND YEAR(t.transaction_date) = '$currentYear'
 ")->fetch_assoc();
 
 // -------------------------
@@ -111,7 +200,20 @@ $overall_purchase = $db->query("
 ")->fetch_assoc();
 
 // Load members for Add Contribution Modal
-$members = $db->query("SELECT cust_id, name FROM tbl_customer WHERE cust_id != 1 ORDER BY name ASC");
+$members = $db->query("
+    SELECT member_id, first_name, last_name
+    FROM tbl_members
+    WHERE type = 'regular'
+    ORDER BY last_name ASC, first_name ASC
+");
+$membersArray = $members->fetch_all(MYSQLI_ASSOC);
+
+$all_members = $db->query("
+    SELECT member_id, first_name, last_name
+    FROM tbl_members
+    ORDER BY last_name ASC, first_name ASC
+");
+$allMembersArray = $all_members->fetch_all(MYSQLI_ASSOC);
 ?>
 
 <style>
@@ -175,6 +277,11 @@ $members = $db->query("SELECT cust_id, name FROM tbl_customer WHERE cust_id != 1
                             <li class="active"><i class="icon-cash3 position-left"></i> Members' Financial</li>
                         </ul>
                         <ul class="breadcrumb-elements">
+                            <li>
+                                <a href="javascript:;" data-toggle="modal" data-target="#modal_savings">
+                                    <i class="icon-coins text-blue-400"></i> Add Savings
+                                </a>
+                            </li>
                             <li>
                                 <a href="javascript:;" data-toggle="modal" data-target="#modal_share">
                                     <i class="icon-coin-dollar text-teal-400"></i> Add Capital Share
@@ -293,6 +400,69 @@ $members = $db->query("SELECT cust_id, name FROM tbl_customer WHERE cust_id != 1
                         </div>
                     </div>
 
+                    <!-- Savings Breakdown Table -->
+                    <div class="panel panel-white border-top-xlg border-top-info">
+                        <div class="panel-heading">
+                            <h6 class="panel-title"><i class="icon-coins text-blue position-left"></i>Savings by Month (<?= $currentYear ?>)</h6>
+                        </div>
+                        <div class="panel-body panel-theme">
+                            <table class="table datatable-button-html5-basic table-hover table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th>Member</th>
+                                        <th>Jan</th>
+                                        <th>Feb</th>
+                                        <th>Mar</th>
+                                        <th>Apr</th>
+                                        <th>May</th>
+                                        <th>Jun</th>
+                                        <th>Jul</th>
+                                        <th>Aug</th>
+                                        <th>Sep</th>
+                                        <th>Oct</th>
+                                        <th>Nov</th>
+                                        <th>Dec</th>
+                                        <th>Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php while ($row = $savings->fetch_assoc()) { ?>
+                                        <tr>
+                                            <td><?= htmlspecialchars($row['name']); ?></td>
+                                            <?php
+                                            $months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                                            foreach ($months as $m) {
+                                                echo '<td style="text-align:right">' . money($row[$m]) . '</td>';
+                                            }
+                                            ?>
+                                            <td style="text-align:right; font-weight:bold;"><?= money($row['Total']); ?></td>
+                                        </tr>
+                                    <?php } ?>
+                                </tbody>
+                            </table>
+
+                            <!-- Overall Totals -->
+                            <div class="well" style="margin-top:20px;">
+                                <h5><b>Overall Totals (All Members - <?= $currentYear ?>)</b></h5>
+                                <table class="table table-bordered">
+                                    <tr>
+                                        <?php foreach ($months as $m) {
+                                            echo '<th>' . $m . '</th>';
+                                        } ?>
+                                        <th>Total</th>
+                                    </tr>
+                                    <tr style="font-weight:bold;">
+                                        <?php foreach ($months as $m) {
+                                            echo '<td style="text-align:right">' . money($overall_savings[$m]) . '</td>';
+                                        } ?>
+                                        <td style="text-align:right"><?= money($overall_savings['Total']); ?></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+
                     <!-- Members Purchases Table -->
                     <div class="panel panel-white border-top-xlg border-top-primary">
                         <div class="panel-heading">
@@ -339,6 +509,52 @@ $members = $db->query("SELECT cust_id, name FROM tbl_customer WHERE cust_id != 1
 
     <?php require('includes/footer.php'); ?>
 
+
+    <!-- Modal Add Savings -->
+    <div id="modal_savings" class="modal fade" data-backdrop="static" data-keyboard="false">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    <h5 class="modal-title">Add Savings</h5>
+                </div>
+                <div class="modal-bodys">
+                    <form id="form-savings" class="form-horizontal" data-toggle="validator" role="form">
+                        <input type="hidden" name="save-savings" value="1">
+
+                        <div class="form-group">
+                            <label class="col-sm-3 control-label">Member</label>
+                            <div class="col-sm-9">
+                                <select class="form-control select-member" name="member_id" required>
+                                    <option value="">-- Select Member --</option>
+                                    <?php foreach ($allMembersArray as $m) { ?>
+                                        <option value="<?= $m['member_id']; ?>">
+                                            <?= htmlspecialchars($m['last_name'] . ', ' . $m['first_name']); ?>
+                                        </option>
+                                    <?php } ?>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="col-sm-3 control-label">Amount</label>
+                            <div class="col-sm-9">
+                                <input class="form-control" name="amount" type="number" step="0.01" min="0" placeholder="Enter amount (₱)" required>
+                            </div>
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="submit" class="btn bg-blue-400 btn-labeled">
+                                <b><i class="icon-add"></i></b> Save Savings
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
     <!-- Modal Add Capital Share -->
     <div id="modal_share" class="modal fade" data-backdrop="static" data-keyboard="false">
         <div class="modal-dialog">
@@ -351,7 +567,8 @@ $members = $db->query("SELECT cust_id, name FROM tbl_customer WHERE cust_id != 1
                 <div class="modal-bodys">
 
                     <form action="#" id="form-share" class="form-horizontal" data-toggle="validator" role="form">
-                        <input type="hidden" name="save-capital-share">
+                        <input type="hidden" name="save-capital-share" value="1">
+
 
                         <div class="form-body" style="padding-top: 20px">
                             <div id="display-msg"></div>
@@ -364,21 +581,22 @@ $members = $db->query("SELECT cust_id, name FROM tbl_customer WHERE cust_id != 1
                                         <span class="input-group-addon">
                                             <i class="icon-user"></i>
                                         </span>
-                                        <select class="form-control select-member" name="cust_id" required>
-                                            <option value="">-- Select Member --</option>
-                                            <?php while ($m = $members->fetch_assoc()) { ?>
-                                                <option value="<?= $m['cust_id']; ?>">
-                                                    <?= htmlspecialchars($m['name']); ?>
+                                        <select class="form-control select-member" name="member_id" required>
+                                            <option value="">-- Select Regular Member --</option>
+
+                                            <?php foreach ($membersArray as $m) { ?>
+                                                <option value="<?= $m['member_id']; ?>">
+                                                    <?= htmlspecialchars($m['last_name'] . ', ' . $m['first_name']); ?>
                                                 </option>
                                             <?php } ?>
+
                                         </select>
+
 
                                     </div>
 
                                 </div>
                             </div>
-
-
                             <!-- Amount -->
                             <div class="form-group">
                                 <label class="col-sm-3 control-label">Amount</label>
@@ -402,6 +620,9 @@ $members = $db->query("SELECT cust_id, name FROM tbl_customer WHERE cust_id != 1
         </div>
     </div>
 
+
+
+
     <script src="../js/select2.min.js"></script>
 
     <script type="text/javascript" src="../assets/js/plugins/tables/datatables/datatables.min.js"></script>
@@ -410,14 +631,19 @@ $members = $db->query("SELECT cust_id, name FROM tbl_customer WHERE cust_id != 1
 
     <script>
         $(document).ready(function() {
-
-            $('.select-member').select2({
-                dropdownParent: $('#modal_share'), // VERY IMPORTANT for modal
+            $('#modal_share .select-member').select2({
+                dropdownParent: $('#modal_share'),
                 placeholder: "Search Member",
                 allowClear: true,
                 width: '100%'
             });
 
+            $('#modal_savings .select-member').select2({
+                dropdownParent: $('#modal_savings'),
+                placeholder: "Search Member",
+                allowClear: true,
+                width: '100%'
+            });
         });
 
         $(function() {
@@ -447,7 +673,7 @@ $members = $db->query("SELECT cust_id, name FROM tbl_customer WHERE cust_id != 1
                             $('#modal_share').modal('hide');
                             setTimeout(function() {
                                 location.reload();
-                            }, 1000);
+                            }, 5000);
                         },
                         error: function() {
                             $.jGrowl("Error saving contribution.", {
@@ -459,5 +685,33 @@ $members = $db->query("SELECT cust_id, name FROM tbl_customer WHERE cust_id != 1
                     return false;
                 }
             });
+        });
+
+        $('#form-savings').validator().on('submit', function(e) {
+            if (!e.isDefaultPrevented()) {
+                var data = $(this).serialize();
+                $.ajax({
+                    type: "POST",
+                    url: "../transaction.php",
+                    data: data,
+                    success: function(resp) {
+                        $.jGrowl("Savings saved successfully!", {
+                            header: 'Success',
+                            theme: 'bg-success'
+                        });
+                        $('#modal_savings').modal('hide');
+                        setTimeout(function() {
+                            location.reload();
+                        }, 5000);
+                    },
+                    error: function() {
+                        $.jGrowl("Error saving savings.", {
+                            header: 'Error',
+                            theme: 'bg-danger'
+                        });
+                    }
+                });
+                return false;
+            }
         });
     </script>
