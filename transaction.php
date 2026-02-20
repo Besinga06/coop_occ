@@ -2696,7 +2696,7 @@ if (isset($_POST['save-loan-application'])) {
 
 if (isset($_POST['approve_loan'])) {
     require('db_connect.php');
-
+    
     $loan_app_id     = (int)$_POST['loan_app_id'];
     $fund_id         = (int)$_POST['fund_id'];
     $approved_amount = (float)$_POST['approved_amount'];

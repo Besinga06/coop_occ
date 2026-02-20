@@ -127,7 +127,6 @@ $savings = $db->query("
     WHERE at.type_name = 'savings'
 
     GROUP BY m.member_id
-
     ORDER BY name ASC
 ");
 
@@ -146,7 +145,7 @@ $overall_savings = $db->query("
         SUM(CASE WHEN MONTH(t.transaction_date) = 10 THEN t.amount ELSE 0 END) AS Oct,
         SUM(CASE WHEN MONTH(t.transaction_date) = 11 THEN t.amount ELSE 0 END) AS Nov,
         SUM(CASE WHEN MONTH(t.transaction_date) = 12 THEN t.amount ELSE 0 END) AS `Dec`,
-        SUM(t.amount) AS Total
+        SUM(t.amount) AS Total_Savings
     FROM transactions t
     INNER JOIN accounts a ON a.account_id = t.account_id
     INNER JOIN account_types at ON at.account_type_id = a.account_type_id
@@ -241,6 +240,23 @@ $allMembersArray = $all_members->fetch_all(MYSQLI_ASSOC);
         white-space: nowrap;
 
     }
+
+    /* Make the whole panel clickable and hoverable */
+    .panel-link {
+        text-decoration: none;
+        color: inherit;
+        display: block;
+    }
+
+    .hover-panel {
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .hover-panel:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+        cursor: pointer;
+    }
 </style>
 
 
@@ -301,23 +317,40 @@ $allMembersArray = $all_members->fetch_all(MYSQLI_ASSOC);
 
                     <!-- Summary Cards -->
                     <div class="row">
-                        <div class="col-lg-6">
-                            <div class="panel bg-success-400">
-                                <div class="panel-body">
-                                    <h3 class="no-margin">₱ <?= money($overall['Total']); ?></h3>
-
-                                    Total Capital Shares (<?= $currentYear ?>)
+                        <!-- Capital Shares Panel -->
+                        <div class="col-lg-4 col-md-6 mb-3">
+                            <a href="capital_share_report.php" class="panel-link">
+                                <div class="panel bg-success-400 hover-panel" style="padding:10px; border-radius:5px;">
+                                    <div class="panel-body text-center" style="padding:10px;">
+                                        <h4 class="no-margin" style="font-size:18px;">₱ <?= number_format($overall['Total'] ?? 0, 2) ?></h4>
+                                        <small>Total Capital Shares (<?= $currentYear ?>)</small>
+                                    </div>
                                 </div>
-                            </div>
+                            </a>
                         </div>
-                        <div class="col-lg-6">
-                            <div class="panel bg-primary-400">
-                                <div class="panel-body">
-                                    <h3 class="no-margin">₱ <?= money($overall_purchase['total_purchase']); ?></h3>
 
-                                    Total Member Purchases (<?= $currentYear ?>)
+                        <!-- Savings Panel -->
+                        <div class="col-lg-4 col-md-6 mb-3">
+                            <a href="savings_report.php" class="panel-link">
+                                <div class="panel bg-primary-400 hover-panel" style="padding:10px; border-radius:5px;">
+                                    <div class="panel-body text-center" style="padding:10px;">
+                                        <h4 class="no-margin" style="font-size:18px;">₱ <?= number_format($overall_savings['Total_Savings'] ?? 0, 2) ?></h4>
+                                        <small>Total Savings (<?= $currentYear ?>)</small>
+                                    </div>
                                 </div>
-                            </div>
+                            </a>
+                        </div>
+
+                        <!-- Member Purchases Panel -->
+                        <div class="col-lg-4 col-md-6 mb-3">
+                            <a href="sales-report.php" class="panel-link">
+                                <div class="panel bg-danger-400 hover-panel" style="padding:10px; border-radius:5px;">
+                                    <div class="panel-body text-center" style="padding:10px;">
+                                        <h4 class="no-margin" style="font-size:18px;">₱ <?= number_format($overall_purchase['total_purchase'] ?? 0, 2) ?></h4>
+                                        <small>Total Member Purchases (<?= $currentYear ?>)</small>
+                                    </div>
+                                </div>
+                            </a>
                         </div>
                     </div>
                     <!-- /Summary Cards -->
@@ -328,7 +361,6 @@ $allMembersArray = $all_members->fetch_all(MYSQLI_ASSOC);
                             <h6 class="panel-title"><i class="icon-cash3 text-success position-left"></i>Capital Share Contributions by Month (<?= $currentYear ?>)</h6>
                         </div>
                         <div class="panel-body panel-theme">
-
                             <table class="table datatable-button-html5-basic table-hover table-bordered">
 
                                 <thead>
@@ -455,7 +487,7 @@ $allMembersArray = $all_members->fetch_all(MYSQLI_ASSOC);
                                         <?php foreach ($months as $m) {
                                             echo '<td style="text-align:right">' . money($overall_savings[$m]) . '</td>';
                                         } ?>
-                                        <td style="text-align:right"><?= money($overall_savings['Total']); ?></td>
+                                        <td style="text-align:right"><?= money($overall_savings['Total_Savings']); ?></td>
                                     </tr>
                                 </table>
                             </div>

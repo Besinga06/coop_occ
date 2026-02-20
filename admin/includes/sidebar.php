@@ -27,7 +27,7 @@
                 <li><a href="receiving.php"><i class="icon-dots"></i> Receiving</a></li>
                 <li><a href="expences.php"><i class="icon-dots"></i> Expenses</a></li>
                 <li><a href="loan.php"><i class="icon-dots"></i> Loan</a></li>
-                <li><a href="dividends.php"><i class="icon-dots"></i> Financial</a></li>
+                <li><a href="financial.php"><i class="icon-dots"></i> Financial</a></li>
             </ul>
         </li>
 
@@ -49,6 +49,7 @@
                     </ul>
                 </li>
                 <li><a href="system-history.php"><i class="icon-dots"></i> System History</a></li>
+                <li><a href="system_settings.php"><i class="icon-cog"></i> System Settings</a></li>
             </ul>
         </li>
 
@@ -64,7 +65,7 @@
             </a>
             <ul class="dropdown-menu dropdown-menu-right">
                 <li><a href="loan.php"><i class="icon-dots"></i> Loan</a></li>
-                <li><a href="dividends.php"><i class="icon-dots"></i> Financial</a></li>
+                <li><a href="financial.php"><i class="icon-dots"></i> Financial</a></li>
             </ul>
         </li>
 

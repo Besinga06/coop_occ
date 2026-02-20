@@ -551,7 +551,6 @@
 				url: '../transaction.php',
 				data: data,
 				success: function(msg) {
-
 					if (msg == 1) {
 						$.jGrowl('Damage product succesfully save.', {
 							header: 'Success Notification',
@@ -583,7 +582,6 @@
 	});
 
 	$('#form-deduc').validator().on('submit', function(e) {
-
 		if (e.isDefaultPrevented()) {} else {
 			$(':input[type="submit"]').prop('disabled', true);
 			var data = $(this).serialize();
@@ -626,11 +624,8 @@
 	});
 
 	function printBarcode(code, name) {
-
 		const barcodeURL = "barcode.php?codetype=Code39&size=40&text=" + code + "&print=true";
-
 		var printWindow = window.open('', '_blank', 'width=400,height=350');
-
 		printWindow.document.write(`
         <html>
             <head>
@@ -654,7 +649,7 @@
             <body>
                 <h2>` + name + `</h2>
                 <img src="` + barcodeURL + `" />
-                <div style="font-size: 16px; margin-top: 5px;">` + code + `</div>
+                <div style="font-size: ">` + code + `</div>
 
                 <script>
                     window.onload = function() {

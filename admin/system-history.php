@@ -221,6 +221,8 @@ if (isset($_SESSION['history-report'])) {
 											<li onclick="select_type(this)" status-val="12" status-name="New Received Product"><a href="#"><i class="icon-circle text-default-400"></i> New Received Product</a></li>
 											<li onclick="select_type(this)" status-val="3" status-name="Set Active Sales"><a href="#"><i class="icon-circle text-default-400"></i> Set Active Sales</a></li>
 											<li onclick="select_type(this)" status-val="11" status-name="New Product"><a href="#"><i class="icon-circle text-default-400"></i> New Product</a></li>
+											<li onclick="select_type(this)" status-val="50" status-name="Capital Share Deposit"><a href="#"><i class="icon-circle text-default-400"></i>Capital Share Deposit</a></li>
+											<li onclick="select_type(this)" status-val="51" status-name="savings Deposit"><a href="#"><i class="icon-circle text-default-400"></i>Savings Deposit</a></li>
 											<li onclick="select_type(this)" status-val="15" status-name="New Member"><a href="#"><i class="icon-circle text-default-400"></i> New Member</a></li>
 											<li onclick="select_type(this)" status-val="26" status-name="login"><a href="#"><i class="icon-circle text-default-400"></i> Login</a></li>
 											<li onclick="select_type(this)" status-val="" status-name="all"><a href="#"><i class="icon-circle text-default-400"></i> All</a></li>

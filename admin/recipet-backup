@@ -11,7 +11,7 @@
     //$query = "SELECT * FROM tbl_sales  INNER JOIN tbl_products ON tbl_sales.product_id=tbl_products.product_id INNER JOIN tbl_users ON tbl_sales.user_id=tbl_users.user_id ORDER BY sales_id DESC LIMIT 0,1  ";
 
    
-    $result = $db->query($query); while($row = $result->fetchArray()) {
+    $result = $db->query($query); while($row = $result->fetch_assoc()) {
         $sales_id = '00000000'.$row['sales_id'];  
         $cashier = $row['fullname'];
         $customer = $row['name']; 
@@ -140,7 +140,7 @@
             <?php
                 $i = 0;
                 $result = $db->query($query);
-                while($row2 = $result->fetchArray()) {
+                while($row2 = $result->fetch_assoc()) {
                 $i++;
             ?>
             <tr>

@@ -13,9 +13,7 @@ function money($value)
 $year = isset($_GET['year']) ? $_GET['year'] : date('Y');
 
 
-// -------------------------
-// Fetch Members and Totals
-// -------------------------
+
 $members = $db->query("
     SELECT 
         c.cust_id, 
@@ -48,7 +46,7 @@ $members = $db->query("
         ) AS total_purchase
     FROM tbl_customer c 
     WHERE c.cust_id != 1
-    ORDER BY c.name ASC
+    ORDER BY c.name DESC
 ");
 
 

@@ -20,8 +20,8 @@ require('includes/header.php');
 //     WHERE l.status='rejected'
 //     ORDER BY l.loan_app_id DESC");
 
-// $funds = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
-// 
+$funds = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
+
 ?>
 <style>
     .navbar-brand {
@@ -108,8 +108,8 @@ require('includes/header.php');
                                         <th>Action</th>
                                     </tr>
                                 </thead>
-                                <tbody>
-                                    <!-- <?php while ($row = $pending_loans->fetch_assoc()) { ?>
+                                <!-- <tbody>
+                                    <?php while ($row = $pending_loans->fetch_assoc()) { ?>
                                         <tr>
                                             <td hidden><?= $row['loan_app_id'] ?></td>
                                             <td><?= htmlspecialchars($row['member_name']) ?></td>
@@ -121,9 +121,9 @@ require('includes/header.php');
                                                 <button class="btn btn-danger btn-decline" data-id="<?= $row['loan_app_id'] ?>">Decline</button>
                                             </td>
                                         </tr>
-                                    <?php } ?> -->
+                                    <?php } ?>
 
-                                </tbody>
+                                </tbody> -->
                             </table>
                         </div>
                     </div>
@@ -146,8 +146,8 @@ require('includes/header.php');
                                         <th>Action</th>
                                     </tr>
                                 </thead>
-                                <tbody>
-                                    <!-- <?php while ($row = $approved_loans->fetch_assoc()) { ?>
+                                <!-- <tbody>
+                                    <?php while ($row = $approved_loans->fetch_assoc()) { ?>
                                         <tr>
                                             <td hidden><?= $row['loan_app_id'] ?></td>
                                             <td><?= htmlspecialchars($row['member_name']) ?></td>
@@ -161,9 +161,9 @@ require('includes/header.php');
                                                 </button>
                                             </td>
                                         </tr>
-                                    <?php } ?> -->
+                                    <?php } ?>
 
-                                </tbody>
+                                </tbody> -->
                             </table>
                         </div>
                     </div>
@@ -183,17 +183,17 @@ require('includes/header.php');
                                         <th>Date Applied</th>
                                     </tr>
                                 </thead>
-                                <tbody>
-                                    <!-- <?php while ($row = $declined_loans->fetch_assoc()) { ?>
+                                <!-- <tbody>
+                                    <?php while ($row = $declined_loans->fetch_assoc()) { ?>
                                         <tr>
                                             <td hidden><?= $row['loan_app_id'] ?></td>
                                             <td><?= htmlspecialchars($row['member_name']) ?></td>
                                             <td><?= number_format($row['requested_amount'], 2) ?></td>
                                             <td><?= $row['application_date'] ?></td>
                                         </tr>
-                                    <?php } ?> -->
+                                    <?php } ?>
 
-                                </tbody>
+                                </tbody> -->
                             </table>
                         </div>
                     </div>
@@ -240,22 +240,22 @@ require('includes/header.php');
                         </thead>
                         <tbody>
                             <?php
-                                    $funds_list = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
-                                    while ($f = $funds_list->fetch_assoc()) {
-                                        echo "<tr>
-                <td>{$f['fund_id']}</td>
-                <td class='fund-name'>" . htmlspecialchars($f['fund_name']) . "</td>
-                <td class='fund-starting' style='text-align:right'>" . number_format($f['starting_balance'], 2) . "</td>
-                <td class='fund-current' style='text-align:right'>" . number_format($f['current_balance'], 2) . "</td>
-                <td>{$f['created_at']}</td>
-                <td align='center'>
-                    <button class='btn btn-sm btn-warning btn-edit-fund' data-id='{$f['fund_id']}'>
-                        <i class='icon-pencil'></i> update
-                    </button>
-                </td>
-            </tr>";
-                                    }
-                                    ?>
+                            //             $funds_list = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
+                            //             while ($f = $funds_list->fetch_assoc()) {
+                            //                 echo "<tr>
+                            //            <td>{$f['fund_id']}</td>
+                            //        <td class='fund-name'>" . htmlspecialchars($f['fund_name']) . "</td>
+                            // <td class='fund-starting' style='text-align:right'>" . number_format($f['starting_balance'], 2) . "</td>
+                            // <td class='fund-current' style='text-align:right'>" . number_format($f['current_balance'], 2) . "</td>
+                            // <td>{$f['created_at']}</td>
+                            // <td align='center'>
+                            //     <button class='btn btn-sm btn-warning btn-edit-fund' data-id='{$f['fund_id']}'>
+                            //         <i class='icon-pencil'></i> update
+                            //      </button>
+                            //        </td>
+                            //       </tr>";
+                            //             }
+                            ?>
 
                         </tbody>
                     </table>
@@ -289,8 +289,8 @@ require('includes/header.php');
                             $funds = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
                             while ($f = $funds->fetch_assoc()) {
                                 echo "<option value='{$f['fund_id']}' data-balance='{$f['current_balance']}'>
-            {$f['fund_name']} - Balance: " . number_format($f['current_balance'], 2) . "
-          </option>";
+                            {$f['fund_name']} - Balance: " . number_format($f['current_balance'], 2) . "
+                              </option>";
                             }
                             ?>
 

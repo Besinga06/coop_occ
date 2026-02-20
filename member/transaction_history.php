@@ -67,20 +67,23 @@
 
         $capital = $capital_result->fetch_assoc();
 
+
         $contributions = $db->query("
-            SELECT 
-                t.transaction_date AS contribution_date,
-                t.amount,
-                t.reference_no
-            FROM transactions t
-            INNER JOIN accounts a ON a.account_id = t.account_id
-            INNER JOIN account_types at ON at.account_type_id = a.account_type_id
-            WHERE a.member_id = $member_id
-            AND at.type_name = 'capital_share'
-            AND DATE(t.transaction_date)
-            BETWEEN '$date_from' AND '$date_to'
-            ORDER BY t.transaction_date DESC
-        ");
+    SELECT 
+        t.transaction_date AS contribution_date,
+        t.amount,
+        t.reference_no,
+        tt.type_name AS transaction_type
+    FROM transactions t
+    INNER JOIN accounts a ON a.account_id = t.account_id
+    INNER JOIN account_types at ON at.account_type_id = a.account_type_id
+    INNER JOIN transaction_types tt ON tt.transaction_type_id = t.transaction_type_id
+    WHERE a.member_id = $member_id
+      AND at.type_name = 'capital_share'
+      AND tt.type_name IN  ('deposit', 'capital_share')
+      AND DATE(t.transaction_date) BETWEEN '$date_from' AND '$date_to'
+    ORDER BY t.transaction_date DESC
+");
 
 
 
@@ -726,13 +729,17 @@
                                                     </div>
                                                 </div>
 
+                                                <!-- CAPITAL SHARE TAB -->
                                                 <div class="tab-pane" id="capital">
                                                     <div class="panel panel-white border-top-xlg border-top-teal-400">
 
                                                         <div class="panel-heading">
                                                             <h6 class="panel-title">
                                                                 <i class="icon-piggy-bank position-left text-teal-400"></i>
-                                                                Capital Share Contributions (<?= $year; ?>)
+                                                                Capital Share
+                                                                <small style="margin-left:10px; color:#777;">
+                                                                    (<?= date('M d, Y', strtotime($date_from)) ?> to <?= date('M d, Y', strtotime($date_to)) ?>)
+                                                                </small>
                                                             </h6>
                                                         </div>
 
@@ -744,40 +751,57 @@
                                                                     <tr style="background:#eee">
                                                                         <th>Reference</th>
                                                                         <th>Date</th>
-                                                                        <th class="text-right">Amount</th>
+                                                                        <th class="text-right">Credit</th>
+                                                                        <th class="text-right">Debit</th>
+                                                                        <th class="text-right">Balance</th>
                                                                     </tr>
                                                                 </thead>
                                                                 <tbody>
                                                                     <?php
                                                                     $hasContrib = false;
+                                                                    $running_balance = 0;
+
                                                                     while ($c = $contributions->fetch_assoc()) {
                                                                         $hasContrib = true;
+
                                                                         $reference_no = htmlspecialchars($c['reference_no']);
                                                                         $date = date('M d, Y', strtotime($c['contribution_date']));
-                                                                        $amount = number_format($c['amount'], 2);
+
+                                                                        $credit = 0;
+                                                                        $debit = 0;
+
+                                                                        if (in_array($c['transaction_type'], ['deposit', 'capital_share'])) {
+
+                                                                            $credit = $c['amount'];
+                                                                            $running_balance += $credit;
+                                                                        } elseif ($c['transaction_type'] === 'withdrawal') {
+
+                                                                            $debit = $c['amount'];
+                                                                            $running_balance -= $debit;
+                                                                        }
+
                                                                         echo "
-                                                                            <tr>
-                                                                            <td>
-                                                                        <a href='javascript:void(0);'
-                                                                        onclick='view_capital_receipt(this)'
-                                                                        data-reference='{$reference_no}'
-                                                                        style='font-weight:600; color:#26a69a;'>
-                                                                        {$reference_no}
-                                                                        </a>
-                                                                            </td>
-                                                                            <td>{$date}</td>
-                                                                            <td class='text-right'>
-                                                                                ₱{$amount}
-                                                                            </td>
-                                                                            </tr>";
+                        <tr>
+                            <td>
+                                <a href='javascript:void(0);'
+                                   onclick='view_capital_receipt(this)'
+                                   data-reference='{$reference_no}'
+                                   style='font-weight:600; color:#26a69a;'>
+                                   {$reference_no}
+                                </a>
+                            </td>
+                            <td>{$date}</td>
+                            <td class='text-right'>" . ($credit ? "₱" . number_format($credit, 2) : '') . "</td>
+                            <td class='text-right'>" . ($debit ? "₱" . number_format($debit, 2) : '') . "</td>
+                            <td class='text-right'>₱" . number_format($running_balance, 2) . "</td>
+                        </tr>";
                                                                     }
+
                                                                     if (!$hasContrib) {
                                                                         echo "
-                                                                            <tr>
-                                                                                <td colspan='3' class='text-center'>
-                                                                                No contributions found for {$year}.
-                                                                                </td>
-                                                                                </tr>";
+                        <tr>
+                            <td colspan='5' class='text-center'>No contributions found for this period.</td>
+                        </tr>";
                                                                     }
                                                                     ?>
                                                                 </tbody>
@@ -825,7 +849,7 @@
                                                                         WHERE a.member_id = $member_id
                                                                         AND at.type_name = 'savings'
                                                                         AND YEAR(t.transaction_date) = $year
-                                                                        ORDER BY t.transaction_date ASC, t.transaction_id ASC
+                                                                        ORDER BY t.transaction_date DESC, t.transaction_id DESC
                                                                     ");
                                                                     if ($savings_result->num_rows > 0) {
                                                                         while ($s = $savings_result->fetch_assoc()) {

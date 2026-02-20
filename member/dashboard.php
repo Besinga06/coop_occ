@@ -167,7 +167,7 @@ $savings_total = $db->query("
             </div>
 
 
-            <!-- <div class="mobile-stats">
+            <div class="mobile-stats">
                 <div class="stat-card">
                     <small>Sales</small>
                     <h3><?= $total_sales ?></h3>
@@ -180,15 +180,16 @@ $savings_total = $db->query("
                     <small>Suppliers</small>
                     <h3><?= $supplier_total ?></h3>
                 </div>
-            </div> -->
+            </div>
 
-            <!-- 
+
+
             <div class="mobile-actions">
-                <a href="capital_share.php"><i class="icon-plus-circle"></i>Deposit</a>
+                <a href="capital_share.php"><i class="icon-credit-card"></i>Deposit</a>
+                <a href="capital_share.php"><i class="icon-"></i>withdraw</a>
                 <a href="loan.php"> <i class="icon-coins"></i>Loan</a>
                 <a href="transaction_history.php"><i class="icon-history"></i>History</a>
-                <a href="../admin/profile.php"><i class="icon-user"></i>Profile</a>
-            </div> -->
+            </div>
 
 
             <div class="mobile-loan-summary">
