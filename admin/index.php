@@ -1,5 +1,15 @@
 <?php require('includes/header.php'); ?>
 <?php
+
+
+if (
+    !isset($_SESSION['is_login_yes'], $_SESSION['user_id'], $_SESSION['usertype'])
+    || $_SESSION['is_login_yes'] != 'yes'
+    || !in_array((int)$_SESSION['usertype'], [1, 3])
+) {
+    die("Unauthorized access.");
+}
+
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 date_default_timezone_set('Asia/Manila');
@@ -12,7 +22,6 @@ $deposit_query = "SELECT SUM(amount) AS total FROM tbl_deposits WHERE date_added
 $result_deposit = $db->query($deposit_query);
 $row = $result_deposit->fetch_assoc();
 $deposit = $row['total'] ?? 0;
-
 $all_subtotal = 0;
 $all_discount = 0;
 $all_total = 0;
@@ -23,22 +32,26 @@ SELECT
     sales_no,
     SUM(subtotal) AS subtotal,
     SUM(discount) AS discount,
-    SUM(total_amount) AS total_amount
+    MAX(total_amount) AS total_amount
 FROM tbl_sales
-WHERE sales_date BETWEEN '$today' AND '$date_add'
+WHERE DATE(sales_date) BETWEEN '$today' AND '$date_add'
 GROUP BY sales_no
 ";
+
 $result = $db->query($query);
 
 if ($result) {
+
+    // count of unique sales
+    $total_sales = $result->num_rows;
+
     while ($row = $result->fetch_assoc()) {
-        $subtotal = $row['subtotal'];
-        $discount = $row['discount'];
-        $total_amount = $row['total_amount'];
-        $all_subtotal += $subtotal;
-        $all_discount += $discount;
-        $all_total += $total_amount;
-        $total_sales++;
+
+        $all_subtotal += $row['subtotal'];
+        $all_discount += $row['discount'];
+
+        // use MAX total_amount (correct total per sale)
+        $all_total += $row['total_amount'];
     }
 }
 
@@ -293,21 +306,39 @@ $supplier_total = $supplier_row['total_supplier'];
 
                             // Loop through all 12 months
                             for ($m = 1; $m <= 12; $m++) {
-                                $month = sprintf("%02d", $m); // "01", "02", etc.
+
+                                $month = sprintf("%02d", $m);
                                 $month_str = "$year-$month";
 
-                                // Query: sum total_amount for this month
-                                $query = "SELECT SUM(total_amount) AS month_total 
-                               FROM tbl_sales 
-                               WHERE DATE_FORMAT(sales_date, '%Y-%m') = '$month_str'";
+                                $query = "
+
+    SELECT SUM(total_amount_once) AS month_total
+
+    FROM (
+
+        SELECT 
+            sales_no,
+            MAX(total_amount) AS total_amount_once
+
+        FROM tbl_sales
+
+        WHERE DATE_FORMAT(sales_date, '%Y-%m') = '$month_str'
+
+        GROUP BY sales_no
+
+    ) monthly_sales
+
+    ";
 
                                 $result = $db->query($query);
+
                                 $row = $result->fetch_assoc();
 
-                                $monthly_totals[$m] = $row['month_total'] ?? 0; // default to 0 if null
+                                $monthly_totals[$m] = $row['month_total'] ?? 0;
                             }
 
-                            // Assign totals to variables for your chart
+
+                            // Assign totals
                             $january_total   = $monthly_totals[1];
                             $february_total  = $monthly_totals[2];
                             $march_total     = $monthly_totals[3];

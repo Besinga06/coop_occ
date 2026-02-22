@@ -8,19 +8,6 @@ if (!isset($_GET['id'])) {
 $loan_id = (int) $_GET['id'];
 
 
-$query = "
-    SELECT l.loan_app_id   AS loan_id,
-           l.requested_amount,
-           l.term_months,
-           l.status,
-           l.purpose,
-           l.application_date,
-           c.name AS member_name
-    FROM tbl_loan_application l
-    JOIN tbl_customer c ON l.customer_id = c.cust_id
-    WHERE l.loan_app_id = $loan_id
-";
-$loan = $db->querySingle($query, true);
 
 if (!$loan) {
     die("Loan not found.");

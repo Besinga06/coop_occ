@@ -2,6 +2,13 @@
 
 <?php
 
+if (
+    !isset($_SESSION['is_login_yes'], $_SESSION['user_id'], $_SESSION['usertype'])
+    || $_SESSION['is_login_yes'] != 'yes'
+    || !in_array((int)$_SESSION['usertype'], [1, 3])
+) {
+    die("Unauthorized access.");
+}
 
 $cust_id = (int)$_GET['cust_id'];
 
@@ -139,22 +146,6 @@ BETWEEN '$date_from' AND '$date_to'
 
     GROUP BY s.sales_no, s.sales_date, pay.total_paid
     ORDER BY s.sales_date DESC
-");
-
-
-
-$disbursed = $db->query("
-    SELECT
-        dd.reference_no,
-        dd.amount_disbursed,
-        dd.payment_method,
-        dd.disbursed_at,
-        dr.cycle_id
-    FROM distribution_disbursements dd
-    LEFT JOIN distribution_records dr ON dd.record_id = dr.id
-    WHERE dd.cust_id = $cust_id
-      AND YEAR(dd.disbursed_at) = $year
-    ORDER BY dd.disbursed_at DESC
 ");
 
 
@@ -366,7 +357,6 @@ $payments = $db->query("
                                             <li><a href="#loan" data-toggle="tab">Loans</a></li>
                                             <li><a href="#cash" data-toggle="tab">Cash Purchases</a></li>
                                             <li><a href="#charge" data-toggle="tab">Charge Sales</a></li>
-                                            <li><a href="#benefits" data-toggle="tab">Disbursed Benefits</a></li>
                                         <?php endif; ?>
                                         <?php if ($member_type == 'associate'): ?>
                                             <li class="active"><a href="#info" data-toggle="tab">Information</a></li>
@@ -683,40 +673,131 @@ $payments = $db->query("
                                         <div class="tab-pane" id="loan">
                                             <div class="panel panel-white border-top-xlg border-top-teal-400">
                                                 <div class="panel-heading">
-                                                    <h6 class="panel-title"><i class="icon-coins position-left text-teal-400"></i> Loan History (<?= $year; ?>)</h6>
+                                                    <h6 class="panel-title">
+                                                        <i class="icon-coins position-left text-teal-400"></i> Loan History (<?= $year; ?>)
+                                                    </h6>
                                                 </div>
                                                 <div class="panel-body">
                                                     <table class="table table-bordered table-hover">
                                                         <thead>
                                                             <tr style="background:#eee">
-                                                                <th>Loan No</th>
-                                                                <th>Date Applied</th>
-                                                                <th>Amount</th>
+                                                                <th>Reference</th>
+                                                                <th>Loan Type</th>
+                                                                <th>Date Paid</th>
+                                                                <th class="text-right">Principal</th>
+                                                                <th class="text-right">Interest</th>
+                                                                <th class="text-right">Penalty</th>
+                                                                <th class="text-right">Total Paid</th>
+                                                                <th class="text-right">Remaining Balance</th>
                                                                 <th>Status</th>
                                                             </tr>
                                                         </thead>
                                                         <tbody>
                                                             <?php
-                                                            //                                         $loan_result = $db->query("
-                                                            //     SELECT loan_id, date_applied, amount, status 
-                                                            //     FROM tbl_loan_application 
-                                                            //     WHERE member_id = $member_id 
-                                                            //     ORDER BY date_applied DESC
-                                                            // ");
 
-                                                            //                                         if ($loan_result->num_rows > 0) {
-                                                            //                                             while ($loan = $loan_result->fetch_assoc()) {
-                                                            //                                                 echo "<tr>
-                                                            //             <td>" . htmlspecialchars($loan['loan_id']) . "</td>
-                                                            //             <td>" . date('M d, Y', strtotime($loan['date_applied'])) . "</td>
-                                                            //             <td>₱" . number_format($loan['amount'], 2) . "</td>
-                                                            //             <td>" . htmlspecialchars(ucfirst($loan['status'])) . "</td>
-                                                            //         </tr>";
-                                                            //                                             }
-                                                            //                                         } else {
-                                                            //                                             echo "<tr><td colspan='4' class='text-center'>No loans found for $year.</td></tr>";
-                                                            //                                         }
+                                                            // Fetch loans INCLUDING total_due
+                                                            $loan_result = $db->query("
+SELECT l.loan_id, l.total_due, l.status, lt.loan_type_name
+FROM loans l
+JOIN loan_types lt ON l.loan_type_id = lt.loan_type_id
+JOIN accounts a ON l.account_id = a.account_id
+WHERE a.member_id = $member_id
+ORDER BY l.loan_id DESC
+");
+
+                                                            if ($loan_result->num_rows > 0) {
+
+                                                                while ($loan = $loan_result->fetch_assoc()) {
+
+                                                                    $loan_id = $loan['loan_id'];
+                                                                    $loan_type_name = htmlspecialchars($loan['loan_type_name']);
+                                                                    $loan_status = ucfirst($loan['status']);
+
+                                                                    // START balance from TOTAL LOAN DUE (correct)
+                                                                    $balance = floatval($loan['total_due']);
+
+
+                                                                    // Fetch payments
+                                                                    $payments = $db->query("
+        SELECT *
+        FROM loan_payments
+        WHERE loan_id = $loan_id
+        ORDER BY payment_date ASC, payment_id ASC
+        ");
+
+
+                                                                    if ($payments->num_rows > 0) {
+
+                                                                        while ($p = $payments->fetch_assoc()) {
+
+                                                                            $reference = htmlspecialchars($p['reference_no']);
+
+                                                                            $date_paid = date('M d, Y', strtotime($p['payment_date']));
+
+                                                                            $principal_paid = floatval($p['principal_paid']);
+                                                                            $interest_paid = floatval($p['interest_paid']);
+                                                                            $penalty_paid = floatval($p['penalty_paid']);
+
+                                                                            $total_paid = floatval($p['amount_paid']);
+
+
+                                                                            // SUBTRACT payment from TOTAL DUE
+                                                                            $balance -= $total_paid;
+
+
+                                                                            echo "<tr>
+
+                <td>
+                <a href='javascript:void(0);'
+                onclick='view_loanpayments_receipt(this)'
+                data-reference='{$reference}'
+                style='font-weight:600; color:#26a69a;'>
+                {$reference}
+                </a>
+                </td>
+
+                <td>{$loan_type_name}</td>
+
+                <td>{$date_paid}</td>
+
+                <td class='text-right'>₱" . number_format($principal_paid, 2) . "</td>
+
+                <td class='text-right'>₱" . number_format($interest_paid, 2) . "</td>
+
+                <td class='text-right'>₱" . number_format($penalty_paid, 2) . "</td>
+
+                <td class='text-right'>₱" . number_format($total_paid, 2) . "</td>
+
+                <td class='text-right'><b>₱" . number_format($balance, 2) . "</b></td>
+
+                <td>{$loan_status}</td>
+
+                </tr>";
+                                                                        }
+                                                                    } else {
+
+                                                                        echo "
+            <tr>
+            <td colspan='9' class='text-center'>
+            No payments made yet
+            </td>
+            </tr>
+            ";
+                                                                    }
+                                                                }
+                                                            } else {
+
+                                                                echo "
+<tr>
+<td colspan='9' class='text-center'>
+No loans found
+</td>
+</tr>
+";
+                                                            }
+
                                                             ?>
+
                                                         </tbody>
                                                     </table>
                                                 </div>
@@ -891,49 +972,7 @@ $payments = $db->query("
                                             </div>
                                         </div>
 
-                                        <!-- DISBURSED BENEFITS TAB -->
-                                        <div class="tab-pane" id="benefits">
-                                            <div class="panel panel-white border-top-xlg border-top-teal-400">
-                                                <div class="panel-heading">
-                                                    <h6 class="panel-title"><i class="icon-gift position-left text-teal-400"></i> Distribution / Disbursed Benefits (<?= $year; ?>)</h6>
-                                                </div>
-                                                <div class="panel-body">
-                                                    <table class="table table-bordered table-hover">
-                                                        <thead>
-                                                            <tr style="background:#eee">
-                                                                <th>Date</th>
-                                                                <th>Cycle</th>
-                                                                <th>Amount</th>
-                                                                <th>Payment Method</th>
-                                                                <th>Reference No</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            <?php
-                                                            $hasDisb = false;
 
-                                                            while ($d = $disbursed->fetch_assoc()) {
-                                                                $hasDisb = true;
-
-                                                                echo "<tr>
-                                                                 <td>" . date('M d, Y h:i A', strtotime($d['disbursed_at'])) . "</td>
-                                                                <td>Cycle #" . htmlspecialchars($d['cycle_id']) . "</td>
-                                                                <td>₱" . number_format($d['amount_disbursed'], 2) . "</td>
-                                                                <td>" . htmlspecialchars(ucfirst($d['payment_method'])) . "</td>
-                                                                <td>" . htmlspecialchars($d['reference_no']) . "</td>
-                                                                </tr>";
-                                                            }
-
-                                                            if (!$hasDisb) {
-                                                                echo "<tr><td colspan='5'>No disbursed benefits found for $year.</td></tr>";
-                                                            }
-                                                            ?>
-
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                            </div>
-                                        </div>
 
                                     </div> <!-- tab-content -->
                                 </div> <!-- tabbable -->
@@ -1153,6 +1192,49 @@ $payments = $db->query("
 
                     });
 
+                }
+
+
+
+                function view_loanpayments_receipt(el) {
+                    var reference_no = $(el).attr('data-reference');
+
+                    if (!reference_no) {
+                        alert("Reference number not found.");
+                        return;
+                    }
+
+                    // show loader
+                    $("#show-data-all").html(
+                        '<div style="text-align:center;padding:40px;">' +
+                        '<img src="../images/LoaderIcon.gif">' +
+                        '</div>'
+                    );
+
+                    $.ajax({
+                        type: 'POST',
+                        url: '../transaction.php',
+                        data: {
+                            view_loanpayments_receipt: true,
+                            reference_no: reference_no
+                        },
+
+                        success: function(msg) {
+                            $("#modal-all").modal('show');
+
+                            $("#title-all").html(
+                                'loan payments receipt: <b class="text-success">' +
+                                reference_no +
+                                '</b>'
+                            );
+
+                            $("#show-data-all").html(msg);
+                        },
+
+                        error: function() {
+                            alert("Something went wrong.");
+                        }
+                    });
                 }
             </script>
 

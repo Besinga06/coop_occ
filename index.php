@@ -98,7 +98,7 @@ if (isset($_SESSION['is_login_yes']) && $_SESSION['is_login_yes'] == 'yes') {
             <div class="login-form login-form-left">
                 <div class="agile-row">
                     <div>
-                        <img src="images/your_logo.png" class="logo-img" alt="Logo">
+                        <img src="images/main_logo.jpg" class="logo-img" alt="Logo">
                     </div>
                     <br>
                     <h4 style="font-size: 25px;color:#fff">Login Here</h4>

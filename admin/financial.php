@@ -157,45 +157,142 @@ $overall_savings = $db->query("
 // Members Purchases Breakdown (Current Year Only)
 // -------------------------
 $purchases = $db->query("
+
+SELECT 
+    c.cust_id,
+    c.name,
+
+    COALESCE(cs.total_cash_sales, 0) AS total_cash_sales,
+
+    COALESCE(cp.total_paid_charge, 0) AS total_paid_charge,
+
+    COALESCE(cs.total_cash_sales, 0) +
+    COALESCE(cp.total_paid_charge, 0) AS total_purchase
+
+
+FROM tbl_customer c
+
+
+LEFT JOIN (
+
     SELECT 
-        c.cust_id,
-        c.name,
-        COALESCE(SUM(CASE WHEN s.sales_type = 1 THEN s.total_amount ELSE 0 END), 0) AS total_cash_sales,
-        COALESCE((
-            SELECT SUM(p.amount_paid)
-            FROM tbl_payments p
-            JOIN tbl_sales s2 ON p.sales_no = s2.sales_no
-            WHERE s2.cust_id = c.cust_id AND s2.sales_type = 0 AND YEAR(s2.sales_date) = '$currentYear'
-        ), 0) AS total_paid_charge,
-        COALESCE(SUM(CASE WHEN s.sales_type = 1 THEN s.total_amount ELSE 0 END), 0) 
-        + COALESCE((
-            SELECT SUM(p.amount_paid)
-            FROM tbl_payments p
-            JOIN tbl_sales s2 ON p.sales_no = s2.sales_no
-            WHERE s2.cust_id = c.cust_id AND s2.sales_type = 0 AND YEAR(s2.sales_date) = '$currentYear'
-        ), 0) AS total_purchase
-    FROM tbl_customer c
-    LEFT JOIN tbl_sales s ON c.cust_id = s.cust_id AND YEAR(s.sales_date) = '$currentYear'
-    WHERE c.cust_id != 1
-    GROUP BY c.cust_id
-    ORDER BY c.name ASC
+        cust_id,
+        SUM(total_amount) AS total_cash_sales
+    FROM (
+
+        SELECT 
+            sales_no,
+            cust_id,
+            MAX(total_amount) AS total_amount
+        FROM tbl_sales
+        WHERE sales_type = 1
+        AND YEAR(sales_date) = '$currentYear'
+        GROUP BY sales_no, cust_id
+
+    ) cash_sales
+
+    GROUP BY cust_id
+
+) cs ON c.cust_id = cs.cust_id
+
+
+
+LEFT JOIN (
+
+    SELECT 
+        cust_id,
+        SUM(amount_paid) AS total_paid_charge
+    FROM (
+
+        SELECT 
+            s.sales_no,
+            s.cust_id,
+            SUM(p.amount_paid) AS amount_paid
+        FROM tbl_sales s
+        INNER JOIN tbl_payments p 
+            ON s.sales_no = p.sales_no
+        WHERE s.sales_type = 0
+        AND YEAR(s.sales_date) = '$currentYear'
+        GROUP BY s.sales_no, s.cust_id
+
+    ) charge_payment
+
+    GROUP BY cust_id
+
+) cp ON c.cust_id = cp.cust_id
+
+
+
+WHERE c.cust_id != 1
+
+ORDER BY c.name ASC
+
 ");
 
 // -------------------------
 // Overall Totals (All Members) - Purchases (Current Year)
 // -------------------------
 $overall_purchase = $db->query("
+
+SELECT 
+
+COALESCE(SUM(total_cash_sales),0) +
+COALESCE(SUM(total_paid_charge),0)
+
+AS total_purchase
+
+
+FROM (
+
     SELECT 
-        COALESCE(SUM(CASE WHEN s.sales_type = 1 THEN s.total_amount ELSE 0 END), 0) 
-        + COALESCE((
-            SELECT SUM(p.amount_paid)
-            FROM tbl_payments p
-            JOIN tbl_sales s2 ON p.sales_no = s2.sales_no
-            WHERE s2.sales_type = 0 AND YEAR(s2.sales_date) = '$currentYear'
-        ), 0) AS total_purchase
-    FROM tbl_sales s
-    JOIN tbl_customer c ON s.cust_id = c.cust_id
-    WHERE c.cust_id != 1 AND YEAR(s.sales_date) = '$currentYear'
+        cust_id,
+        SUM(total_amount) AS total_cash_sales,
+        0 AS total_paid_charge
+    FROM (
+
+        SELECT 
+            sales_no,
+            cust_id,
+            MAX(total_amount) AS total_amount
+        FROM tbl_sales
+        WHERE sales_type = 1
+        AND YEAR(sales_date) = '$currentYear'
+        GROUP BY sales_no, cust_id
+
+    ) cash
+
+    GROUP BY cust_id
+
+
+
+    UNION ALL
+
+
+
+    SELECT 
+        cust_id,
+        0,
+        SUM(amount_paid)
+    FROM (
+
+        SELECT 
+            s.sales_no,
+            s.cust_id,
+            SUM(p.amount_paid) AS amount_paid
+        FROM tbl_sales s
+        JOIN tbl_payments p 
+            ON s.sales_no = p.sales_no
+        WHERE s.sales_type = 0
+        AND YEAR(s.sales_date) = '$currentYear'
+        GROUP BY s.sales_no, s.cust_id
+
+    ) charge
+
+    GROUP BY cust_id
+
+
+) totals
+
 ")->fetch_assoc();
 
 // Load members for Add Contribution Modal
@@ -347,7 +444,7 @@ $allMembersArray = $all_members->fetch_all(MYSQLI_ASSOC);
                                 <div class="panel bg-danger-400 hover-panel" style="padding:10px; border-radius:5px;">
                                     <div class="panel-body text-center" style="padding:10px;">
                                         <h4 class="no-margin" style="font-size:18px;">₱ <?= number_format($overall_purchase['total_purchase'] ?? 0, 2) ?></h4>
-                                        <small>Total Member Purchases (<?= $currentYear ?>)</small>
+                                        <small>Total Member Patronage (<?= $currentYear ?>)</small>
                                     </div>
                                 </div>
                             </a>
@@ -496,9 +593,9 @@ $allMembersArray = $all_members->fetch_all(MYSQLI_ASSOC);
 
 
                     <!-- Members Purchases Table -->
-                    <div class="panel panel-white border-top-xlg border-top-primary">
+                    <div class="panel panel-white border-top-xlg border-top-danger">
                         <div class="panel-heading">
-                            <h6 class="panel-title"><i class="icon-cart text-primary position-left"></i> Members’ Purchases (<?= $currentYear ?>)</h6>
+                            <h6 class="panel-title"><i class="icon-cart text-danger position-left"></i> Members' Patronage (<?= $currentYear ?>)</h6>
                         </div>
                         <div class="panel-body panel-theme">
                             <table class="table datatable-button-html5-basic table-hover table-bordered">
@@ -525,8 +622,8 @@ $allMembersArray = $all_members->fetch_all(MYSQLI_ASSOC);
 
 
                             <div class="well" style="margin-top:20px;">
-                                <h5><b>Overall Total Purchases (All Members - <?= $currentYear ?>)</b></h5>
-                                <h4 style="text-align:right; color:#337ab7;">₱ <?= money($overall_purchase['total_purchase']); ?></h4>
+                                <h5><b>Overall Total Patronage (All Members - <?= $currentYear ?>)</b></h5>
+                                <h4 style="text-align:right; color:#ff0000;">₱ <?= money($overall_purchase['total_purchase']); ?></h4>
 
                             </div>
                         </div>

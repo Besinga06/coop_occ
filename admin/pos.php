@@ -1,6 +1,16 @@
 <?php session_start(); ?>
 <?php
 
+
+if (
+    !isset($_SESSION['is_login_yes'], $_SESSION['user_id'], $_SESSION['usertype'])
+    || $_SESSION['is_login_yes'] != 'yes'
+    || !in_array((int)$_SESSION['usertype'], [1, 2]) // allow usertype 1 OR 2
+) {
+    die("Unauthorized access.");
+}
+
+
 ini_set('max_execution_time', 0);
 require('db_connect.php');
 $type = 1;

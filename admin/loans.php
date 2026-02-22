@@ -1,60 +1,85 @@
 <?php
 require('includes/header.php');
 
-// $pending_loans = $db->query("SELECT l.*, c.name as member_name 
-//     FROM tbl_loan_application l
-//     JOIN tbl_customer c ON l.customer_id = c.cust_id
-//     WHERE l.status='pending'
-//     ORDER BY l.loan_app_id DESC");
 
-// $approved_loans = $db->query("SELECT l.*, c.name as member_name, a.approved_amount, a.approved_term, a.interest_rate 
-//     FROM tbl_loan_application l
-//     JOIN tbl_customer c ON l.customer_id = c.cust_id
-//     JOIN tbl_loan_approval a ON a.loan_app_id=l.loan_app_id
-//     WHERE l.status='approved'
-//     ORDER BY l.loan_app_id DESC");
+if (
+    !isset($_SESSION['is_login_yes'], $_SESSION['user_id'], $_SESSION['usertype'])
+    || $_SESSION['is_login_yes'] != 'yes'
+    || !in_array((int)$_SESSION['usertype'], [1, 3])
+) {
+    die("Unauthorized access.");
+}
 
-// $declined_loans = $db->query("SELECT l.*, c.name as member_name 
-//     FROM tbl_loan_application l
-//     JOIN tbl_customer c ON l.customer_id = c.cust_id
-//     WHERE l.status='rejected'
-//     ORDER BY l.loan_app_id DESC");
+// Fetch Loans
+$pending_loans = $db->query("
+    SELECT l.loan_id, l.requested_amount, l.status, l.application_date,
+           a.account_id, m.member_id, CONCAT(m.first_name, ' ', m.last_name) AS member_name,
+           lt.loan_type_name, lt.term_value, lt.term_unit, lt.interest_rate
+    FROM loans l
+    JOIN accounts a ON l.account_id = a.account_id
+    JOIN tbl_members m ON a.member_id = m.member_id
+    JOIN loan_types lt ON l.loan_type_id = lt.loan_type_id
+    WHERE l.status='pending'
+    ORDER BY l.loan_id DESC
+");
 
+$approved_loans = $db->query("
+    SELECT l.loan_id, l.requested_amount, l.status, l.application_date,
+           a.account_id, m.member_id, CONCAT(m.first_name, ' ', m.last_name) AS member_name,
+           lt.loan_type_name, lt.term_value, lt.term_unit, lt.interest_rate
+    FROM loans l
+    JOIN accounts a ON l.account_id = a.account_id
+    JOIN tbl_members m ON a.member_id = m.member_id
+    JOIN loan_types lt ON l.loan_type_id = lt.loan_type_id
+    WHERE l.status='approved'
+    ORDER BY l.loan_id DESC
+");
+
+$declined_loans = $db->query("
+    SELECT l.loan_id, l.requested_amount, l.status, l.application_date,
+           a.account_id, m.member_id, CONCAT(m.first_name, ' ', m.last_name) AS member_name,
+           lt.loan_type_name, lt.term_value, lt.term_unit, lt.interest_rate
+    FROM loans l
+    JOIN accounts a ON l.account_id = a.account_id
+    JOIN tbl_members m ON a.member_id = m.member_id
+    JOIN loan_types lt ON l.loan_type_id = lt.loan_type_id
+    WHERE l.status='rejected'
+    ORDER BY l.loan_id DESC
+");
+
+// Loan funds
 $funds = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
-
 ?>
+
 <style>
     .navbar-brand {
         display: flex;
         align-items: center;
-        /* vertically center image + text */
         gap: 0px;
-        /* space between logo and text */
         font-weight: 800;
         color: white;
-        /* adjust to your navbar color */
         text-decoration: none;
         font-size: 50px;
     }
 
     .navbar-brand img {
         height: 40px;
-        /* adjust logo height */
         width: auto;
         object-fit: contain;
     }
 
     .navbar-brand span {
         white-space: nowrap;
-        /* prevent text from wrapping to next line */
     }
 </style>
 
 <body class="layout-boxed navbar-top">
-    <!-- Main navbar -->
     <div class="navbar navbar-inverse bg-teal-400 navbar-fixed-top">
         <div class="navbar-header">
-            <a class="navbar-brand" href="index.php"><img style="height: 65px!important" src="../images/your_logo.png" alt=""><span>OCC Cooperative</span></a>
+            <a class="navbar-brand" href="index.php">
+                <img style="height:65px!important" src="../images/your_logo.png" alt="">
+                <span>OCC Cooperative</span>
+            </a>
             <ul class="nav navbar-nav visible-xs-block">
                 <li><a data-toggle="collapse" data-target="#navbar-mobile"><i class="icon-tree5"></i></a></li>
             </ul>
@@ -104,26 +129,32 @@ $funds = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
                                         <th>Member</th>
                                         <th>Amount</th>
                                         <th>Term</th>
+                                        <th>Interest Rate</th>
                                         <th>Date Applied</th>
                                         <th>Action</th>
                                     </tr>
                                 </thead>
-                                <!-- <tbody>
+                                <tbody>
                                     <?php while ($row = $pending_loans->fetch_assoc()) { ?>
                                         <tr>
-                                            <td hidden><?= $row['loan_app_id'] ?></td>
+                                            <td hidden><?= $row['loan_id'] ?></td>
                                             <td><?= htmlspecialchars($row['member_name']) ?></td>
                                             <td align="right"><?= number_format($row['requested_amount'], 2) ?></td>
-                                            <td align="center"><?= $row['term_months'] ?> months</td>
+                                            <td align="center"><?= $row['term_value'] ?> <?= $row['term_unit'] ?></td>
+                                            <td align="center"><?= number_format($row['interest_rate'], 2) ?></td>
                                             <td><?= $row['application_date'] ?></td>
                                             <td align="center">
-                                                <button class="btn btn-success btn-approve" data-id="<?= $row['loan_app_id'] ?>">Approve</button>
-                                                <button class="btn btn-danger btn-decline" data-id="<?= $row['loan_app_id'] ?>">Decline</button>
+                                                <button class="btn btn-success btn-approve"
+                                                    data-id="<?= $row['loan_id'] ?>"
+                                                    data-amount="<?= $row['requested_amount'] ?>"
+                                                    data-term="<?= $row['term_value'] ?>"
+                                                    data-unit="<?= $row['term_unit'] ?>"
+                                                    data-interest="<?= $row['interest_rate'] ?>">Approve</button>
+                                                <button class="btn btn-danger btn-decline" data-id="<?= $row['loan_id'] ?>">Decline</button>
                                             </td>
                                         </tr>
                                     <?php } ?>
-
-                                </tbody> -->
+                                </tbody>
                             </table>
                         </div>
                     </div>
@@ -146,30 +177,29 @@ $funds = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
                                         <th>Action</th>
                                     </tr>
                                 </thead>
-                                <!-- <tbody>
+                                <tbody>
                                     <?php while ($row = $approved_loans->fetch_assoc()) { ?>
                                         <tr>
-                                            <td hidden><?= $row['loan_app_id'] ?></td>
+                                            <td hidden><?= $row['loan_id'] ?></td>
                                             <td><?= htmlspecialchars($row['member_name']) ?></td>
-                                            <td><?= number_format($row['approved_amount'], 2) ?></td>
-                                            <td><?= $row['approved_term'] ?> months</td>
+                                            <td><?= number_format($row['requested_amount'], 2) ?></td>
+                                            <td><?= $row['term_value'] ?> <?= $row['term_unit'] ?></td>
                                             <td><?= $row['interest_rate'] ?>%</td>
                                             <td><?= $row['application_date'] ?></td>
                                             <td align="center">
-                                                <button class="btn btn-info view-receipt" data-id="<?= $row['loan_app_id'] ?>">
+                                                <button class="btn btn-info view-receipt" data-id="<?= $row['loan_id'] ?>">
                                                     <i class="icon-file-eye"></i> Print
                                                 </button>
                                             </td>
                                         </tr>
                                     <?php } ?>
-
-                                </tbody> -->
+                                </tbody>
                             </table>
                         </div>
                     </div>
 
                     <!-- Declined Loans -->
-                    <div class="panel panel-white border-top-xlg border-top-teal-400">
+                    <!-- <div class="panel panel-white border-top-xlg border-top-teal-400">
                         <div class="panel-heading">
                             <h6 class="panel-title"><i class="icon-cross text-teal-400 position-left"></i> Declined Loans</h6>
                         </div>
@@ -183,28 +213,27 @@ $funds = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
                                         <th>Date Applied</th>
                                     </tr>
                                 </thead>
-                                <!-- <tbody>
+                                <tbody>
                                     <?php while ($row = $declined_loans->fetch_assoc()) { ?>
                                         <tr>
-                                            <td hidden><?= $row['loan_app_id'] ?></td>
+                                            <td hidden><?= $row['loan_id'] ?></td>
                                             <td><?= htmlspecialchars($row['member_name']) ?></td>
                                             <td><?= number_format($row['requested_amount'], 2) ?></td>
                                             <td><?= $row['application_date'] ?></td>
                                         </tr>
                                     <?php } ?>
-
-                                </tbody> -->
+                                </tbody>
                             </table>
                         </div>
-                    </div>
+                    </div> -->
 
                 </div>
                 <?php require('includes/footer-text.php'); ?>
             </div>
         </div>
     </div>
-
 </body>
+
 <!-- Fund Modal -->
 <div id="modal-funds" class="modal fade" data-backdrop="static">
     <div class="modal-dialog modal-lg">
@@ -235,38 +264,36 @@ $funds = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
                                 <th>Starting Balance</th>
                                 <th>Current Balance</th>
                                 <th>Created At</th>
-                                <th>Action</th> <!-- new -->
+                                <th>Action</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php
-                            //             $funds_list = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
-                            //             while ($f = $funds_list->fetch_assoc()) {
-                            //                 echo "<tr>
-                            //            <td>{$f['fund_id']}</td>
-                            //        <td class='fund-name'>" . htmlspecialchars($f['fund_name']) . "</td>
-                            // <td class='fund-starting' style='text-align:right'>" . number_format($f['starting_balance'], 2) . "</td>
-                            // <td class='fund-current' style='text-align:right'>" . number_format($f['current_balance'], 2) . "</td>
-                            // <td>{$f['created_at']}</td>
-                            // <td align='center'>
-                            //     <button class='btn btn-sm btn-warning btn-edit-fund' data-id='{$f['fund_id']}'>
-                            //         <i class='icon-pencil'></i> update
-                            //      </button>
-                            //        </td>
-                            //       </tr>";
-                            //             }
+                            $funds_list = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
+                            while ($f = $funds_list->fetch_assoc()) {
+                                echo "<tr>
+                    <td>{$f['fund_id']}</td>
+                    <td class='fund-name'>" . htmlspecialchars($f['fund_name']) . "</td>
+                    <td class='fund-starting' style='text-align:right'>" . number_format($f['starting_balance'], 2) . "</td>
+                    <td class='fund-current' style='text-align:right'>" . number_format($f['current_balance'], 2) . "</td>
+                    <td>{$f['created_at']}</td>
+                    <td align='center'>
+                        <button class='btn btn-sm btn-warning btn-edit-fund' data-id='{$f['fund_id']}'>
+                            <i class='icon-pencil'></i> Update
+                        </button>
+                    </td>
+                </tr>";
+                            }
                             ?>
-
                         </tbody>
                     </table>
                 </div>
                 <div class="modal-footer">
                     <button type="button" id="btn-save-fund" class="btn bg-teal-400">Save Fund</button>
                 </div>
+            </form>
         </div>
-        </form>
     </div>
-</div>
 </div>
 
 <!-- Approve Modal -->
@@ -275,12 +302,12 @@ $funds = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
         <div class="modal-content">
             <form id="form-approve">
                 <input type="hidden" name="approve_loan" value="1">
-                <input type="hidden" name="loan_app_id" id="approve-loan-id">
+                <input type="hidden" name="loan_app_id" id="loan-app-id">
                 <div class="modal-header">
                     <h5 class="modal-title">Approve Loan</h5>
                     <button type="button" class="close" data-dismiss="modal">&times;</button>
                 </div>
-                <div class="modal-bodys">
+                <div class="modal-bodys ">
                     <div class="form-group">
                         <label>Choose Fund</label>
                         <select name="fund_id" id="fund-select" class="form-control" required>
@@ -289,11 +316,10 @@ $funds = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
                             $funds = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
                             while ($f = $funds->fetch_assoc()) {
                                 echo "<option value='{$f['fund_id']}' data-balance='{$f['current_balance']}'>
-                            {$f['fund_name']} - Balance: " . number_format($f['current_balance'], 2) . "
-                              </option>";
+                        {$f['fund_name']} - Balance: " . number_format($f['current_balance'], 2) . "
+                    </option>";
                             }
                             ?>
-
                         </select>
                     </div>
                     <div class="form-group">
@@ -301,12 +327,12 @@ $funds = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
                         <input type="number" step="0.01" name="approved_amount" id="approved-amount" class="form-control" readonly>
                     </div>
                     <div class="form-group">
-                        <label>Term (months)</label>
-                        <input type="number" name="approved_term" class="form-control" readonly>
+                        <label>Term</label>
+                        <input type="text" name="approved_term" class="form-control" readonly>
                     </div>
                     <div class="form-group">
                         <label>Interest Rate (%)</label>
-                        <input type="number" step="0.01" name="interest_rate" class="form-control" required>
+                        <input type="number" step="0.01" name="interest_rate" id="interest-rate" class="form-control" readonly>
                     </div>
                     <div id="approval-error" class="text-danger"></div>
                 </div>
@@ -320,10 +346,9 @@ $funds = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
 </div>
 
 <!-- Decline Modal -->
-<div id="modal-decline" class="modal fade" data-backdrop="static" data-keyboard="false">
-    <div class="modal-dialog modal-sm"> <!-- small dialog box -->
+<div id="modal-decline" class="modal fade" data-backdrop="static">
+    <div class="modal-dialog modal-sm">
         <div class="modal-content" style="border-radius:8px;">
-            <!-- Header -->
             <div class="modal-header bg-danger-400 text-white py-2">
                 <h6 class="modal-title mb-0">
                     <i class="icon-cross2"></i> Confirm Decline
@@ -331,9 +356,7 @@ $funds = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
                 <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
             </div>
             <input type="hidden" id="decline-loan-id">
-            <p class="mb-0" style="font-size:14px;">
-                Are you sure you want to decline this loan?
-            </p>
+            <p class="mb-0" style="font-size:14px;">Are you sure you want to decline this loan?</p>
             <div class="modal-footer justify-content-center py-2">
                 <button id="confirm-decline" class="btn btn-danger btn-sm btn-labeled">
                     <b><i class="icon-cross"></i></b> Decline
@@ -346,19 +369,15 @@ $funds = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
     </div>
 </div>
 
-
-
 <!-- Loan Receipt Modal -->
-<div id="loanReceiptModal" class="modal fade" tabindex="-1" role="dialog">
+<div id="loanReceiptModal" class="modal fade" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Loan Approval </h5>
+                <h5 class="modal-title">Loan Approval</h5>
                 <button type="button" class="close" data-dismiss="modal">&times;</button>
             </div>
-            <div class="modal-body" id="loan-receipt-body">
-                <!-- Loan receipt content loads here -->
-            </div>
+            <div class="modal-body" id="loan-receipt-body"></div>
             <div class="modal-footer">
                 <button type="button" onclick="printReceipt()" class="btn btn-primary">
                     <i class="icon-printer"></i> Print
@@ -371,29 +390,31 @@ $funds = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
 
 <?php require('includes/footer.php'); ?>
 
-<script type="text/javascript" src="../assets/js/plugins/tables/datatables/datatables.min.js"></script>
+<script src="../assets/js/plugins/tables/datatables/datatables.min.js"></script>
 <script src="../js/validator.min.js"></script>
-<script type="text/javascript" src="../assets/js/plugins/notifications/jgrowl.min.js"></script>
+<script src="../assets/js/plugins/notifications/jgrowl.min.js"></script>
 <script>
     $(function() {
-        // Initialize DataTables
-        $('.datatable-button-html5-basic').DataTable();
+        $('.datatable-button-html5-basic').each(function() {
+            $(this).DataTable();
+        });
 
-        // Approve Loan button
+        // Approve Loan
         $(document).on('click', '.btn-approve', function() {
-            let row = $(this).closest('tr');
             let loanId = $(this).data('id');
-            let requestedAmount = row.find('td').eq(2).text().replace(/,/g, '');
-            let termMonths = row.find('td').eq(3).text().replace(' months', '');
+            let amount = $(this).data('amount');
+            let term = $(this).data('term');
+            let unit = $(this).data('unit');
+            let interest = $(this).data('interest'); // fetch interest
 
-            $('#approve-loan-id').val(loanId);
-            $('#approved-amount').val(requestedAmount).prop('readonly', true);
-            $('input[name="approved_term"]').val(termMonths).prop('readonly', true);
+            $('#loan-app-id').val(loanId);
+            $('#approved-amount').val(amount).prop('readonly', true);
+            $('input[name="approved_term"]').val(term + (unit ? ` ${unit}` : '')).prop('readonly', true);
+            $('#interest-rate').val(interest); // set interest rate
             $('#approval-error').text('');
             $('#modal-approve').modal('show');
         });
-
-        // Decline Loan button
+        // Decline Loan
         $(document).on('click', '.btn-decline', function() {
             let loanId = $(this).data('id');
             $('#decline-loan-id').val(loanId);
@@ -424,7 +445,7 @@ $funds = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
             });
         });
 
-        // Approve Loan submit
+        // Approve submit
         $('#form-approve').submit(function(e) {
             e.preventDefault();
             let approved = parseFloat($('#approved-amount').val());
@@ -451,43 +472,39 @@ $funds = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
         // View Receipt
         $(document).on('click', '.view-receipt', function() {
             let loanId = $(this).data('id');
-            $('#loan-receipt-body').html('<p class="text-center">Loading receipt...</p>');
-
-            $.get('loan_receipt.php', {
+            $.get('../transaction.php', {
+                loan_receipt: 1,
                 loan_id: loanId
-            }, function(data) {
-                $('#loan-receipt-body').html(data);
+            }, function(resp) {
+
+                $('#loan-receipt-body').html(resp);
+
                 $('#loanReceiptModal').modal('show');
+
             });
         });
 
+        // Edit Fund
         $(document).on('click', '.btn-edit-fund', function(e) {
-            e.preventDefault(); // <-- prevent form submission
-
+            e.preventDefault();
             let row = $(this).closest('tr');
             let fundId = $(this).data('id');
             let fundName = row.find('.fund-name').text().trim();
             let startingBalance = row.find('.fund-starting').text().replace(/,/g, '').trim();
 
-            // Fill form fields with existing values
             $('#form-funds input[name="fund_name"]').val(fundName);
             $('#form-funds input[name="starting_balance"]').val(startingBalance);
-
-            // Change button behavior to Update
             $('#btn-save-fund').text('Update Fund').data('update-id', fundId);
-
-            // Scroll modal to top and show
             $('#modal-funds').modal('show');
         });
 
+
+        // Save Fund
         $('#btn-save-fund').click(function() {
             let form = $('#form-funds');
             let updateId = $(this).data('update-id') || '';
-
             let postData = form.serialize();
-            if (updateId) {
-                postData += '&update_id=' + updateId;
-            }
+            if (updateId) postData += '&update_id=' + updateId;
 
             $.post('../transaction.php', postData, function(resp) {
                 resp = resp.trim();
@@ -500,21 +517,23 @@ $funds = $db->query("SELECT * FROM tbl_loan_fund ORDER BY fund_id DESC");
                     $('#btn-save-fund').text('Save Fund').removeData('update-id');
                     setTimeout(() => window.location.reload(), 1200);
                 } else {
-                    $('#display-fund-msg').html(`<div class="alert alert-danger">${resp}</div>`);
+                    $('#display-fund-msg').html('<div class="alert alert-danger">' + resp + '</div>');
                 }
             });
         });
 
     });
 
-    // Print button
-    function printReceipt() {
-        var printContents = document.getElementById("loan-receipt-body").innerHTML;
-        var originalContents = document.body.innerHTML;
 
-        document.body.innerHTML = printContents;
-        window.print();
-        document.body.innerHTML = originalContents;
-        location.reload();
+
+
+    function printReceipt() {
+        let content = document.getElementById('loan-receipt-body').innerHTML;
+        let w = window.open('', '', 'height=600,width=800');
+        w.document.write('<html><head><title>Loan Receipt</title></head><body>');
+        w.document.write(content);
+        w.document.write('</body></html>');
+        w.document.close();
+        w.print();
     }
 </script>

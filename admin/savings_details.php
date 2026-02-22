@@ -8,7 +8,7 @@ if (!isset($_GET['reference_no'])) {
 $reference_no = $db->real_escape_string($_GET['reference_no']);
 
 /* ==============================
-   1️⃣ Fetch Savings Transaction
+    Fetch Savings Transaction
 ============================== */
 
 $query = "
@@ -39,7 +39,7 @@ if ($result->num_rows == 0) {
 $row = $result->fetch_assoc();
 
 /* ==============================
-   2️⃣ Fetch Employee from History
+   2Fetch Employee from History
 ============================== */
 
 $historyResult = $db->query("

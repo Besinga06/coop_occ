@@ -1,5 +1,14 @@
 <?php require('includes/header.php'); ?>
 <?php
+
+if (
+    !isset($_SESSION['is_login_yes'], $_SESSION['user_id'], $_SESSION['usertype'])
+    || $_SESSION['is_login_yes'] != 'yes'
+    || !in_array((int)$_SESSION['usertype'], [1, 3]) // allow usertype 1 OR 2
+) {
+    die("Unauthorized access.");
+}
+
 $unit = "SELECT * FROM tbl_units ORDER BY unit ASC";
 $result_unit = $db->query($unit);
 ?>

@@ -109,6 +109,14 @@
 
 <?php
 
+if (
+	!isset($_SESSION['is_login_yes'], $_SESSION['user_id'], $_SESSION['usertype'])
+	|| $_SESSION['is_login_yes'] != 'yes'
+	|| $_SESSION['usertype'] != 1
+) {
+	die("Unauthorized access.");
+}
+
 require('db_connect.php');
 $query = "SELECT * FROM tbl_customer";
 $customer = $db->query($query);
@@ -176,7 +184,7 @@ if (isset($_SESSION['history-report'])) {
 	<!-- Main navbar -->
 	<div class="navbar navbar-inverse bg-teal-400 navbar-fixed-top">
 		<div class="navbar-header">
-			<a class="navbar-brand" href="index.php"><img style="height: 40px!important" src="../images/your_logo.png" alt=""><span>OCC Coopertive</span></a>
+			<a class="navbar-brand" href="index.php"><img style="height: 40px!important" src="../images/main_logo.jpg" alt=""><span>Opol Community College <br> Employees Credit Cooperative</span></a>
 			<ul class="nav navbar-nav visible-xs-block">
 				<li><a data-toggle="collapse" data-target="#navbar-mobile"><i class="icon-tree5"></i></a></li>
 			</ul>
@@ -328,11 +336,46 @@ if (isset($_SESSION['history-report'])) {
 											$history_type = "Login";
 											$details_data = '<i class="icon-calendar text-teal-400"></i> Date: ' . $row['date_history'] .
 												' <i class="icon-user text-teal-400"></i> User : ' . $employee_name;
-										} elseif ($row['history_type'] == 40) {
+										} elseif ($row['history_type'] == 55) {
 											$history_type = "Loan Application";
-											$details_data = '<i class="icon-users text-teal-400"></i> Member: ' . $customer_name .
-												' <i class="icon-coin-dollar text-teal-400"></i> Amount: ' . ($details->amount ?? '-') .
-												' <i class="icon-hour-glass2 text-teal-400"></i> Term: ' . ($details->term ?? '-') . ' months' .
+											$member_name = 'Unknown Member';
+											if (!empty($details->member_id)) {
+												$mid = intval($details->member_id);
+												$result_member = $db->query("
+                                            SELECT CONCAT(first_name,' ',last_name) AS name
+                                            FROM tbl_members
+                                            WHERE member_id = '$mid'
+                                            LIMIT 1
+                                             ");
+												if ($result_member && $result_member->num_rows > 0) {
+													$data_member = $result_member->fetch_assoc();
+													$member_name = $data_member['name'];
+												}
+											}
+											// Loan Type Name
+											$loan_type_name = '-';
+											if (!empty($details->loan_type_id)) {
+												$ltid = intval($details->loan_type_id);
+												$result_lt = $db->query("
+                                                 SELECT loan_type_name
+                                                 FROM loan_types
+                                                 WHERE loan_type_id = '$ltid'
+                                                  LIMIT 1
+                                                  ");
+												if ($result_lt && $result_lt->num_rows > 0) {
+													$data_lt = $result_lt->fetch_assoc();
+													$loan_type_name = $data_lt['loan_type_name'];
+												}
+											}
+											$amount = isset($details->requested_amount)
+												? '₱' . number_format($details->requested_amount, 2)
+												: '-';
+											$purpose = $details->purpose ?? '-';
+											$details_data =
+												'<i class="icon-users text-teal-400"></i> Member: ' . $member_name .
+												' <i class="icon-file-text text-teal-400"></i> Loan Type: ' . $loan_type_name .
+												' <i class="icon-coin-dollar text-teal-400"></i> Amount: ' . $amount .
+												' <i class="icon-book text-teal-400"></i> Purpose: ' . $purpose .
 												' <i class="icon-user text-teal-400"></i> Employee: ' . $employee_name;
 										} elseif ($row['history_type'] == 51) {
 											$history_type = "Savings Deposit";
